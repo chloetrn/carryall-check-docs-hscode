@@ -722,6 +722,60 @@
     }
     .question label { display: block; margin-bottom: 7px; color: #624000; font-size: 12.5px; font-weight: 750; }
 
+    details.collapsible-card,
+    details.result-collapsible { overflow: hidden; }
+    details.collapsible-card > summary,
+    details.result-collapsible > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    details.collapsible-card > summary::-webkit-details-marker,
+    details.result-collapsible > summary::-webkit-details-marker { display: none; }
+    .collapse-arrow {
+      display: inline-grid;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      place-items: center;
+      border: 1px solid var(--gray-2);
+      border-radius: 50%;
+      background: var(--white);
+      color: var(--teal-dark);
+      font-size: 18px;
+      line-height: 1;
+      transition: transform .2s ease, background .2s ease;
+    }
+    details[open] > summary .collapse-arrow {
+      transform: rotate(180deg);
+      background: var(--teal-tint);
+    }
+    details.collapsible-card > summary.card-head:hover,
+    details.collapsible-card > summary.card-head:focus-visible { background: #f7fbfb; }
+    details.result-collapsible > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      color: var(--teal-dark);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    details.result-collapsible > summary:hover,
+    details.result-collapsible > summary:focus-visible { background: #f7fbfb; }
+    details.result-collapsible[open] > summary {
+      border-bottom: 1px solid var(--gray-2);
+      background: var(--teal-tint);
+    }
+    .collapsible-hint {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+    details.result-collapsible > .result-section-content { padding: 16px 18px; }
+
     .table-scroll { overflow-x: auto; }
     table {
       width: 100%;
@@ -1273,14 +1327,14 @@
           </div>
         </div>
 
-        <div class="card hidden" id="questionsCard">
-          <div class="card-head">
+        <details class="card collapsible-card hidden" id="questionsCard">
+          <summary class="card-head">
             <div>
-              <h3>Chưa đủ thông tin để xác định mã HS</h3>
-              <p>Vui lòng bổ sung các nội dung dưới đây. Hệ thống không tự suy đoán đặc điểm hàng hóa.</p>
+              <h3>Thông tin cần bổ sung</h3>
+              <p>Nhấn để xem các nội dung có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</p>
             </div>
-            <span class="step">02</span>
-          </div>
+            <span class="collapse-arrow" aria-hidden="true">⌄</span>
+          </summary>
           <div class="card-body">
             <div class="warning" style="margin-bottom:14px">Thông tin thiếu có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</div>
             <div class="questions" id="questionsList"></div>
@@ -1289,7 +1343,7 @@
               <button class="btn btn-ghost" id="backToFormBtn" type="button">Sửa form hàng hóa</button>
             </div>
           </div>
-        </div>
+        </details>
 
         <div class="card hidden" id="summaryCard">
           <div class="card-head">
@@ -1336,16 +1390,16 @@
           </div>
         </div>
 
-        <div class="card hidden" id="detailsCard">
-          <div class="card-head">
+        <details class="card collapsible-card hidden" id="detailsCard">
+          <summary class="card-head">
             <div>
               <h3>Phân tích chi tiết</h3>
-              <p>Cấu trúc phân loại, quy tắc áp dụng, chú giải, điều khoản loại trừ và phương án cạnh tranh.</p>
+              <p>Nhấn để xem cấu trúc phân loại và căn cứ của từng mã HS.</p>
             </div>
-            <span class="step">04</span>
-          </div>
+            <span class="collapse-arrow" aria-hidden="true">⌄</span>
+          </summary>
           <div class="card-body" id="detailsList"></div>
-        </div>
+        </details>
 
         <div class="card hidden" id="sourcesCard">
           <div class="card-head">
@@ -2749,6 +2803,8 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       $("#sourceGrid").innerHTML = "";
       $("#noOfficialSource").classList.add("hidden");
       $("#formError").classList.add("hidden");
+      $("#questionsCard").open = false;
+      $("#detailsCard").open = false;
     }
 
     function renderHSResult(data) {
@@ -2759,6 +2815,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
 
       if (questions.length) {
         renderQuestions(questions);
+        $("#questionsCard").open = false;
         $("#questionsCard").classList.remove("hidden");
       }
 
@@ -2774,6 +2831,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       renderDetails(data, suggestions);
       renderSources(data.nguon_tham_khao || []);
       $("#suggestionsCard").classList.remove("hidden");
+      $("#detailsCard").open = false;
       $("#detailsCard").classList.toggle("hidden", suggestions.length === 0);
       $("#sourcesCard").classList.remove("hidden");
       $("#legalDisclaimer").classList.remove("hidden");
@@ -2838,6 +2896,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       $$(".view-detail", body).forEach(button => button.addEventListener("click", () => {
         const detail = $("#detail-" + button.dataset.detailIndex);
         if (detail) {
+          $("#detailsCard").open = true;
           detail.open = true;
           detail.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -2851,7 +2910,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
         const structure = item.cau_truc_phan_loai || item.cau_truc || [
           item.phan, item.chuong, item.nhom, item.phan_nhom, code
         ].filter(Boolean).join(" → ");
-        return `<details class="detail-card" id="detail-${index}" ${index === 0 ? "open" : ""}>
+        return `<details class="detail-card" id="detail-${index}">
           <summary><span class="hs-code">${esc(code)}</span> ${esc(item.mo_ta_hang_hoa || item.mo_ta || "")}</summary>
           <div class="detail-body">
             <div class="detail-grid">
@@ -4200,8 +4259,12 @@ Cấu trúc:
     function resultQuestionsHtml(record, resultIndex) {
       const questions = (record.data.cau_hoi_bo_sung || []).slice(0, 3);
       if (!questions.length) return "";
-      return `<div class="result-section">
-        <h4>Thông tin cần bổ sung</h4>
+      return `<details class="result-section result-collapsible" id="batch-questions-${resultIndex}">
+        <summary>
+          <span>Thông tin cần bổ sung<span class="collapsible-hint">Nhấn để xem và trả lời ${questions.length} câu hỏi quan trọng</span></span>
+          <span class="collapse-arrow" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="result-section-content">
         <div class="warning" style="margin-bottom:11px">Thông tin thiếu có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</div>
         <div class="questions">${questions.map((question, questionIndex) => {
           const id = question.id || `cau_hoi_${questionIndex + 1}`;
@@ -4214,7 +4277,8 @@ Cấu trúc:
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
           <button class="btn btn-primary" type="button" data-submit-batch-answers="${resultIndex}">Gửi thông tin bổ sung</button>
         </div>
-      </div>`;
+        </div>
+      </details>`;
     }
 
     function resultSuggestionsHtml(data, resultIndex) {
@@ -4252,11 +4316,16 @@ Cấu trúc:
       const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
       if (!suggestions.length) return "";
       const considered = textOf(data.chuong_da_xem_xet || []);
-      return `<div class="result-section"><h4>Phân tích chi tiết</h4>${
+      return `<details class="result-section result-collapsible" id="batch-analysis-${resultIndex}">
+        <summary>
+          <span>Phân tích chi tiết mã HS<span class="collapsible-hint">Nhấn để xem căn cứ của ${suggestions.length} phương án</span></span>
+          <span class="collapse-arrow" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="result-section-content">${
         suggestions.map((item, index) => {
           const code = normalizeHSCode(item.ma_hs || item.hs_code || item.code);
           const structure = item.cau_truc_phan_loai || item.cau_truc || [item.phan, item.chuong, item.nhom, item.phan_nhom, code].filter(Boolean).join(" → ");
-          return `<details class="detail-card" id="batch-detail-${resultIndex}-${index}" ${index === 0 ? "open" : ""}>
+          return `<details class="detail-card" id="batch-detail-${resultIndex}-${index}">
             <summary><span class="hs-code">${esc(code)}</span> ${esc(item.mo_ta_hang_hoa || item.mo_ta || "")}</summary>
             <div class="detail-body"><div class="detail-grid">
               <div class="detail-block full"><h5>Cấu trúc phân loại</h5><p>${esc(textOf(structure) || "Chưa có")}</p></div>
@@ -4271,7 +4340,7 @@ Cấu trúc:
             </div></div>
           </details>`;
         }).join("")
-      }</div>`;
+      }</div></details>`;
     }
 
     function resultSourcesHtml(data) {
@@ -4330,6 +4399,9 @@ Cấu trúc:
       $$("[data-open-batch-detail]", container).forEach(button => button.addEventListener("click", () => {
         const detail = $("#batch-detail-" + button.dataset.openBatchDetail);
         if (detail) {
+          const resultIndex = button.dataset.openBatchDetail.split("-")[0];
+          const analysis = $("#batch-analysis-" + resultIndex);
+          if (analysis) analysis.open = true;
           detail.open = true;
           detail.scrollIntoView({ behavior: "smooth", block: "start" });
         }
