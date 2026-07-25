@@ -1,0 +1,3952 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DocCheck - Phân tích và gợi ý mã HS theo thông tin hàng hóa, 6 Quy tắc tổng quát và nguồn chính thức.">
+  <title>DocCheck — Phân tích &amp; gợi ý mã HS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    :root {
+      --teal: #0a6268;
+      --teal-dark: #074a4f;
+      --teal-strong: #064248;
+      --teal-tint: #e9f4f4;
+      --red: #d92d3a;
+      --red-tint: #fff0f1;
+      --black: #151a1c;
+      --white: #fff;
+      --gray-0: #fafcfc;
+      --gray-1: #f3f6f6;
+      --gray-2: #e4eaea;
+      --gray-3: #c5d0d0;
+      --muted: #5d6d6e;
+      --green: #1d7549;
+      --green-tint: #eaf6ef;
+      --amber: #996100;
+      --amber-tint: #fff6e5;
+      --blue: #245ea8;
+      --blue-tint: #eef5ff;
+      --shadow: 0 12px 34px rgba(12, 52, 55, .08);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--gray-1);
+      color: var(--black);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { touch-action: manipulation; }
+    a { color: var(--teal); }
+    .wrap { width: min(1240px, calc(100% - 36px)); margin: 0 auto; }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+      color: var(--white);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .topbar .inner {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 0;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--white);
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: -.3px;
+      flex: 0 0 auto;
+    }
+    .brand h1 { margin: 0; font-size: 19px; line-height: 1.25; }
+    .brand p { margin: 3px 0 0; color: #c9e8e9; font-size: 12px; }
+    .service-state {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 390px;
+      padding: 7px 11px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px;
+      background: rgba(0,0,0,.12);
+      font-size: 12px;
+      color: #dff4f4;
+      text-align: right;
+    }
+    .state-dot { width: 8px; height: 8px; border-radius: 50%; background: #f0b54f; flex: 0 0 auto; }
+    .service-state.online .state-dot { background: #67dd91; }
+    .service-state.offline .state-dot { background: #ff858d; }
+
+    .keybar {
+      background: var(--teal-strong);
+      color: var(--white);
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .keybar-inner {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+      padding: 11px 0;
+    }
+    .keybar label {
+      color: #d9eeee;
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .key-input-wrap {
+      position: relative;
+      flex: 1 1 330px;
+      max-width: 540px;
+    }
+    .key-input {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid #31848a;
+      border-radius: 7px;
+      background: #0d575c;
+      color: var(--white);
+      padding: 8px 43px 8px 11px;
+      outline: none;
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+    }
+    .key-input::placeholder { color: #8fc1c4; }
+    .key-input:focus { border-color: #7fd0d5; box-shadow: 0 0 0 3px rgba(127,208,213,.14); }
+    .key-toggle {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: #bce1e3;
+      padding: 5px 7px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .key-status {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.1);
+      color: #c9e8e9;
+      font-size: 10.5px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .key-status.ok { background: #dff5e8; color: #14613a; }
+    .key-status.bad { background: #ffe4e7; color: #8a1f28; }
+    .key-help {
+      flex-basis: 100%;
+      margin-left: 145px;
+      color: #8fc1c4;
+      font-size: 10.5px;
+    }
+    .key-help a { color: #aee6e9; }
+
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255,255,255,.96);
+      border-bottom: 1px solid var(--gray-2);
+      backdrop-filter: blur(10px);
+    }
+    .tab-list { display: flex; gap: 4px; overflow-x: auto; }
+    .tab-btn {
+      border: 0;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      padding: 14px 18px 11px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13.5px;
+      white-space: nowrap;
+    }
+    .tab-btn:hover, .tab-btn.active { color: var(--teal-dark); }
+    .tab-btn.active { border-bottom-color: var(--teal); }
+
+    main { padding: 26px 0 74px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+    .hero h2 { margin: 0; color: var(--teal-strong); font-size: clamp(25px, 4vw, 38px); line-height: 1.15; letter-spacing: -.03em; }
+    .hero p { max-width: 800px; margin: 11px 0 0; color: var(--muted); font-size: 14px; }
+    .hero-badge {
+      padding: 10px 13px;
+      border: 1px solid #c8dfdf;
+      border-radius: 10px;
+      background: var(--teal-tint);
+      color: var(--teal-dark);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-2);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 0 rgba(11,45,47,.02);
+    }
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px 15px;
+      border-bottom: 1px solid var(--gray-2);
+    }
+    .card-head h3 { margin: 0; color: var(--teal-dark); font-size: 17px; }
+    .card-head p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+    .step {
+      min-width: 32px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--teal);
+      color: var(--white);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .card-body { padding: 20px; }
+
+    .notice, .warning, .error, .success {
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+    .notice { background: var(--teal-tint); border: 1px solid #c7dfdf; color: var(--teal-dark); }
+    .warning { background: var(--amber-tint); border: 1px solid #ead39e; color: #744a00; }
+    .error { background: var(--red-tint); border: 1px solid #f0b9be; color: #851d27; }
+    .success { background: var(--green-tint); border: 1px solid #bfe2cd; color: #155f3a; }
+    .hidden { display: none !important; }
+
+    .form-section + .form-section { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--gray-2); }
+    .form-section-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 14px;
+      color: var(--teal-dark);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+    .section-index {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--teal-tint);
+      color: var(--teal);
+      font-size: 11px;
+    }
+    .quick-entry {
+      padding: 18px;
+      border: 1px solid #c7dfdf;
+      border-radius: 11px;
+      background: linear-gradient(180deg, #f7fbfb, var(--white));
+    }
+    .quick-entry .form-section-title { margin-bottom: 6px; }
+    .quick-help { margin: 0 0 15px; color: var(--muted); font-size: 12px; }
+    .quick-description { min-height: 128px !important; }
+    details.optional-details {
+      margin-top: 18px;
+      border: 1px solid var(--gray-2);
+      border-radius: 11px;
+      overflow: hidden;
+      background: var(--white);
+    }
+    details.optional-details > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 15px 17px;
+      cursor: pointer;
+      list-style: none;
+      color: var(--teal-dark);
+      background: var(--gray-0);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    details.optional-details > summary::-webkit-details-marker { display: none; }
+    details.optional-details > summary::after {
+      content: "Mở";
+      flex: 0 0 auto;
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    details.optional-details[open] > summary {
+      border-bottom: 1px solid var(--gray-2);
+      background: var(--teal-tint);
+    }
+    details.optional-details[open] > summary::after { content: "Thu gọn"; }
+    .optional-details-body { padding: 18px; }
+    .optional-badge {
+      margin-left: 8px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--white);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .method-card {
+      min-height: 150px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      border: 1.5px solid var(--gray-2);
+      border-radius: 11px;
+      background: var(--white);
+      color: inherit;
+      padding: 18px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s, transform .08s, background .15s;
+    }
+    .method-card:hover {
+      border-color: #8eb8ba;
+      background: #fbfefe;
+    }
+    .method-card:active { transform: translateY(1px); }
+    .method-card.active {
+      border-color: var(--teal);
+      background: var(--teal-tint);
+      box-shadow: inset 0 0 0 1px var(--teal);
+    }
+    .method-number {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: var(--teal);
+      color: var(--white);
+      font-weight: 850;
+    }
+    .method-card h4 { margin: 1px 0 5px; color: var(--teal-dark); font-size: 15px; }
+    .method-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .method-panel { margin-top: 18px; }
+    .item-stack { display: grid; gap: 16px; }
+    .item-card {
+      border: 1px solid var(--gray-2);
+      border-radius: 11px;
+      background: var(--white);
+      overflow: hidden;
+    }
+    .item-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--gray-2);
+      background: var(--gray-0);
+    }
+    .item-card-head h4 { margin: 0; color: var(--teal-dark); font-size: 14px; }
+    .item-card-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+    .item-card-body { padding: 16px; }
+    .mini-btn {
+      min-height: 32px;
+      border: 1px solid var(--gray-3);
+      border-radius: 6px;
+      background: var(--white);
+      color: #405052;
+      padding: 6px 9px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .mini-btn:hover { border-color: var(--teal); color: var(--teal); }
+    .mini-btn.danger { border-color: #efc3c7; color: var(--red); }
+    .dynamic-fields {
+      margin-top: 16px;
+      padding: 15px;
+      border: 1px solid #cfe1e2;
+      border-radius: 9px;
+      background: #f7fbfb;
+    }
+    .dynamic-fields h5 { margin: 0 0 11px; color: var(--teal-dark); font-size: 12.5px; }
+    .dynamic-fields-intro {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 13px;
+    }
+    .dynamic-fields-intro h5 { margin-bottom: 4px; }
+    .dynamic-fields-intro p {
+      max-width: 720px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .completion-badge {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 9px;
+      border: 1px solid #c7dddd;
+      border-radius: 999px;
+      background: var(--white);
+      color: var(--teal-dark);
+      font-size: 10px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .completion-badge.complete {
+      border-color: #b8dcc5;
+      background: var(--green-tint);
+      color: var(--green);
+    }
+    .field-importance {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 5px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #fff3da;
+      color: #8a5a00;
+      font-size: 9px;
+      font-weight: 800;
+      vertical-align: middle;
+    }
+    .field-importance.optional {
+      background: var(--gray-1);
+      color: var(--muted);
+    }
+    .group-optional {
+      margin-top: 13px;
+      border: 1px solid var(--gray-2);
+      border-radius: 8px;
+      background: var(--white);
+      overflow: hidden;
+    }
+    .group-optional summary {
+      padding: 11px 13px;
+      color: var(--teal-dark);
+      cursor: pointer;
+      font-size: 11.5px;
+      font-weight: 800;
+      list-style-position: inside;
+    }
+    .group-optional[open] summary { border-bottom: 1px solid var(--gray-2); }
+    .group-optional .form-grid { padding: 13px; }
+    .group-waiting-note {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border: 1px dashed #a9c3c5;
+      border-radius: 8px;
+      background: var(--gray-0);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .item-upload {
+      margin-top: 16px;
+      padding: 13px;
+      border: 1px dashed #a9c3c5;
+      border-radius: 9px;
+      background: var(--gray-0);
+    }
+    .item-upload-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .item-upload strong { color: var(--teal-dark); font-size: 12.5px; }
+    .item-upload p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .upload-file-actions { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+    .file-state {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--gray-1);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .file-state.processing { background: var(--amber-tint); color: var(--amber); }
+    .file-state.done { background: var(--green-tint); color: var(--green); }
+    .file-state.failed { background: var(--red-tint); color: var(--red); }
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 13px;
+    }
+    .preview-toolbar .preview-status { margin-left: auto; }
+    .preview-input {
+      width: 100%;
+      min-width: 110px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      padding: 6px 7px;
+      color: #273638;
+      font-size: 12px;
+    }
+    textarea.preview-input { min-height: 58px; resize: vertical; }
+    .preview-input:not([readonly]) { border-color: var(--gray-3); background: var(--white); }
+    .preview-row.selected { background: #edf8f8; }
+    .preview-check { width: 16px; height: 16px; accent-color: var(--teal); }
+    .result-item-card { overflow: hidden; }
+    .result-item-card + .result-item-card { margin-top: 16px; }
+    .result-item-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--gray-2);
+      background: linear-gradient(180deg, #f7fbfb, var(--white));
+    }
+    .result-item-head h3 { margin: 0; color: var(--teal-dark); font-size: 16px; }
+    .result-item-head p { margin: 4px 0 0; color: var(--muted); font-size: 11.5px; }
+    .result-section { padding: 16px 18px; border-bottom: 1px solid var(--gray-2); }
+    .result-section:last-child { border-bottom: 0; }
+    .result-section h4 { margin: 0 0 11px; color: var(--teal-dark); font-size: 13px; }
+    .batch-export {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 14px;
+      border: 1px solid var(--gray-2);
+      border-radius: 10px;
+      background: var(--white);
+    }
+    .batch-export .action-hint { margin-right: auto; }
+    .form-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; }
+    .field { grid-column: span 4; }
+    .field.half { grid-column: span 6; }
+    .field.full { grid-column: 1 / -1; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: #314042;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+    .required { color: var(--red); }
+    .field small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .control {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--gray-3);
+      border-radius: 7px;
+      background: var(--white);
+      color: var(--black);
+      padding: 9px 11px;
+      outline: 0;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    textarea.control { min-height: 86px; resize: vertical; }
+    .control:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(10,98,104,.11); }
+    .control:invalid:not(:placeholder-shown) { border-color: var(--red); }
+
+    .upload-box {
+      border: 1.5px dashed #9ebdbf;
+      border-radius: 11px;
+      padding: 22px;
+      background: var(--gray-0);
+      text-align: center;
+      transition: .15s;
+    }
+    .upload-box.dragging { border-color: var(--teal); background: var(--teal-tint); }
+    .upload-icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 9px;
+      border-radius: 12px;
+      background: var(--teal-tint);
+      color: var(--teal);
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .upload-box strong { display: block; color: var(--teal-dark); font-size: 13px; }
+    .upload-box p { margin: 5px 0 12px; color: var(--muted); font-size: 11.5px; }
+    input[type=file] { display: none; }
+    .file-list { display: grid; gap: 8px; margin-top: 13px; text-align: left; }
+    .file-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 10px;
+      border: 1px solid var(--gray-2);
+      border-radius: 7px;
+      background: var(--white);
+      font-size: 12px;
+    }
+    .file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-meta { color: var(--muted); font-size: 10.5px; }
+    .icon-btn {
+      border: 0;
+      background: transparent;
+      color: var(--red);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      padding: 13px;
+      border: 1px solid var(--gray-2);
+      border-radius: 11px;
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 -8px 24px rgba(16,52,54,.07);
+      backdrop-filter: blur(10px);
+    }
+    .btn {
+      min-height: 40px;
+      border-radius: 7px;
+      border: 1px solid transparent;
+      padding: 9px 15px;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 750;
+      transition: transform .08s, background .15s, border-color .15s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-primary { background: var(--teal); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: var(--teal-dark); }
+    .btn-secondary { background: var(--white); color: var(--teal); border-color: var(--teal); }
+    .btn-secondary:hover:not(:disabled) { background: var(--teal-tint); }
+    .btn-ghost { background: var(--gray-1); color: #405052; border-color: var(--gray-2); }
+    .btn-danger { margin-left: auto; background: var(--white); color: var(--red); border-color: #efc3c7; }
+    .action-hint { color: var(--muted); font-size: 11.5px; }
+
+    .loading {
+      padding: 34px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 38px;
+      height: 38px;
+      margin: 0 auto 12px;
+      border: 3px solid var(--gray-2);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-stack { display: grid; gap: 18px; margin-top: 22px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+    .summary-item {
+      min-height: 92px;
+      padding: 12px;
+      border: 1px solid var(--gray-2);
+      border-radius: 8px;
+      background: var(--gray-0);
+    }
+    .summary-item span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+    .summary-item strong { color: #243133; font-size: 13px; font-weight: 650; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 7px; }
+    .pill { padding: 5px 9px; border-radius: 999px; background: var(--gray-1); color: #405052; font-size: 11.5px; }
+
+    .questions { display: grid; gap: 12px; }
+    .question {
+      padding: 12px;
+      border: 1px solid #ecd39a;
+      border-radius: 8px;
+      background: #fffbf2;
+    }
+    .question label { display: block; margin-bottom: 7px; color: #624000; font-size: 12.5px; font-weight: 750; }
+
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--gray-2);
+      background: var(--white);
+      font-size: 12.5px;
+    }
+    th, td { border-bottom: 1px solid var(--gray-2); padding: 11px 12px; text-align: left; vertical-align: top; }
+    th { background: var(--teal); color: var(--white); font-size: 11.5px; }
+    tbody tr:hover { background: #f6fbfb; }
+    .hs-code { color: var(--teal-dark); font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 14px; font-weight: 850; white-space: nowrap; }
+    .level {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .level-cao { background: var(--green-tint); color: var(--green); }
+    .level-trung-binh { background: var(--amber-tint); color: var(--amber); }
+    .level-thap { background: var(--red-tint); color: var(--red); }
+    .level-chua-du-can-cu { background: var(--gray-2); color: var(--muted); }
+
+    details.detail-card {
+      border: 1px solid var(--gray-2);
+      border-radius: 9px;
+      background: var(--white);
+      overflow: hidden;
+    }
+    details.detail-card + details.detail-card { margin-top: 10px; }
+    details.detail-card > summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 15px;
+      cursor: pointer;
+      color: var(--teal-dark);
+      font-size: 13px;
+      font-weight: 800;
+      list-style: none;
+    }
+    details.detail-card > summary::-webkit-details-marker { display: none; }
+    details.detail-card[open] > summary { border-bottom: 1px solid var(--gray-2); background: var(--teal-tint); }
+    .detail-body { padding: 15px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .detail-block { padding: 11px; border: 1px solid var(--gray-2); border-radius: 8px; background: var(--gray-0); }
+    .detail-block.full { grid-column: 1 / -1; }
+    .detail-block h5 { margin: 0 0 6px; color: var(--teal-dark); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+    .detail-block p { margin: 0; color: #364547; font-size: 12.5px; white-space: pre-line; }
+    .rule {
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--gray-2);
+      font-size: 12.5px;
+    }
+    .rule:last-child { border-bottom: 0; }
+    .rule strong { color: var(--teal-dark); }
+
+    .source-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 11px; }
+    .source-card { padding: 13px; border: 1px solid var(--gray-2); border-radius: 9px; background: var(--gray-0); }
+    .source-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .source-card h5 { margin: 0; color: var(--teal-dark); font-size: 13px; }
+    .source-card p { margin: 6px 0 0; color: var(--muted); font-size: 11.5px; }
+    .source-kind { padding: 3px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 800; white-space: nowrap; }
+    .official { background: var(--green-tint); color: var(--green); }
+    .reference { background: var(--blue-tint); color: var(--blue); }
+    .source-link { display: inline-flex; margin-top: 9px; font-size: 11.5px; font-weight: 800; text-decoration: none; }
+
+    .disclaimer {
+      border-left: 4px solid #d69a29;
+      border-radius: 8px;
+      padding: 13px 15px;
+      background: var(--amber-tint);
+      color: #684300;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .doc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
+    .doc-slot {
+      position: relative;
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      padding: 13px;
+      border: 1px solid var(--gray-2);
+      border-radius: 9px;
+      background: var(--white);
+    }
+    .doc-slot.has-file { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+    .doc-slot h4 { margin: 0; color: var(--teal-dark); font-size: 13px; }
+    .doc-slot p { margin: 2px 0 10px; color: var(--muted); font-size: 11px; }
+    .doc-picker { margin-top: auto; border: 1px dashed var(--gray-3); border-radius: 6px; background: var(--gray-0); color: var(--teal); padding: 8px; text-align: center; cursor: pointer; font-size: 11.5px; font-weight: 700; }
+    .doc-file-name { margin-top: 7px; color: #334345; font-size: 10.5px; overflow-wrap: anywhere; }
+    .doc-clear { position: absolute; top: 8px; right: 8px; }
+
+    footer { padding: 18px 0 28px; color: var(--muted); text-align: center; font-size: 11px; }
+
+    @media (max-width: 900px) {
+      .field, .field.half { grid-column: span 6; }
+      .method-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .doc-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .source-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .wrap { width: min(100% - 24px, 1240px); }
+      .topbar .inner { align-items: flex-start; }
+      .service-state { display: none; }
+      .brand p { max-width: 260px; }
+      .keybar-inner { align-items: stretch; }
+      .keybar label { width: 100%; }
+      .key-input-wrap { max-width: none; flex-basis: 100%; }
+      .key-help { margin-left: 0; }
+      .hero { grid-template-columns: 1fr; gap: 12px; }
+      .hero-badge { width: fit-content; white-space: normal; }
+      .card-head, .card-body { padding-left: 14px; padding-right: 14px; }
+      .field, .field.half, .field.full { grid-column: 1 / -1; }
+      .summary-grid, .detail-grid, .doc-grid { grid-template-columns: 1fr; }
+      .item-card-head, .result-item-head { align-items: flex-start; flex-direction: column; }
+      .dynamic-fields-intro { flex-direction: column; }
+      .completion-badge { white-space: normal; }
+      .preview-toolbar .preview-status { width: 100%; margin-left: 0; }
+      .actions { position: static; }
+      .btn { flex: 1 1 auto; }
+      .btn-danger { margin-left: 0; }
+      th, td { padding: 9px; }
+    }
+    @media print {
+      body { background: #fff; }
+      .topbar, .tabs, .hero, #hsForm, #hsWorkflowForm, .actions, .export-actions, .batch-export, #panel-check, footer { display: none !important; }
+      #panel-hs, #hsResultArea, .panel { display: block !important; }
+      main { padding: 0; }
+      .wrap { width: 100%; }
+      .card { box-shadow: none; break-inside: avoid; }
+      details.detail-card > .detail-body { display: block; }
+      .source-link { color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap inner">
+      <div class="brand">
+        <div class="brand-mark">DC</div>
+        <div>
+          <h1>DocCheck</h1>
+          <p>Đối chiếu chứng từ · Phân tích và gợi ý mã HS có dẫn nguồn</p>
+        </div>
+      </div>
+      <div class="service-state" id="serviceState" role="status" aria-live="polite">
+        <span class="state-dot"></span>
+        <span id="serviceStateText">Chưa kết nối DeepSeek</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="keybar" aria-label="Cấu hình DeepSeek API">
+    <div class="wrap keybar-inner">
+      <label for="apiKeyInput">🔑 DeepSeek API Key:</label>
+      <div class="key-input-wrap">
+        <input class="key-input" type="password" id="apiKeyInput" placeholder="Dán key vào đây: sk-xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+        <button class="key-toggle" id="toggleKeyBtn" type="button" aria-label="Hiện hoặc ẩn API key">Hiện</button>
+      </div>
+      <button class="btn btn-primary" id="saveKeyBtn" type="button">Lưu key</button>
+      <button class="btn btn-ghost" id="clearKeyBtn" type="button">Xóa key</button>
+      <span class="key-status" id="keyStatus">Chưa có key</span>
+      <div class="key-help">
+        Key được lưu trên trình duyệt của thiết bị này và dùng để gọi trực tiếp DeepSeek API.
+        Lấy key tại <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a>.
+      </div>
+    </div>
+  </section>
+
+  <nav class="tabs" aria-label="Chức năng">
+    <div class="wrap tab-list">
+      <button class="tab-btn" type="button" data-tab="check">1. Kiểm tra chứng từ</button>
+      <button class="tab-btn active" type="button" data-tab="hs">2. Phân tích mã HS</button>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section class="panel" id="panel-check">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Đối chiếu bộ chứng từ</p>
+          <h2>Kiểm tra thông tin giữa các chứng từ</h2>
+          <p>Tải từng chứng từ vào đúng ô. DeepSeek sẽ trích xuất dữ liệu và chỉ ra các trường khớp, lệch hoặc chưa đủ căn cứ đối chiếu.</p>
+        </div>
+        <div class="hero-badge">AI đọc chứng từ bằng DeepSeek</div>
+      </div>
+
+      <div class="notice" style="margin-bottom:16px">
+        File được đọc ngay trên trình duyệt rồi nội dung cần phân tích được gửi trực tiếp đến DeepSeek bằng API key bạn nhập. Không có server trung gian của DocCheck lưu chứng từ.
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Tải bộ chứng từ</h3>
+            <p>Cần tối thiểu hai chứng từ để thực hiện đối chiếu.</p>
+          </div>
+          <span class="step">01</span>
+        </div>
+        <div class="card-body">
+          <div class="doc-grid" id="docGrid"></div>
+          <div class="actions">
+            <button class="btn btn-primary" type="button" id="compareDocsBtn">Đối chiếu chứng từ</button>
+            <span class="action-hint" id="docHint">Chưa có đủ chứng từ.</span>
+            <button class="btn btn-danger" type="button" id="clearDocsBtn">Xóa tất cả</button>
+          </div>
+        </div>
+      </div>
+      <div id="docResultArea" class="result-stack"></div>
+    </section>
+
+    <section class="panel active" id="panel-hs">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Phân loại hàng hóa tại Việt Nam</p>
+          <h2>Phân tích và gợi ý mã HS</h2>
+          <p>Hệ thống tổng hợp thông tin hàng hóa và gợi ý mã HS Việt Nam đủ 8 số theo Chú giải cùng 6 Quy tắc tổng quát.</p>
+        </div>
+        <div class="hero-badge">Không phân loại chỉ bằng từ khóa</div>
+      </div>
+
+      <div class="notice" style="margin-bottom:16px">
+        Chọn một trong hai cách: tự nhập thông tin cho từng mặt hàng hoặc tải danh sách hàng hóa để hệ thống trích xuất và tạo bảng xem trước.
+      </div>
+      <div class="warning" style="margin:-6px 0 16px">
+        Bản HTML gọi DeepSeek trực tiếp và không bảo đảm có công cụ tìm kiếm Internet thời gian thực. Hệ thống bị cấm tạo nguồn giả; các nguồn và ngày hiệu lực trong kết quả vẫn cần được người dùng kiểm tra lại.
+      </div>
+
+      <form id="hsForm" class="hidden" novalidate aria-hidden="true">
+        <div class="card" id="productInputCard">
+          <div class="card-head">
+            <div>
+              <h3>Nhập thông tin hàng hóa</h3>
+              <p>Bắt đầu nhanh với thông tin đang có; hệ thống sẽ hỏi thêm nếu cần.</p>
+            </div>
+            <span class="step">01</span>
+          </div>
+          <div class="card-body">
+            <div class="form-section quick-entry">
+              <h4 class="form-section-title"><span class="section-index">A</span> Nhập nhanh</h4>
+              <p class="quick-help">Không bắt buộc điền tất cả. Hãy cung cấp ít nhất một thông tin hoặc tải lên một tài liệu mô tả hàng hóa.</p>
+              <div class="form-grid">
+                <div class="field full">
+                  <label for="ten_vi">Tên hàng hóa</label>
+                  <input class="control" id="ten_vi" name="ten_vi" placeholder="Ví dụ: Tủ đông bảo quản thực phẩm">
+                </div>
+                <div class="field full">
+                  <label for="mo_ta_san_pham">Mô tả sản phẩm</label>
+                  <textarea class="control quick-description" id="mo_ta_san_pham" name="mo_ta_san_pham" placeholder="Nhập tự do tất cả thông tin bạn đang biết: thành phần, vật liệu, công dụng, cấu tạo, cách hoạt động, thông số, tình trạng hàng, quy cách đóng gói…"></textarea>
+                  <small>Có thể bỏ trống nếu bạn đã tải tài liệu có đủ thông tin.</small>
+                </div>
+              </div>
+
+              <div style="margin-top:16px">
+                <div class="upload-box" id="productDropZone">
+                  <div class="upload-icon">＋</div>
+                  <strong>Catalogue, datasheet, Word, Excel, PDF hoặc hình ảnh sản phẩm</strong>
+                  <p>Có thể tải nhãn hàng, bảng thành phần, phiếu kiểm nghiệm và nhiều file cùng lúc</p>
+                  <label class="btn btn-secondary" for="productDocs">Chọn tài liệu</label>
+                  <input id="productDocs" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.webp">
+                  <div class="file-list" id="productFileList"></div>
+                </div>
+                <small style="display:block;margin-top:7px;color:var(--muted)">Ảnh được OCR để lấy nội dung chữ. Nếu hình dạng hoặc cấu tạo nhìn thấy trên ảnh ảnh hưởng đến mã HS, hãy mô tả thêm trong ô “Mô tả sản phẩm”.</small>
+              </div>
+            </div>
+
+            <details class="optional-details" id="detailedProductInfo">
+              <summary>
+                <span>Thông tin chi tiết – bổ sung khi cần <span class="optional-badge">Không bắt buộc</span></span>
+              </summary>
+              <div class="optional-details-body">
+                <div class="form-section">
+                  <h4 class="form-section-title"><span class="section-index">B</span> Nhận diện sản phẩm</h4>
+                  <div class="form-grid">
+                    <div class="field half">
+                  <label for="ten_en">2. Tên hàng hóa bằng tiếng Anh</label>
+                  <input class="control" id="ten_en" name="ten_en" placeholder="Product name in English">
+                </div>
+                <div class="field">
+                  <label for="ten_thuong_mai">3. Tên thương mại hoặc tên trên nhãn</label>
+                  <input class="control" id="ten_thuong_mai" name="ten_thuong_mai" placeholder="Tên ghi trên bao bì/nhãn">
+                </div>
+                <div class="field">
+                  <label for="nhan_hieu">4. Nhãn hiệu</label>
+                  <input class="control" id="nhan_hieu" name="nhan_hieu" placeholder="Brand">
+                </div>
+                <div class="field">
+                  <label for="model">5. Model hoặc mã sản phẩm</label>
+                  <input class="control" id="model" name="model" placeholder="Model / SKU">
+                </div>
+                <div class="field">
+                  <label for="nha_san_xuat">6. Nhà sản xuất</label>
+                  <input class="control" id="nha_san_xuat" name="nha_san_xuat" placeholder="Tên nhà sản xuất">
+                </div>
+                <div class="field">
+                  <label for="xuat_xu">7. Quốc gia xuất xứ</label>
+                  <input class="control" id="xuat_xu" name="xuat_xu" placeholder="Ví dụ: Hàn Quốc">
+                </div>
+                <div class="field">
+                  <label for="loai_hang_hoa">8. Loại hàng hóa</label>
+                  <select class="control" id="loai_hang_hoa" name="loai_hang_hoa">
+                    <option value="">— Chọn loại hàng —</option>
+                    <option>Thực phẩm / đồ uống</option>
+                    <option>Hóa chất / mỹ phẩm</option>
+                    <option>Dệt may / da giày</option>
+                    <option>Máy móc / thiết bị</option>
+                    <option>Điện / điện tử</option>
+                    <option>Đồ gia dụng</option>
+                    <option>Nguyên liệu / vật liệu</option>
+                    <option>Bộ phận / phụ tùng</option>
+                    <option>Loại khác</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h4 class="form-section-title"><span class="section-index">C</span> Bản chất, thành phần và chức năng</h4>
+              <div class="form-grid">
+                <div class="field half">
+                  <label for="cong_dung_chinh">9. Công dụng chính</label>
+                  <textarea class="control" id="cong_dung_chinh" name="cong_dung_chinh" placeholder="Sản phẩm được dùng chủ yếu để làm gì?"></textarea>
+                </div>
+                <div class="field half">
+                  <label for="thanh_phan_vat_lieu">10. Thành phần hoặc vật liệu cấu tạo</label>
+                  <textarea class="control" id="thanh_phan_vat_lieu" name="thanh_phan_vat_lieu" placeholder="Vật liệu chính, nguyên liệu, thành phần…"></textarea>
+                </div>
+                <div class="field half">
+                  <label for="ty_le_thanh_phan">11. Tỷ lệ thành phần, nếu có</label>
+                  <textarea class="control" id="ty_le_thanh_phan" name="ty_le_thanh_phan" placeholder="Ví dụ: cotton 95%, spandex 5%"></textarea>
+                </div>
+                <div class="field half">
+                  <label for="cau_tao">12. Cấu tạo sản phẩm</label>
+                  <textarea class="control" id="cau_tao" name="cau_tao" placeholder="Các bộ phận chính và cách kết hợp"></textarea>
+                </div>
+                <div class="field half">
+                  <label for="nguyen_ly_hoat_dong">13. Nguyên lý hoạt động</label>
+                  <textarea class="control" id="nguyen_ly_hoat_dong" name="nguyen_ly_hoat_dong" placeholder="Dành cho máy móc, thiết bị hoặc sản phẩm có cơ chế hoạt động"></textarea>
+                </div>
+                <div class="field half">
+                  <label for="thong_so_ky_thuat">14. Thông số kỹ thuật</label>
+                  <textarea class="control" id="thong_so_ky_thuat" name="thong_so_ky_thuat" placeholder="Model, chuẩn kỹ thuật, dải nhiệt độ, tốc độ…"></textarea>
+                </div>
+                <div class="field full">
+                  <label for="chi_so_dinh_luong">15. Công suất, điện áp, dung tích, kích thước hoặc khối lượng</label>
+                  <input class="control" id="chi_so_dinh_luong" name="chi_so_dinh_luong" placeholder="Ví dụ: 220 V; 500 W; 300 L; 120 × 60 × 85 cm">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h4 class="form-section-title"><span class="section-index">D</span> Tình trạng, cách dùng và giao dịch</h4>
+              <div class="form-grid">
+                <div class="field half">
+                  <label for="tinh_trang_hang_hoa">16. Tình trạng hàng hóa</label>
+                  <select class="control" id="tinh_trang_hang_hoa" name="tinh_trang_hang_hoa">
+                    <option value="">— Chọn tình trạng —</option>
+                    <option>Hoàn chỉnh</option>
+                    <option>Chưa hoàn chỉnh / chưa hoàn thiện</option>
+                    <option>Tháo rời</option>
+                    <option>Bán thành phẩm</option>
+                    <option>Nguyên liệu</option>
+                    <option>Bộ phận / phụ tùng</option>
+                  </select>
+                </div>
+                <div class="field half">
+                  <label for="bo_phan_dung_cho">17. Nếu là bộ phận: dùng cho máy hoặc thiết bị nào?</label>
+                  <input class="control" id="bo_phan_dung_cho" name="bo_phan_dung_cho" placeholder="Tên máy, thiết bị hoặc hệ thống sử dụng bộ phận">
+                </div>
+                <div class="field">
+                  <label for="doi_tuong_su_dung">18. Đối tượng sử dụng</label>
+                  <input class="control" id="doi_tuong_su_dung" name="doi_tuong_su_dung" placeholder="Người dùng, ngành, lĩnh vực…">
+                </div>
+                <div class="field">
+                  <label for="cach_su_dung">19. Cách sử dụng</label>
+                  <input class="control" id="cach_su_dung" name="cach_su_dung" placeholder="Ăn trực tiếp, lắp vào máy, vận hành độc lập…">
+                </div>
+                <div class="field">
+                  <label for="quy_cach_dong_goi">20. Quy cách đóng gói</label>
+                  <input class="control" id="quy_cach_dong_goi" name="quy_cach_dong_goi" placeholder="Chai 500 ml, thùng 24 chai…">
+                </div>
+                <div class="field half">
+                  <label for="muc_dich_xuat_nhap_khau">21. Mục đích nhập khẩu hoặc xuất khẩu</label>
+                  <select class="control" id="muc_dich_xuat_nhap_khau" name="muc_dich_xuat_nhap_khau">
+                    <option value="">— Chọn mục đích —</option>
+                    <option>Nhập khẩu thương mại</option>
+                    <option>Xuất khẩu thương mại</option>
+                    <option>Hàng mẫu</option>
+                    <option>Gia công / sản xuất xuất khẩu</option>
+                    <option>Tạm nhập / tái xuất</option>
+                    <option>Mục đích khác</option>
+                  </select>
+                </div>
+                <div class="field full">
+                  <label for="mo_ta_bo_sung">22. Mô tả bổ sung</label>
+                  <textarea class="control" id="mo_ta_bo_sung" name="mo_ta_bo_sung" placeholder="Thông tin khác có thể ảnh hưởng đến việc phân loại"></textarea>
+                </div>
+              </div>
+            </div>
+              </div>
+            </details>
+
+            <div id="formError" class="error hidden" style="margin-top:16px" role="alert"></div>
+            <div class="actions">
+              <button class="btn btn-primary" id="analyzeBtn" type="submit">Phân tích và gợi ý mã HS</button>
+              <button class="btn btn-secondary" id="addDocsBtn" type="button">Bổ sung tài liệu</button>
+              <button class="btn btn-ghost" id="reanalyzeBtn" type="button">Phân tích lại</button>
+              <span class="action-hint">Quốc gia áp dụng: Việt Nam</span>
+              <button class="btn btn-danger" id="clearFormBtn" type="button">Xóa thông tin</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <form id="hsWorkflowForm" novalidate>
+        <div class="card" id="methodCard">
+          <div class="card-head">
+            <div>
+              <h3>Chọn phương thức cung cấp thông tin</h3>
+              <p>Chỉ biểu mẫu của phương thức được chọn mới được hiển thị.</p>
+            </div>
+            <span class="step">01</span>
+          </div>
+          <div class="card-body">
+            <div class="method-grid">
+              <button class="method-card" type="button" data-method="manual" aria-pressed="false">
+                <span class="method-number">1</span>
+                <span>
+                  <h4>Tự nhập thông tin hàng hóa</h4>
+                  <p>Nhập từng mặt hàng, thêm tài liệu riêng và phân tích nhiều mặt hàng trong cùng một lần.</p>
+                </span>
+              </button>
+              <button class="method-card" type="button" data-method="upload" aria-pressed="false">
+                <span class="method-number">2</span>
+                <span>
+                  <h4>Tải danh sách hàng hóa</h4>
+                  <p>Tải PDF, Word, Excel hoặc hình ảnh; kiểm tra và sửa bảng dữ liệu trước khi phân tích.</p>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <section class="method-panel hidden" id="manualMethodPanel" aria-labelledby="manualMethodTitle">
+          <div class="card" id="manualProductCard">
+            <div class="card-head">
+              <div>
+                <h3 id="manualMethodTitle">Phương thức 1: Tự nhập thông tin hàng hóa</h3>
+                <p>Nhập tên và chọn nhóm trước; hệ thống chỉ hiển thị những thông tin cần thiết cho nhóm hàng đó.</p>
+              </div>
+              <span class="step">02A</span>
+            </div>
+            <div class="card-body">
+              <datalist id="productGroupOptions">
+                <option value="Thực phẩm và đồ uống"></option>
+                <option value="Nông sản"></option>
+                <option value="Động vật và sản phẩm động vật"></option>
+                <option value="Hóa chất"></option>
+                <option value="Mỹ phẩm"></option>
+                <option value="Dược phẩm và thiết bị y tế"></option>
+                <option value="Nhựa và sản phẩm bằng nhựa"></option>
+                <option value="Cao su và sản phẩm bằng cao su"></option>
+                <option value="Gỗ và sản phẩm bằng gỗ"></option>
+                <option value="Giấy và sản phẩm bằng giấy"></option>
+                <option value="Dệt may"></option>
+                <option value="Quần áo và phụ kiện"></option>
+                <option value="Giày dép"></option>
+                <option value="Túi xách, ba lô và vali"></option>
+                <option value="Kim loại và sản phẩm kim loại"></option>
+                <option value="Máy móc và thiết bị cơ khí"></option>
+                <option value="Điện, điện tử"></option>
+                <option value="Máy tính và thiết bị viễn thông"></option>
+                <option value="Linh kiện và phụ tùng"></option>
+                <option value="Phương tiện vận tải"></option>
+                <option value="Nội thất"></option>
+                <option value="Đồ gia dụng"></option>
+                <option value="Đồ chơi và dụng cụ thể thao"></option>
+                <option value="Trang sức và đồng hồ"></option>
+                <option value="Vật liệu xây dựng"></option>
+                <option value="Hàng thủ công mỹ nghệ"></option>
+                <option value="Bao bì"></option>
+                <option value="Hàng hóa khác"></option>
+              </datalist>
+              <div class="item-stack" id="manualItems"></div>
+              <div class="actions">
+                <button class="btn btn-secondary" id="addManualItemBtn" type="button">Thêm mặt hàng</button>
+                <button class="btn btn-primary" id="analyzeManualBtn" type="button">Gợi ý HS code</button>
+                <span class="action-hint">Có thể phân tích nhiều mặt hàng trong một lần.</span>
+                <button class="btn btn-danger" id="clearManualBtn" type="button">Xóa thông tin</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="method-panel hidden" id="uploadMethodPanel" aria-labelledby="uploadMethodTitle">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h3 id="uploadMethodTitle">Phương thức 2: Tải danh sách hàng hóa</h3>
+                <p>Hệ thống giữ nguyên thứ tự, tách riêng từng model và bỏ qua tiêu đề, ghi chú hoặc dòng tổng cộng.</p>
+              </div>
+              <span class="step">02B</span>
+            </div>
+            <div class="card-body">
+              <div class="upload-box" id="listDropZone">
+                <div class="upload-icon">＋</div>
+                <strong>Kéo và thả danh sách hàng hóa vào đây</strong>
+                <p>PDF/PDF scan · XLS/XLSX/CSV · DOC/DOCX · JPG/JPEG/PNG/WebP · Có thể chọn nhiều file</p>
+                <label class="btn btn-secondary" for="listFileInput">Chọn file</label>
+                <input id="listFileInput" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.webp">
+                <input id="replaceListFileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.webp">
+                <div class="file-list" id="listFileList"></div>
+              </div>
+              <div id="listExtractionStatus" class="notice hidden" style="margin-top:13px" role="status" aria-live="polite"></div>
+              <div class="actions" style="position:static">
+                <button class="btn btn-primary" id="extractListBtn" type="button">Đọc và trích xuất danh sách</button>
+                <span class="action-hint">Cần lưu DeepSeek API key trước khi đọc danh sách.</span>
+                <button class="btn btn-danger" id="clearListFilesBtn" type="button">Xóa tất cả file</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card hidden" id="listPreviewSection" style="margin-top:16px">
+            <div class="card-head">
+              <div>
+                <h3>Bảng xem trước danh sách hàng hóa</h3>
+                <p>Kiểm tra dữ liệu, sửa nếu cần và xác nhận trước khi gợi ý mã HS.</p>
+              </div>
+              <span class="step">03</span>
+            </div>
+            <div class="card-body">
+              <div class="preview-toolbar">
+                <button class="btn btn-secondary" id="editPreviewBtn" type="button">Sửa thông tin</button>
+                <button class="btn btn-secondary" id="addPreviewItemBtn" type="button">Thêm mặt hàng</button>
+                <button class="btn btn-ghost" id="deletePreviewItemBtn" type="button">Xóa mặt hàng</button>
+                <span class="file-state preview-status" id="previewConfirmStatus">Chưa xác nhận</span>
+              </div>
+              <div class="table-scroll">
+                <table aria-label="Bảng xem trước danh sách hàng hóa">
+                  <thead>
+                    <tr>
+                      <th style="width:72px">STT</th>
+                      <th style="min-width:190px">Tên hàng đọc được</th>
+                      <th style="min-width:145px">Model/part number</th>
+                      <th style="min-width:260px">Mô tả hoặc thông tin liên quan</th>
+                      <th style="width:105px">Số lượng</th>
+                      <th style="width:115px">Đơn vị tính</th>
+                      <th style="min-width:145px">Trạng thái thông tin</th>
+                    </tr>
+                  </thead>
+                  <tbody id="listPreviewBody"></tbody>
+                </table>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" id="confirmListBtn" type="button">Xác nhận danh sách</button>
+                <button class="btn btn-secondary" id="analyzeListBtn" type="button">Phân tích và gợi ý HS code</button>
+                <span class="action-hint">Các trường không có trong file có thể để trống.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div id="workflowError" class="error hidden" style="margin-top:16px" role="alert"></div>
+      </form>
+
+      <div class="result-stack hidden" id="hsResultArea" aria-hidden="true">
+        <div class="card hidden" id="loadingCard">
+          <div class="loading">
+            <div class="spinner"></div>
+            <strong id="loadingTitle">Đang phân tích bản chất hàng hóa…</strong>
+            <div style="margin-top:5px;font-size:11.5px">Hệ thống đang kiểm tra thông tin, chú giải, quy tắc phân loại và nguồn hiện hành.</div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="questionsCard">
+          <div class="card-head">
+            <div>
+              <h3>Chưa đủ thông tin để xác định mã HS</h3>
+              <p>Vui lòng bổ sung các nội dung dưới đây. Hệ thống không tự suy đoán đặc điểm hàng hóa.</p>
+            </div>
+            <span class="step">02</span>
+          </div>
+          <div class="card-body">
+            <div class="warning" style="margin-bottom:14px">Thông tin thiếu có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</div>
+            <div class="questions" id="questionsList"></div>
+            <div class="actions" style="position:static">
+              <button class="btn btn-primary" id="submitAnswersBtn" type="button">Gửi thông tin bổ sung</button>
+              <button class="btn btn-ghost" id="backToFormBtn" type="button">Sửa form hàng hóa</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="summaryCard">
+          <div class="card-head">
+            <div>
+              <h3>Tóm tắt hàng hóa</h3>
+              <p>Bản chất hàng hóa được tổng hợp trước khi xem xét mã HS.</p>
+            </div>
+            <span class="step">02</span>
+          </div>
+          <div class="card-body">
+            <div class="summary-grid" id="summaryGrid"></div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="suggestionsCard">
+          <div class="card-head">
+            <div>
+              <h3>Mã HS được đề xuất</h3>
+              <p>Hiển thị tối đa ba phương án mã HS đủ 8 số; tên hàng ngắn vẫn được gợi ý định hướng và hỏi bổ sung khi cần.</p>
+            </div>
+            <span class="step">03</span>
+          </div>
+          <div class="card-body">
+            <div id="suggestionNote" class="notice hidden" style="margin-bottom:13px"></div>
+            <div class="table-scroll">
+              <table aria-label="Danh sách mã HS đề xuất">
+                <thead>
+                  <tr>
+                    <th style="width:58px">Xếp hạng</th>
+                    <th style="width:145px">Mã HS đề xuất</th>
+                    <th>Mô tả hàng hóa</th>
+                    <th style="width:140px">Mức độ phù hợp</th>
+                    <th style="width:120px">Chi tiết</th>
+                  </tr>
+                </thead>
+                <tbody id="suggestionsBody"></tbody>
+              </table>
+            </div>
+            <div class="export-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+              <button class="btn btn-secondary" id="exportPdfBtn" type="button">Xuất PDF</button>
+              <button class="btn btn-secondary" id="exportExcelBtn" type="button">Xuất Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card hidden" id="detailsCard">
+          <div class="card-head">
+            <div>
+              <h3>Phân tích chi tiết</h3>
+              <p>Cấu trúc phân loại, quy tắc áp dụng, chú giải, điều khoản loại trừ và phương án cạnh tranh.</p>
+            </div>
+            <span class="step">04</span>
+          </div>
+          <div class="card-body" id="detailsList"></div>
+        </div>
+
+        <div class="card hidden" id="sourcesCard">
+          <div class="card-head">
+            <div>
+              <h3>Nguồn được sử dụng</h3>
+              <p>Nguồn chính thức được tách riêng với nguồn chỉ dùng để tham khảo đặc điểm sản phẩm.</p>
+            </div>
+            <span class="step">05</span>
+          </div>
+          <div class="card-body">
+            <div class="source-grid" id="sourceGrid"></div>
+            <div class="warning hidden" id="noOfficialSource" style="margin-top:13px">
+              Hệ thống chưa tìm thấy nguồn chính thức đủ để xác minh mã này. Kết quả chỉ là định hướng tham khảo và cần được kiểm tra bởi người có chuyên môn.
+            </div>
+          </div>
+        </div>
+
+        <div class="disclaimer hidden" id="legalDisclaimer">
+          <strong>Lưu ý pháp lý:</strong> Kết quả do hệ thống cung cấp chỉ mang tính chất tham khảo, được tổng hợp từ thông tin hàng hóa và các nguồn tìm thấy tại thời điểm tra cứu. Mã HS chính thức phụ thuộc vào hồ sơ thực tế, thành phần, cấu tạo, công dụng, kết quả kiểm định và quyết định của cơ quan hải quan. Người dùng nên kiểm tra với đơn vị khai báo hải quan hoặc thực hiện thủ tục xác định trước mã số đối với trường hợp phức tạp.
+        </div>
+      </div>
+
+      <div class="result-stack" id="hsBatchResultArea">
+        <div class="card hidden" id="batchLoadingCard">
+          <div class="loading">
+            <div class="spinner"></div>
+            <strong id="batchLoadingTitle">Đang phân tích bản chất hàng hóa…</strong>
+            <div id="batchLoadingDetail" style="margin-top:5px;font-size:11.5px">Hệ thống đang kiểm tra thông tin, chú giải và quy tắc phân loại.</div>
+          </div>
+        </div>
+
+        <div id="batchResults" class="hidden"></div>
+
+        <div class="batch-export hidden" id="batchExportArea">
+          <span class="action-hint">Xuất toàn bộ kết quả của các mặt hàng đã phân tích.</span>
+          <button class="btn btn-secondary" id="reanalyzeAllBtn" type="button">Phân tích lại</button>
+          <button class="btn btn-secondary" id="batchExportPdfBtn" type="button">Xuất PDF</button>
+          <button class="btn btn-secondary" id="batchExportExcelBtn" type="button">Xuất Excel</button>
+        </div>
+
+        <div class="disclaimer hidden" id="batchLegalDisclaimer">
+          <strong>Lưu ý pháp lý:</strong> Kết quả do hệ thống cung cấp chỉ mang tính chất tham khảo, được tổng hợp từ thông tin hàng hóa và các nguồn tìm thấy tại thời điểm tra cứu. Mã HS chính thức phụ thuộc vào hồ sơ thực tế, thành phần, cấu tạo, công dụng, kết quả kiểm định và quyết định của cơ quan hải quan. Người dùng nên kiểm tra với đơn vị khai báo hải quan hoặc thực hiện thủ tục xác định trước mã số đối với trường hợp phức tạp.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    DocCheck · API key được lưu trên trình duyệt của bạn · Tài liệu sản phẩm chỉ được xử lý khi bạn yêu cầu phân tích.
+  </footer>
+
+  <script>
+    "use strict";
+
+    const DEEPSEEK_API = "https://api.deepseek.com/chat/completions";
+    const DEEPSEEK_MODEL = "deepseek-v4-flash";
+    const KEY_STORAGE = "dc_deepseek_key";
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const esc = value => String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+    const textOf = value => {
+      if (Array.isArray(value)) return value.filter(Boolean).join("; ");
+      if (value && typeof value === "object") {
+        return Object.entries(value).map(([key, val]) => `${key}: ${textOf(val)}`).join("\n");
+      }
+      return String(value ?? "");
+    };
+    const formatBytes = size => {
+      if (!Number.isFinite(size)) return "";
+      if (size < 1024) return size + " B";
+      if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+      return (size / (1024 * 1024)).toFixed(1) + " MB";
+    };
+    const slugLevel = value => {
+      const normalized = String(value || "Chưa đủ căn cứ").toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
+      if (normalized === "cao") return "cao";
+      if (normalized.includes("trung")) return "trung-binh";
+      if (normalized === "thap") return "thap";
+      return "chua-du-can-cu";
+    };
+    const normalizeLevel = value => {
+      const key = slugLevel(value);
+      return {
+        "cao": "Cao",
+        "trung-binh": "Trung bình",
+        "thap": "Thấp",
+        "chua-du-can-cu": "Chưa đủ căn cứ"
+      }[key];
+    };
+    const normalizeHSCode = value => {
+      const raw = String(value || "").trim();
+      const digits = raw.replace(/\D/g, "");
+      return digits.length === 8
+        ? `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 8)}`
+        : raw;
+    };
+    const isEightDigitHSCode = value => /^\d{8}$/.test(String(value || "").replace(/\D/g, ""));
+    const safeUrl = value => {
+      try {
+        const url = new URL(String(value || ""));
+        return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+      } catch (_) { return ""; }
+    };
+
+    let productFiles = [];
+    let lastResult = null;
+    let pendingQuestions = [];
+    let supplementalAnswers = {};
+    let apiKey = "";
+
+    try {
+      apiKey = localStorage.getItem(KEY_STORAGE) || "";
+    } catch (_) {
+      apiKey = "";
+    }
+
+    const DOC_TYPES = [
+      { id: "invoice", en: "Commercial Invoice", vi: "Hóa đơn thương mại" },
+      { id: "packing", en: "Packing List", vi: "Phiếu đóng gói" },
+      { id: "contract", en: "Sales Contract", vi: "Hợp đồng mua bán" },
+      { id: "co", en: "Certificate of Origin", vi: "C/O — Xuất xứ" },
+      { id: "bl", en: "Bill of Lading", vi: "Vận đơn B/L" },
+      { id: "arrival", en: "Arrival Notice", vi: "Giấy báo hàng đến" },
+      { id: "productlist", en: "Product List", vi: "Danh sách hàng hóa" }
+    ];
+    const docFiles = new Map();
+
+    function updateKeyUI(status = apiKey ? "saved" : "empty", message = "") {
+      const state = $("#serviceState");
+      const label = $("#serviceStateText");
+      const keyStatus = $("#keyStatus");
+      $("#apiKeyInput").value = apiKey;
+
+      if (status === "online") {
+        state.className = "service-state online";
+        label.textContent = "DeepSeek đã kết nối";
+        keyStatus.className = "key-status ok";
+        keyStatus.textContent = "✓ Key hợp lệ";
+      } else if (status === "key-error") {
+        state.className = "service-state offline";
+        label.textContent = message || "API key DeepSeek không hợp lệ";
+        keyStatus.className = "key-status bad";
+        keyStatus.textContent = "Key lỗi";
+      } else if (status === "error") {
+        state.className = "service-state offline";
+        label.textContent = message || "Không kết nối được DeepSeek";
+        keyStatus.className = "key-status bad";
+        keyStatus.textContent = "Chưa thể kiểm tra";
+      } else if (apiKey) {
+        state.className = "service-state";
+        label.textContent = "Đã lưu key · Chưa kiểm tra";
+        keyStatus.className = "key-status ok";
+        keyStatus.textContent = "✓ Đã lưu key";
+      } else {
+        state.className = "service-state offline";
+        label.textContent = "Chưa kết nối DeepSeek";
+        keyStatus.className = "key-status";
+        keyStatus.textContent = "Chưa có key";
+      }
+      updateDocHint();
+    }
+
+    function saveKey() {
+      const value = $("#apiKeyInput").value.trim();
+      if (!value) {
+        updateKeyUI("error", "Vui lòng nhập API key");
+        $("#apiKeyInput").focus();
+        return;
+      }
+      apiKey = value;
+      try {
+        localStorage.setItem(KEY_STORAGE, apiKey);
+      } catch (_) {
+        // File vẫn hoạt động trong phiên hiện tại nếu trình duyệt chặn localStorage.
+      }
+      updateKeyUI("saved");
+      pingDeepSeek();
+    }
+
+    function clearKey() {
+      apiKey = "";
+      try { localStorage.removeItem(KEY_STORAGE); } catch (_) {}
+      $("#apiKeyInput").value = "";
+      updateKeyUI("empty");
+    }
+
+    async function pingDeepSeek() {
+      if (!apiKey) return;
+      const testedKey = apiKey;
+      const state = $("#serviceState");
+      const label = $("#serviceStateText");
+      state.className = "service-state";
+      label.textContent = "Đang kiểm tra DeepSeek…";
+      try {
+        await callDeepSeek([{ role: "user", content: 'Chỉ trả về JSON: {"status":"OK"}' }], 64, 0);
+        if (apiKey !== testedKey) return;
+        updateKeyUI("online");
+      } catch (error) {
+        if (apiKey !== testedKey) return;
+        if (error?.status === 401) {
+          updateKeyUI("key-error", "API key DeepSeek không hợp lệ");
+        } else if (error?.status === 402) {
+          updateKeyUI("error", "Tài khoản DeepSeek đã hết số dư");
+        } else if (error?.status === 429) {
+          updateKeyUI("error", "DeepSeek đang giới hạn số yêu cầu");
+        } else if (error?.status === 500 || error?.status === 503) {
+          updateKeyUI("error", "Máy chủ DeepSeek đang bận, vui lòng thử lại");
+        } else {
+          updateKeyUI("error", friendlyError(error));
+        }
+        $("#keyStatus").title = error.message || "";
+      }
+    }
+
+    async function callDeepSeek(messages, maxTokens = 4000, temperature = 0.1) {
+      if (!apiKey) throw new Error("Chưa có API key. Vui lòng nhập và lưu DeepSeek API key ở thanh phía trên.");
+      const response = await fetch(DEEPSEEK_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + apiKey
+        },
+        body: JSON.stringify({
+          model: DEEPSEEK_MODEL,
+          messages,
+          max_tokens: maxTokens,
+          temperature,
+          thinking: { type: "disabled" },
+          response_format: { type: "json_object" }
+        })
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const error = new Error(data?.error?.message || `DeepSeek API trả về lỗi HTTP ${response.status}.`);
+        error.status = response.status;
+        throw error;
+      }
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) throw new Error("DeepSeek không trả về nội dung phân tích.");
+      return content;
+    }
+
+    function parseAIJson(raw) {
+      const clean = String(raw || "").replace(/```json|```/gi, "").trim();
+      try {
+        return JSON.parse(clean);
+      } catch (_) {
+        const match = clean.match(/\{[\s\S]*\}/);
+        if (match) return JSON.parse(match[0]);
+        throw new Error("AI trả về dữ liệu không đúng định dạng JSON.");
+      }
+    }
+
+    $("#saveKeyBtn").addEventListener("click", saveKey);
+    $("#clearKeyBtn").addEventListener("click", clearKey);
+    $("#apiKeyInput").addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveKey();
+      }
+    });
+    $("#toggleKeyBtn").addEventListener("click", () => {
+      const input = $("#apiKeyInput");
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      $("#toggleKeyBtn").textContent = show ? "Ẩn" : "Hiện";
+    });
+
+    $$(".tab-btn").forEach(button => {
+      button.addEventListener("click", () => {
+        $$(".tab-btn").forEach(item => item.classList.toggle("active", item === button));
+        $$(".panel").forEach(panel => panel.classList.toggle("active", panel.id === "panel-" + button.dataset.tab));
+      });
+    });
+
+    function buildDocGrid() {
+      const grid = $("#docGrid");
+      grid.innerHTML = DOC_TYPES.map(doc => `
+        <div class="doc-slot" data-doc="${esc(doc.id)}">
+          <button class="icon-btn doc-clear hidden" type="button" aria-label="Xóa ${esc(doc.vi)}">×</button>
+          <h4>${esc(doc.en)}</h4>
+          <p>${esc(doc.vi)}</p>
+          <label class="doc-picker" for="doc-${esc(doc.id)}">Chọn file</label>
+          <input id="doc-${esc(doc.id)}" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.webp">
+          <div class="doc-file-name"></div>
+        </div>
+      `).join("");
+      $$(".doc-slot", grid).forEach(slot => {
+        const docId = slot.dataset.doc;
+        $("input", slot).addEventListener("change", event => {
+          const file = event.target.files[0];
+          if (!file) return;
+          docFiles.set(docId, file);
+          slot.classList.add("has-file");
+          $(".doc-clear", slot).classList.remove("hidden");
+          $(".doc-file-name", slot).innerHTML = `${esc(file.name)} <span class="file-meta">(${formatBytes(file.size)})</span>`;
+          updateDocHint();
+        });
+        $(".doc-clear", slot).addEventListener("click", () => {
+          docFiles.delete(docId);
+          $("input", slot).value = "";
+          slot.classList.remove("has-file");
+          $(".doc-clear", slot).classList.add("hidden");
+          $(".doc-file-name", slot).textContent = "";
+          updateDocHint();
+        });
+      });
+    }
+
+    function updateDocHint() {
+      $("#docHint").textContent = !apiKey
+        ? "Cần nhập DeepSeek API key trước."
+        : docFiles.size < 2
+          ? `Cần tối thiểu 2 chứng từ (đã chọn ${docFiles.size}).`
+          : `Đã chọn ${docFiles.size} chứng từ · Sẵn sàng đối chiếu.`;
+    }
+
+    $("#clearDocsBtn").addEventListener("click", () => {
+      docFiles.clear();
+      buildDocGrid();
+      updateDocHint();
+      $("#docResultArea").innerHTML = "";
+    });
+
+    $("#compareDocsBtn").addEventListener("click", async () => {
+      const area = $("#docResultArea");
+      if (!apiKey) {
+        area.innerHTML = '<div class="error">Vui lòng nhập và lưu DeepSeek API key ở thanh phía trên.</div>';
+        $("#apiKeyInput").focus();
+        return;
+      }
+      if (docFiles.size < 2) {
+        area.innerHTML = '<div class="error">Vui lòng chọn tối thiểu hai chứng từ.</div>';
+        return;
+      }
+      area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>Đang đọc và đối chiếu chứng từ…</strong></div></div>';
+      try {
+        const selectedDocs = DOC_TYPES.filter(doc => docFiles.has(doc.id));
+        const userContent = await buildAIContent(
+          `Hãy đọc và đối chiếu ${selectedDocs.length} chứng từ xuất nhập khẩu bên dưới.
+
+Trả về JSON theo cấu trúc:
+{
+  "documents": [{"id":"invoice","label":"Hóa đơn thương mại"}],
+  "fields": [
+    {
+      "key":"refNo",
+      "label":"Số chứng từ / Ref No.",
+      "values":{"invoice":"...","packing":"..."},
+      "status":"match|mismatch|insufficient"
+    }
+  ]
+}
+
+Các trường cần trích xuất và đối chiếu: refNo, date, shipper, consignee, itemName, qty, netWeight, grossWeight, unitPrice, amount, currency, incoterm, pol, pod, vessel, container, hsCode.
+Chỉ ghi dữ liệu thật sự tìm thấy. Không suy đoán giá trị thiếu. Giữ mã HS ở dạng chuỗi.`,
+          selectedDocs.map(doc => ({ file: docFiles.get(doc.id), label: `${doc.id} — ${doc.en} / ${doc.vi}` })),
+          15000
+        );
+        const raw = await callDeepSeek([
+          {
+            role: "system",
+            content: "Bạn là chuyên viên kiểm tra chứng từ xuất nhập khẩu. Chỉ trả về một JSON hợp lệ, không dùng markdown. Đánh dấu mismatch khi các giá trị cùng trường mâu thuẫn; insufficient khi chưa đủ dữ liệu để đối chiếu."
+          },
+          { role: "user", content: userContent }
+        ], 4500);
+        const data = parseAIJson(raw);
+        if (!Array.isArray(data?.fields)) throw new Error("Kết quả AI thiếu danh sách fields.");
+        renderDocumentResult(data);
+      } catch (error) {
+        area.innerHTML = `<div class="error"><strong>Không thể đối chiếu chứng từ.</strong><br>${esc(friendlyError(error))}</div>`;
+      }
+    });
+
+    function renderDocumentResult(data) {
+      const area = $("#docResultArea");
+      const rows = Array.isArray(data?.fields) ? data.fields : [];
+      if (!rows.length) {
+        area.innerHTML = '<div class="warning">Backend chưa trả về danh sách trường đối chiếu theo cấu trúc <code>fields[]</code>.</div>';
+        return;
+      }
+      const docs = Array.isArray(data.documents) ? data.documents : DOC_TYPES.filter(doc => docFiles.has(doc.id));
+      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Các trường lệch cần được kiểm tra trên chứng từ gốc.</p></div><span class="step">02</span></div><div class="card-body"><div class="table-scroll"><table><thead><tr><th>Trường thông tin</th>';
+      html += docs.map(doc => `<th>${esc(doc.label || doc.vi || doc.en || doc.id)}</th>`).join("");
+      html += "<th>Kết quả</th></tr></thead><tbody>";
+      rows.forEach(row => {
+        const values = row.values || {};
+        html += `<tr><td><strong>${esc(row.label || row.key)}</strong></td>`;
+        html += docs.map(doc => `<td>${esc(values[doc.id] ?? "—")}</td>`).join("");
+        html += `<td><span class="level level-${row.status === "match" ? "cao" : row.status === "mismatch" ? "thap" : "chua-du-can-cu"}">${row.status === "match" ? "Khớp" : row.status === "mismatch" ? "Lệch" : "Chưa đủ dữ liệu"}</span></td></tr>`;
+      });
+      html += "</tbody></table></div></div></div>";
+      area.innerHTML = html;
+    }
+
+    async function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Không đọc được file ${file.name}.`));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function readFileForAI(file) {
+      const extension = file.name.split(".").pop().toLowerCase();
+
+      if (["png", "jpg", "jpeg", "webp"].includes(extension)) {
+        if (!window.Tesseract) {
+          throw new Error("Không tải được thư viện đọc chữ trong hình ảnh. Hãy kiểm tra kết nối Internet.");
+        }
+        const imageData = await fileToDataUrl(file);
+        const result = await window.Tesseract.recognize(imageData, "vie+eng");
+        const text = result?.data?.text || "";
+        if (!text.trim()) {
+          throw new Error(`${file.name} không có nội dung chữ đủ rõ để trích xuất. Hãy nhập mô tả sản phẩm hoặc tải ảnh nhãn rõ hơn.`);
+        }
+        return { kind: "text", text: `[Nội dung OCR từ hình ảnh]\n${text}` };
+      }
+
+      if (extension === "pdf") {
+        if (!window.pdfjsLib) throw new Error("Không tải được thư viện đọc PDF. Hãy kiểm tra kết nối Internet.");
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        let text = "";
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          const content = await page.getTextContent();
+          const pageText = content.items.map(item => item.str).join(" ").trim();
+          if (pageText) {
+            text += `\n--- Trang ${pageNumber} ---\n${pageText}\n`;
+            continue;
+          }
+          if (!window.Tesseract) {
+            throw new Error(`${file.name} có trang scan nhưng thư viện OCR chưa tải được. Hãy kiểm tra kết nối Internet.`);
+          }
+          const viewport = page.getViewport({ scale: 1.7 });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          await page.render({ canvasContext: context, viewport }).promise;
+          const ocr = await window.Tesseract.recognize(canvas, "vie+eng");
+          const ocrText = ocr?.data?.text?.trim() || "";
+          text += `\n--- Trang ${pageNumber} (OCR từ PDF scan) ---\n${ocrText}\n`;
+        }
+        if (!text.replace(/--- Trang[^\n]*---/g, "").trim()) {
+          throw new Error(`${file.name} không có nội dung chữ đủ rõ để trích xuất.`);
+        }
+        return { kind: "text", text };
+      }
+
+      if (["xlsx", "xls", "csv"].includes(extension)) {
+        if (!window.XLSX) throw new Error("Không tải được thư viện đọc Excel. Hãy kiểm tra kết nối Internet.");
+        const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
+        let text = "";
+        workbook.SheetNames.forEach(sheetName => {
+          const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+            header: 1,
+            blankrows: false,
+            defval: "",
+            raw: false
+          });
+          text += `\n=== Sheet: ${sheetName} ===\n`;
+          rows.slice(0, 500).forEach((row, index) => {
+            text += `[Dòng ${index + 1}] ${row.map(cell => String(cell)).join(" | ")}\n`;
+          });
+        });
+        return { kind: "text", text };
+      }
+
+      if (extension === "docx") {
+        if (!window.mammoth) throw new Error("Không tải được thư viện đọc Word. Hãy kiểm tra kết nối Internet.");
+        const result = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+        return { kind: "text", text: result.value || "" };
+      }
+
+      if (["txt", "md"].includes(extension)) {
+        return { kind: "text", text: await file.text() };
+      }
+
+      if (extension === "doc") {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const decoded = [
+          new TextDecoder("utf-16le", { fatal: false }).decode(bytes),
+          new TextDecoder("windows-1252", { fatal: false }).decode(bytes)
+        ];
+        const runs = decoded.flatMap(value =>
+          value
+            .replace(/[^\p{L}\p{N}\p{P}\p{Zs}\r\n\t]+/gu, "\n")
+            .split(/\r?\n/)
+            .map(line => line.replace(/\s+/g, " ").trim())
+            .filter(line => line.length >= 4)
+        );
+        const unique = [...new Set(runs)].join("\n");
+        if (unique.length < 20) {
+          throw new Error(`${file.name} là file Word .doc cũ và trình duyệt không trích xuất được nội dung. Vui lòng lưu lại thành .docx hoặc PDF.`);
+        }
+        return {
+          kind: "text",
+          text: `[Nội dung trích xuất tốt nhất từ Word .doc cũ; cần kiểm tra lại bảng xem trước]\n${unique}`
+        };
+      }
+
+      throw new Error(`Chưa hỗ trợ định dạng .${extension} của file ${file.name}.`);
+    }
+
+    async function buildAIContent(instruction, entries, maxCharsPerFile = 12000) {
+      let content = instruction;
+      for (const entry of entries) {
+        const fileData = await readFileForAI(entry.file);
+        content += `\n\n===== ${entry.label} — ${entry.file.name} =====\n${fileData.text.slice(0, maxCharsPerFile)}`;
+      }
+      return content;
+    }
+
+    const productDocs = $("#productDocs");
+    const dropZone = $("#productDropZone");
+    $("#addDocsBtn").addEventListener("click", () => productDocs.click());
+    productDocs.addEventListener("change", event => addProductFiles(event.target.files));
+    ["dragenter", "dragover"].forEach(type => dropZone.addEventListener(type, event => {
+      event.preventDefault();
+      dropZone.classList.add("dragging");
+    }));
+    ["dragleave", "drop"].forEach(type => dropZone.addEventListener(type, event => {
+      event.preventDefault();
+      dropZone.classList.remove("dragging");
+    }));
+    dropZone.addEventListener("drop", event => addProductFiles(event.dataTransfer.files));
+
+    function addProductFiles(fileList) {
+      const allowed = /\.(pdf|doc|docx|xls|xlsx|csv|png|jpe?g|webp)$/i;
+      const incoming = Array.from(fileList || []).filter(file => allowed.test(file.name));
+      incoming.forEach(file => {
+        const duplicate = productFiles.some(item => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified);
+        if (!duplicate) productFiles.push(file);
+      });
+      productDocs.value = "";
+      renderProductFiles();
+    }
+
+    function renderProductFiles() {
+      const list = $("#productFileList");
+      if (!productFiles.length) {
+        list.innerHTML = "";
+        return;
+      }
+      list.innerHTML = productFiles.map((file, index) => `
+        <div class="file-item">
+          <div class="file-name">${esc(file.name)} <span class="file-meta">· ${formatBytes(file.size)}</span></div>
+          <button class="icon-btn" type="button" data-remove-file="${index}" aria-label="Xóa ${esc(file.name)}">×</button>
+        </div>
+      `).join("");
+      $$("[data-remove-file]", list).forEach(button => {
+        button.addEventListener("click", () => {
+          productFiles.splice(Number(button.dataset.removeFile), 1);
+          renderProductFiles();
+        });
+      });
+    }
+
+    function collectProductData() {
+      const form = new FormData($("#hsForm"));
+      const product = {};
+      for (const [key, value] of form.entries()) product[key] = String(value).trim();
+      return product;
+    }
+
+    function validateProduct() {
+      const error = $("#formError");
+      const product = collectProductData();
+      const hasTextData = Object.values(product).some(value => String(value || "").trim());
+      if (!hasTextData && productFiles.length === 0) {
+        error.textContent = "Vui lòng nhập ít nhất một thông tin về hàng hóa hoặc tải lên một tài liệu sản phẩm.";
+        error.classList.remove("hidden");
+        $("#ten_vi").focus();
+        return false;
+      }
+      error.classList.add("hidden");
+      return true;
+    }
+
+    $("#hsForm").addEventListener("submit", event => {
+      event.preventDefault();
+      analyzeHS(false);
+    });
+    $("#reanalyzeBtn").addEventListener("click", () => analyzeHS(false));
+    $("#backToFormBtn").addEventListener("click", () => $("#productInputCard").scrollIntoView({ behavior: "smooth", block: "start" }));
+    $("#clearFormBtn").addEventListener("click", clearHSForm);
+
+    function clearHSForm() {
+      if (!confirm("Xóa toàn bộ thông tin hàng hóa, tài liệu và kết quả hiện tại?")) return;
+      $("#hsForm").reset();
+      productFiles = [];
+      pendingQuestions = [];
+      supplementalAnswers = {};
+      lastResult = null;
+      $("#detailedProductInfo").open = false;
+      renderProductFiles();
+      resetResultUI();
+      $("#ten_vi").focus();
+    }
+
+    $("#submitAnswersBtn").addEventListener("click", () => {
+      const answers = {};
+      let missing = false;
+      $$("[data-question-id]", $("#questionsList")).forEach(input => {
+        const value = input.value.trim();
+        input.style.borderColor = value ? "" : "var(--red)";
+        if (!value) missing = true;
+        answers[input.dataset.questionId] = value;
+      });
+      if (missing) return;
+      supplementalAnswers = { ...supplementalAnswers, ...answers };
+      analyzeHS(true);
+    });
+
+    const HS_SYSTEM_PROMPT = `Bạn là chuyên viên phân loại hàng hóa theo Hệ thống hài hòa HS/AHTN, áp dụng tại Việt Nam.
+
+NHIỆM VỤ
+- Phân tích bản chất thực tế của hàng hóa từ form và tài liệu người dùng cung cấp.
+- Không phân loại chỉ bằng tên thương mại hoặc so khớp từ khóa.
+- Không suy đoán thành phần, cấu tạo, chức năng hoặc tình trạng hàng chưa được cung cấp.
+- Chấp nhận dữ liệu từ phương thức tự nhập từng mặt hàng hoặc từ danh sách hàng hóa đã được người dùng kiểm tra và xác nhận.
+- Tự tổng hợp trường thông tin chung, câu hỏi thay đổi theo nhóm hàng và tài liệu tham khảo của đúng mặt hàng.
+- Ngoài tên hàng và nhóm hàng của phương thức tự nhập, các trường còn lại có thể để trống. Không được yêu cầu người dùng hoàn thành toàn bộ form trước khi phân tích.
+- Với dữ liệu trích xuất từ danh sách, vẫn phân tích thông tin hiện có dù file không có đủ mọi trường.
+- Không hỏi lại thông tin đã xuất hiện trong form, bảng xem trước hoặc tài liệu.
+- Nếu thiếu dữ kiện có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm, hãy hỏi tối đa 3 câu quan trọng nhất trong mỗi lần phân tích.
+- Tên hàng ngắn hoặc đơn giản vẫn là dữ liệu hợp lệ để bắt đầu phân tích. Không được từ chối gợi ý chỉ vì người dùng chưa cung cấp đủ 15 trường.
+- Khi tên hàng, nhóm hàng hoặc mô tả đã cho phép nhận diện một loại hàng hóa thông thường, phải đưa ra ít nhất 1 và tối đa 3 mã định hướng hợp lý, đồng thời hỏi bổ sung nếu cần.
+- Mỗi mã đề xuất bắt buộc là mã HS/AHTN Việt Nam đủ 8 chữ số, trình bày theo định dạng XXXX.XX.XX. Không trả mã 2 số, 4 số, 6 số, khoảng mã hoặc chỉ tên Chương/Nhóm.
+- Nếu nhiều phân nhóm 8 số cùng có khả năng do thiếu vật liệu, công dụng hoặc thông số, hãy đưa các mã cạnh tranh hợp lý thay vì để trống kết quả. Không tạo thêm phương án nếu thực sự không có căn cứ phân biệt.
+
+TRÌNH TỰ PHÂN LOẠI BẮT BUỘC
+1. Xác định tên, bản chất, thành phần/vật liệu, công dụng, chức năng, cấu tạo, nguyên lý hoạt động, mức độ hoàn thiện, quy cách đóng gói, đối tượng sử dụng và thông số kỹ thuật.
+2. Xem xét các Phần và Chương cạnh tranh.
+3. Kiểm tra phạm vi, định nghĩa, nội dung bao gồm, loại trừ và các Chú giải Phần/Chương/Nhóm/Phân nhóm liên quan.
+4. Áp dụng Quy tắc 1; chỉ khi cần mới tiếp tục Quy tắc 2(a), 2(b), 3(a), 3(b), 3(c), 4, 5 và 6 theo đúng thứ tự pháp lý.
+5. So sánh các Nhóm cạnh tranh về mô tả, vật liệu, công dụng, chức năng, đặc trưng cơ bản, cấu tạo, mức độ hoàn thiện, điều kiện bao gồm và loại trừ.
+6. Sau khi xác định Phần → Chương → Nhóm → Phân nhóm mới đề xuất mã HS chi tiết.
+
+NGUYÊN TẮC AN TOÀN
+- Không tự tạo mã HS, Chú giải, số hiệu văn bản, quyết định phân loại, đường dẫn hoặc nội dung nguồn.
+- Loại mã mâu thuẫn với Chú giải, thuộc điều khoản loại trừ, không đáp ứng mô tả pháp lý hoặc chỉ giống từ khóa.
+- API đang được gọi trực tiếp từ một file HTML và không có công cụ tìm kiếm Internet được bảo đảm. Vì vậy, không được nói rằng đã tra cứu trực tiếp hoặc xác minh hiệu lực tại thời điểm hiện tại.
+- Chỉ đưa nguồn khi bạn biết chắc tên tài liệu và đường dẫn là có thật. Nếu không xác minh được nguồn chính thức, để nguon_tham_khao là [] và ghi rõ cảnh báo.
+- Không được xếp mức "Cao" nếu chưa có nguồn chính thức được xác minh, chưa kiểm tra chú giải hoặc còn thông tin quyết định bị thiếu.
+- Mức độ phù hợp chỉ được dùng: "Cao", "Trung bình", "Thấp", "Chưa đủ căn cứ".
+
+KHI CẦN HỎI BỔ SUNG
+Trả cau_hoi_bo_sung là danh sách tối đa 3 câu hỏi cụ thể, ưu tiên câu hỏi có khả năng thay đổi Chương, Nhóm hoặc Phân nhóm.
+Không được trả ma_hs_de_xuat là [] chỉ vì tên hàng ngắn, thiếu thành phần, thiếu model hoặc thiếu thông số. Nếu vẫn nhận diện được loại hàng hóa, phải trả 1–3 mã 8 số theo hướng phân loại có khả năng nhất.
+Với dữ liệu chưa đầy đủ, đặt mức độ là "Thấp" hoặc "Chưa đủ căn cứ", ghi rõ đây là gợi ý định hướng và nêu chính xác thông tin nào có thể làm thay đổi mã.
+Chỉ được trả ma_hs_de_xuat là [] khi dữ liệu hoàn toàn không cho biết bản chất hàng hóa, ví dụ chỉ có một mã nội bộ không có ý nghĩa, file không đọc được và không có tên hoặc mô tả sản phẩm.
+Không tự tạo mã chỉ để có kết quả: mã 8 số phải là mã mà bạn có căn cứ từ kiến thức HS/AHTN; khi chưa xác minh được nguồn hiện hành, phải cảnh báo rõ và không xếp mức "Cao".
+
+ĐỊNH DẠNG TRẢ VỀ
+Chỉ trả về một JSON hợp lệ, không markdown, theo cấu trúc:
+{
+  "tom_tat_hang_hoa": {
+    "ten_hang": "",
+    "ban_chat_hang_hoa": "",
+    "thanh_phan_vat_lieu_chinh": "",
+    "cong_dung_chinh": "",
+    "dac_diem_quyet_dinh_phan_loai": "",
+    "thong_tin_con_thieu": ""
+  },
+  "thong_tin_con_thieu": [],
+  "cau_hoi_bo_sung": [{"id":"cau_hoi_1","cau_hoi":""}],
+  "chuong_da_xem_xet": [],
+  "quy_tac_da_ap_dung": [{"quy_tac":"","ly_do":"","dac_diem_xem_xet":"","ket_qua":"","ly_do_khong_ap_dung_quy_tac_tiep":""}],
+  "ma_hs_de_xuat": [{
+    "ma_hs":"0000.00.00",
+    "mo_ta_hang_hoa":"",
+    "muc_do_phu_hop":"",
+    "cau_truc_phan_loai":"",
+    "quy_tac_ap_dung":[],
+    "dac_diem_lam_can_cu":"",
+    "chu_giai_da_kiem_tra":"",
+    "dieu_khoan_bao_gom":"",
+    "dieu_khoan_loai_tru":"",
+    "ly_do_phu_hop":"",
+    "ly_do_khong_chon_ma_canh_tranh":"",
+    "thong_tin_can_xac_minh":""
+  }],
+  "ma_da_loai": [],
+  "can_cu_phan_loai": [],
+  "nguon_tham_khao": [{
+    "ten_nguon":"",
+    "co_quan_ban_hanh":"",
+    "loai_tai_lieu":"",
+    "so_hieu_van_ban":"",
+    "ngay_ban_hanh":"",
+    "ngay_hieu_luc":"",
+    "ngay_truy_cap":"",
+    "noi_dung_su_dung":"",
+    "duong_dan":"",
+    "muc_do_nguon":"Chính thức|Tham khảo"
+  }],
+  "canh_bao":"",
+  "ngay_tra_cuu":""
+}`;
+
+    async function analyzeHS(isSupplement) {
+      if (!validateProduct()) return;
+      if (!apiKey) {
+        $("#formError").textContent = "Vui lòng nhập và lưu DeepSeek API key ở thanh phía trên trước khi phân tích.";
+        $("#formError").classList.remove("hidden");
+        $("#apiKeyInput").focus();
+        return;
+      }
+      setBusy(true);
+      resetResultUI(true);
+      $("#loadingCard").classList.remove("hidden");
+      $("#loadingTitle").textContent = isSupplement ? "Đang phân tích lại với thông tin bổ sung…" : "Đang phân tích bản chất hàng hóa…";
+      $("#loadingCard").scrollIntoView({ behavior: "smooth", block: "center" });
+
+      const payload = {
+        quoc_gia_ap_dung: "Việt Nam",
+        ngay_phan_tich: new Date().toISOString(),
+        thong_tin_hang_hoa: collectProductData(),
+        tai_lieu_da_tai_len: productFiles.map(file => ({
+          ten_file: file.name,
+          dinh_dang: file.type || file.name.split(".").pop(),
+          kich_thuoc: file.size
+        })),
+        cau_tra_loi_bo_sung: supplementalAnswers,
+        yeu_cau_tra_ve: [
+          "tom_tat_hang_hoa", "thong_tin_con_thieu", "cau_hoi_bo_sung",
+          "chuong_da_xem_xet", "quy_tac_da_ap_dung", "ma_hs_de_xuat",
+          "ma_da_loai", "can_cu_phan_loai", "nguon_tham_khao",
+          "canh_bao", "ngay_tra_cuu"
+        ]
+      };
+      try {
+        const instruction = `Phân tích mặt hàng theo system prompt.
+
+Dữ liệu do người dùng cung cấp:
+${JSON.stringify(payload, null, 2)}
+
+Lưu ý: phiên phân tích này không có công cụ tìm kiếm Internet được bảo đảm. Không được bịa nguồn hoặc tuyên bố đã xác minh dữ liệu hiện hành. Nếu tài liệu tải lên chưa đủ căn cứ, vẫn gợi ý mã 8 số theo hướng có khả năng nhất ở mức Thấp/Chưa đủ căn cứ và đồng thời hỏi bổ sung; chỉ để trống mã khi hoàn toàn không nhận diện được hàng hóa.`;
+        const userContent = productFiles.length
+          ? await buildAIContent(
+              instruction,
+              productFiles.map(file => ({ file, label: "Tài liệu mô tả hàng hóa" })),
+              12000
+            )
+          : instruction;
+        const messages = [
+          { role: "system", content: HS_SYSTEM_PROMPT },
+          { role: "user", content: userContent }
+        ];
+        const raw = await callDeepSeek(messages, 7000, 0.05);
+        let data = parseAIJson(raw);
+        validateHSResponse(data);
+        data = await ensureEightDigitSuggestions(data, messages, payload);
+        lastResult = data;
+        renderHSResult(data);
+      } catch (error) {
+        $("#formError").innerHTML = `<strong>Không thể thực hiện phân tích.</strong><br>${esc(friendlyError(error))}`;
+        $("#formError").classList.remove("hidden");
+        $("#formError").scrollIntoView({ behavior: "smooth", block: "center" });
+      } finally {
+        $("#loadingCard").classList.add("hidden");
+        setBusy(false);
+      }
+    }
+
+    function validateHSResponse(data) {
+      const required = ["tom_tat_hang_hoa", "thong_tin_con_thieu", "cau_hoi_bo_sung", "ma_hs_de_xuat", "nguon_tham_khao", "ngay_tra_cuu"];
+      const missing = required.filter(key => !(key in data));
+      if (missing.length) throw new Error("Kết quả thiếu trường bắt buộc: " + missing.join(", ") + ".");
+      if (!Array.isArray(data.cau_hoi_bo_sung) || !Array.isArray(data.ma_hs_de_xuat) || !Array.isArray(data.nguon_tham_khao)) {
+        throw new Error("Một số trường kết quả không đúng cấu trúc danh sách.");
+      }
+      normalizeEightDigitSuggestions(data);
+    }
+
+    function normalizeEightDigitSuggestions(data) {
+      const seen = new Set();
+      data.ma_hs_de_xuat = (data.ma_hs_de_xuat || []).map(item => {
+        const code = item?.ma_hs || item?.hs_code || item?.code || "";
+        return { ...item, ma_hs: normalizeHSCode(code) };
+      }).filter(item => {
+        if (!isEightDigitHSCode(item.ma_hs) || seen.has(item.ma_hs)) return false;
+        seen.add(item.ma_hs);
+        return true;
+      }).slice(0, 3);
+      return data;
+    }
+
+    function hasProductSignal(payload) {
+      const product = payload?.thong_tin_hang_hoa || {};
+      return Object.values(product).some(value => String(value || "").trim())
+        || (payload?.tai_lieu_da_tai_len || []).length > 0;
+    }
+
+    async function ensureEightDigitSuggestions(data, originalMessages, payload) {
+      normalizeEightDigitSuggestions(data);
+      if (data.ma_hs_de_xuat.length || !hasProductSignal(payload)) return data;
+
+      const correction = `Kết quả vừa trả chưa đáp ứng yêu cầu vì ma_hs_de_xuat đang trống hoặc chỉ chứa mã không đủ 8 chữ số.
+
+Hãy phân tích lại chính dữ liệu đã cung cấp và trả lại TOÀN BỘ JSON theo đúng cấu trúc.
+- Nếu tên hàng hoặc mô tả còn nhận diện được một loại hàng hóa thông thường, bắt buộc đưa ít nhất 1 mã HS/AHTN Việt Nam đủ 8 chữ số, định dạng XXXX.XX.XX.
+- Tên hàng đơn giản không phải là lý do để từ chối gợi ý.
+- Nếu thiếu dữ liệu để phân biệt phân nhóm, có thể đưa 2–3 mã 8 số cạnh tranh, đặt mức "Thấp" hoặc "Chưa đủ căn cứ", ghi rõ điều kiện áp dụng từng mã và hỏi tối đa 3 câu quyết định.
+- Không chỉ trả mã Chương, Nhóm hoặc mã 6 số.
+- Không bịa mã hoặc nguồn. Nếu chưa xác minh được hiệu lực hiện hành, phải nêu đây là mã định hướng tham khảo và không đặt mức "Cao".
+- Chỉ để ma_hs_de_xuat là [] nếu dữ liệu hoàn toàn không cho biết hàng hóa là gì.`;
+
+      const retryRaw = await callDeepSeek([
+        ...originalMessages,
+        { role: "assistant", content: JSON.stringify(data) },
+        { role: "user", content: correction }
+      ], 7000, 0.02);
+      const repaired = parseAIJson(retryRaw);
+      validateHSResponse(repaired);
+      return repaired;
+    }
+
+    function friendlyError(error) {
+      if (error?.name === "AbortError") return "Yêu cầu đã hết thời gian chờ.";
+      if (/Failed to fetch|NetworkError|Load failed/i.test(error?.message || "")) {
+        return "Trình duyệt không gọi được DeepSeek API. Hãy kiểm tra kết nối Internet, API key và chính sách CORS của trình duyệt.";
+      }
+      return error?.message || "Đã xảy ra lỗi không xác định.";
+    }
+
+    function setBusy(isBusy) {
+      ["#analyzeBtn", "#reanalyzeBtn", "#submitAnswersBtn"].forEach(selector => {
+        const button = $(selector);
+        if (button) button.disabled = isBusy;
+      });
+    }
+
+    function resetResultUI(keepLoading = false) {
+      ["#questionsCard", "#summaryCard", "#suggestionsCard", "#detailsCard", "#sourcesCard", "#legalDisclaimer"].forEach(selector => $(selector).classList.add("hidden"));
+      if (!keepLoading) $("#loadingCard").classList.add("hidden");
+      $("#questionsList").innerHTML = "";
+      $("#summaryGrid").innerHTML = "";
+      $("#suggestionsBody").innerHTML = "";
+      $("#detailsList").innerHTML = "";
+      $("#sourceGrid").innerHTML = "";
+      $("#noOfficialSource").classList.add("hidden");
+      $("#formError").classList.add("hidden");
+    }
+
+    function renderHSResult(data) {
+      const questions = (data.cau_hoi_bo_sung || []).slice(0, 3);
+      const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
+      pendingQuestions = questions;
+      renderSummary(data);
+
+      if (questions.length) {
+        renderQuestions(questions);
+        $("#questionsCard").classList.remove("hidden");
+      }
+
+      if (suggestions.length === 0) {
+        $("#summaryCard").classList.remove("hidden");
+        $("#legalDisclaimer").classList.remove("hidden");
+        (questions.length ? $("#questionsCard") : $("#summaryCard")).scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+
+      $("#summaryCard").classList.remove("hidden");
+      renderSuggestions(suggestions);
+      renderDetails(data, suggestions);
+      renderSources(data.nguon_tham_khao || []);
+      $("#suggestionsCard").classList.remove("hidden");
+      $("#detailsCard").classList.toggle("hidden", suggestions.length === 0);
+      $("#sourcesCard").classList.remove("hidden");
+      $("#legalDisclaimer").classList.remove("hidden");
+      $("#summaryCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function renderQuestions(questions) {
+      $("#questionsList").innerHTML = questions.map((question, index) => {
+        const id = question.id || `cau_hoi_${index + 1}`;
+        const label = question.cau_hoi || question.question || String(question);
+        return `<div class="question">
+          <label for="question-${index}">${index + 1}. ${esc(label)}</label>
+          <textarea class="control" id="question-${index}" data-question-id="${esc(id)}" placeholder="Nhập thông tin xác minh…"></textarea>
+        </div>`;
+      }).join("");
+    }
+
+    function renderSummary(data) {
+      const summary = data.tom_tat_hang_hoa || {};
+      const missing = data.thong_tin_con_thieu || [];
+      const entries = [
+        ["Tên hàng", summary.ten_hang || summary.ten],
+        ["Bản chất hàng hóa", summary.ban_chat_hang_hoa || summary.ban_chat],
+        ["Thành phần / vật liệu chính", summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan],
+        ["Công dụng chính", summary.cong_dung_chinh || summary.cong_dung],
+        ["Đặc điểm quyết định phân loại", summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh],
+        ["Thông tin còn thiếu", textOf(missing) || summary.thong_tin_con_thieu || "Không ghi nhận"]
+      ];
+      $("#summaryGrid").innerHTML = entries.map(([label, value]) => `
+        <div class="summary-item"><span>${esc(label)}</span><strong>${esc(textOf(value) || "Chưa xác định")}</strong></div>
+      `).join("");
+    }
+
+    function renderSuggestions(suggestions) {
+      const body = $("#suggestionsBody");
+      const note = $("#suggestionNote");
+      if (!suggestions.length) {
+        body.innerHTML = '<tr><td colspan="5">Chưa có phương án đủ căn cứ để đề xuất.</td></tr>';
+        note.textContent = "Dữ liệu hiện tại chưa cho biết hàng hóa là gì. Hãy bổ sung tên hàng hoặc mô tả ngắn để hệ thống gợi ý mã HS đủ 8 số.";
+        note.classList.remove("hidden");
+        return;
+      }
+      if (suggestions.length < 3) {
+        note.textContent = `Chỉ tìm thấy ${suggestions.length} phương án có căn cứ phân loại. Hệ thống không tạo thêm mã chỉ để đủ 3 kết quả.`;
+        note.classList.remove("hidden");
+      } else {
+        note.classList.add("hidden");
+      }
+      body.innerHTML = suggestions.map((item, index) => {
+        const code = normalizeHSCode(item.ma_hs || item.hs_code || item.code) || "Chưa xác định";
+        const description = item.mo_ta_hang_hoa || item.mo_ta || item.description || "";
+        const level = normalizeLevel(item.muc_do_phu_hop || item.muc_do || item.match_level);
+        return `<tr>
+          <td><strong>${index + 1}</strong></td>
+          <td><span class="hs-code">${esc(code)}</span></td>
+          <td>${esc(description)}</td>
+          <td><span class="level level-${slugLevel(level)}">${esc(level)}</span></td>
+          <td><button class="btn btn-secondary view-detail" type="button" data-detail-index="${index}">Xem chi tiết</button></td>
+        </tr>`;
+      }).join("");
+      $$(".view-detail", body).forEach(button => button.addEventListener("click", () => {
+        const detail = $("#detail-" + button.dataset.detailIndex);
+        if (detail) {
+          detail.open = true;
+          detail.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }));
+    }
+
+    function renderDetails(data, suggestions) {
+      const considered = textOf(data.chuong_da_xem_xet || []);
+      const rejected = textOf(data.ma_da_loai || []);
+      $("#detailsList").innerHTML = suggestions.map((item, index) => {
+        const code = normalizeHSCode(item.ma_hs || item.hs_code || item.code);
+        const structure = item.cau_truc_phan_loai || item.cau_truc || [
+          item.phan, item.chuong, item.nhom, item.phan_nhom, code
+        ].filter(Boolean).join(" → ");
+        const rules = item.quy_tac_ap_dung || item.quy_tac_da_ap_dung || data.quy_tac_da_ap_dung || [];
+        const ruleHtml = Array.isArray(rules) && rules.length
+          ? rules.map(rule => `<div class="rule">
+              <strong>${esc(rule.quy_tac || rule.ten || rule.rule || "Quy tắc áp dụng")}</strong>
+              <div>${esc(textOf(rule.ly_do || rule.giai_thich || rule.reason))}</div>
+              ${rule.dac_diem_xem_xet ? `<div><b>Đặc điểm xem xét:</b> ${esc(textOf(rule.dac_diem_xem_xet))}</div>` : ""}
+              ${rule.ket_qua ? `<div><b>Kết quả:</b> ${esc(textOf(rule.ket_qua))}</div>` : ""}
+              ${rule.ly_do_khong_ap_dung_quy_tac_tiep ? `<div><b>Quy tắc tiếp theo:</b> ${esc(textOf(rule.ly_do_khong_ap_dung_quy_tac_tiep))}</div>` : ""}
+            </div>`).join("")
+          : `<div class="rule">${esc(textOf(rules) || "Chưa có diễn giải quy tắc.")}</div>`;
+        return `<details class="detail-card" id="detail-${index}" ${index === 0 ? "open" : ""}>
+          <summary><span class="hs-code">${esc(code)}</span> ${esc(item.mo_ta_hang_hoa || item.mo_ta || "")}</summary>
+          <div class="detail-body">
+            <div class="detail-grid">
+              <div class="detail-block full"><h5>Cấu trúc phân loại</h5><p>${esc(textOf(structure) || "Chưa có")}</p></div>
+              <div class="detail-block full"><h5>Quy tắc tổng quát đã áp dụng</h5>${ruleHtml}</div>
+              <div class="detail-block"><h5>Đặc điểm hàng hóa làm căn cứ</h5><p>${esc(textOf(item.dac_diem_lam_can_cu || item.dac_diem_hang_hoa || data.can_cu_phan_loai) || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Chú giải đã kiểm tra</h5><p>${esc(textOf(item.chu_giai_da_kiem_tra || item.chu_giai) || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Điều khoản bao gồm</h5><p>${esc(textOf(item.dieu_khoan_bao_gom || item.bao_gom) || "Không ghi nhận")}</p></div>
+              <div class="detail-block"><h5>Điều khoản loại trừ</h5><p>${esc(textOf(item.dieu_khoan_loai_tru || item.loai_tru) || "Không ghi nhận")}</p></div>
+              <div class="detail-block"><h5>Lý do phù hợp</h5><p>${esc(textOf(item.ly_do_phu_hop || item.ly_do) || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Lý do không chọn mã cạnh tranh</h5><p>${esc(textOf(item.ly_do_khong_chon_ma_canh_tranh || item.ly_do_khong_chon) || rejected || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Thông tin cần xác minh thêm</h5><p>${esc(textOf(item.thong_tin_can_xac_minh || item.diem_can_xac_minh) || "Không ghi nhận")}</p></div>
+              <div class="detail-block"><h5>Phần / Chương đã xem xét</h5><p>${esc(considered || "Chưa có")}</p></div>
+              <div class="detail-block full"><h5>Ngày tra cứu</h5><p>${esc(data.ngay_tra_cuu || new Date().toLocaleDateString("vi-VN"))}</p></div>
+            </div>
+          </div>
+        </details>`;
+      }).join("");
+    }
+
+    function renderSources(sources) {
+      const officialCount = sources.filter(source => String(source.muc_do_nguon || source.muc_do || "").toLowerCase().includes("chính")).length;
+      $("#noOfficialSource").classList.toggle("hidden", officialCount > 0);
+      if (!sources.length) {
+        $("#sourceGrid").innerHTML = "";
+        $("#noOfficialSource").classList.remove("hidden");
+        return;
+      }
+      $("#sourceGrid").innerHTML = sources.map(source => {
+        const kindRaw = source.muc_do_nguon || source.muc_do || "Tham khảo";
+        const isOfficial = String(kindRaw).toLowerCase().includes("chính");
+        const link = safeUrl(source.duong_dan || source.url || source.link);
+        const dates = [
+          source.ngay_ban_hanh ? `Ban hành: ${source.ngay_ban_hanh}` : "",
+          source.ngay_hieu_luc ? `Hiệu lực: ${source.ngay_hieu_luc}` : "",
+          source.ngay_truy_cap ? `Truy cập: ${source.ngay_truy_cap}` : ""
+        ].filter(Boolean).join(" · ");
+        return `<article class="source-card">
+          <div class="source-top">
+            <h5>${esc(source.ten_nguon || source.ten_tai_lieu || "Nguồn tham khảo")}</h5>
+            <span class="source-kind ${isOfficial ? "official" : "reference"}">${isOfficial ? "Chính thức" : "Tham khảo"}</span>
+          </div>
+          <p><b>Cơ quan:</b> ${esc(source.co_quan_ban_hanh || source.co_quan || "Chưa xác định")}</p>
+          <p><b>Loại tài liệu:</b> ${esc(source.loai_tai_lieu || "Chưa xác định")}${source.so_hieu_van_ban ? ` · <b>Số hiệu:</b> ${esc(source.so_hieu_van_ban)}` : ""}</p>
+          ${dates ? `<p>${esc(dates)}</p>` : ""}
+          <p><b>Nội dung sử dụng:</b> ${esc(textOf(source.noi_dung_su_dung || source.noi_dung_lam_can_cu) || "Chưa mô tả")}</p>
+          ${link ? `<a class="source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Mở nguồn ↗</a>` : '<p><b>Đường dẫn:</b> Chưa được xác minh</p>'}
+        </article>`;
+      }).join("");
+    }
+
+    $("#exportPdfBtn").addEventListener("click", () => window.print());
+    $("#exportExcelBtn").addEventListener("click", exportExcel);
+
+    function exportExcel() {
+      if (!lastResult) return;
+      const suggestions = lastResult.ma_hs_de_xuat || [];
+      const sources = lastResult.nguon_tham_khao || [];
+      const rows = [
+        ["BÁO CÁO GỢI Ý MÃ HS"],
+        ["Ngày tra cứu", lastResult.ngay_tra_cuu || ""],
+        [],
+        ["Xếp hạng", "Mã HS", "Mô tả hàng hóa", "Mức độ phù hợp", "Lý do phù hợp"]
+      ];
+      suggestions.forEach((item, index) => rows.push([
+        index + 1,
+        item.ma_hs || item.hs_code || item.code || "",
+        item.mo_ta_hang_hoa || item.mo_ta || "",
+        normalizeLevel(item.muc_do_phu_hop || item.muc_do),
+        textOf(item.ly_do_phu_hop || item.ly_do)
+      ]));
+      rows.push([], ["NGUỒN ĐƯỢC SỬ DỤNG"], ["Tên nguồn", "Cơ quan", "Số hiệu", "Mức độ", "Đường dẫn"]);
+      sources.forEach(source => rows.push([
+        source.ten_nguon || source.ten_tai_lieu || "",
+        source.co_quan_ban_hanh || source.co_quan || "",
+        source.so_hieu_van_ban || "",
+        source.muc_do_nguon || source.muc_do || "",
+        source.duong_dan || source.url || ""
+      ]));
+      const tsv = "\uFEFF" + rows.map(row => row.map(cell => String(cell ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ")).join("\t")).join("\n");
+      const blob = new Blob([tsv], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `bao-cao-ma-hs-${new Date().toISOString().slice(0, 10)}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    }
+
+    const PRODUCT_GROUPS = [
+      "Thực phẩm và đồ uống",
+      "Nông sản",
+      "Động vật và sản phẩm động vật",
+      "Hóa chất",
+      "Mỹ phẩm",
+      "Dược phẩm và thiết bị y tế",
+      "Nhựa và sản phẩm bằng nhựa",
+      "Cao su và sản phẩm bằng cao su",
+      "Gỗ và sản phẩm bằng gỗ",
+      "Giấy và sản phẩm bằng giấy",
+      "Dệt may",
+      "Quần áo và phụ kiện",
+      "Giày dép",
+      "Túi xách, ba lô và vali",
+      "Kim loại và sản phẩm kim loại",
+      "Máy móc và thiết bị cơ khí",
+      "Điện, điện tử",
+      "Máy tính và thiết bị viễn thông",
+      "Linh kiện và phụ tùng",
+      "Phương tiện vận tải",
+      "Nội thất",
+      "Đồ gia dụng",
+      "Đồ chơi và dụng cụ thể thao",
+      "Trang sức và đồng hồ",
+      "Vật liệu xây dựng",
+      "Hàng thủ công mỹ nghệ",
+      "Bao bì",
+      "Hàng hóa khác"
+    ];
+
+    const CORE_DESCRIPTION_FIELDS = [
+      {
+        key: "thanh_phan_vat_lieu",
+        label: "Thành phần, chất liệu và tỷ lệ",
+        placeholder: "Ví dụ: 92% polyester, 8% spandex; nhựa ABS; thép không gỉ",
+        type: "textarea",
+        required: true
+      },
+      {
+        key: "cong_dung_chinh",
+        label: "Công dụng hoặc chức năng chính",
+        placeholder: "Sản phẩm dùng để làm gì? Nếu là linh kiện, ghi rõ dùng cho máy nào",
+        type: "textarea",
+        required: true
+      },
+      {
+        key: "thong_so_ky_thuat",
+        label: "Thông số kỹ thuật, kích thước hoặc quy cách",
+        placeholder: "Kích thước, trọng lượng, dung tích, công suất, điện áp, định lượng…",
+        type: "textarea",
+        required: true
+      },
+      {
+        key: "nhan_hieu_model",
+        label: "Nhãn hiệu và model/mã sản phẩm",
+        placeholder: "Ví dụ: Dyna Pro 7 S; Brand ABC, model X100; không nhãn hiệu",
+        required: true
+      },
+      {
+        key: "tinh_trang_hang_hoa",
+        label: "Tình trạng hàng hóa",
+        type: "select",
+        options: ["Mới 100%", "Đã qua sử dụng", "Chưa xác định"],
+        required: true
+      }
+    ];
+
+    const OPTIONAL_DESCRIPTION_FIELDS = {
+      cau_tao_dac_diem: {
+        key: "cau_tao_dac_diem",
+        label: "Cấu tạo và đặc điểm khác",
+        placeholder: "Kết cấu, hình dạng, bộ phận đi kèm hoặc đặc điểm ảnh hưởng đến phân loại",
+        type: "textarea"
+      },
+      nha_san_xuat_nha_cung_cap: {
+        key: "nha_san_xuat_nha_cung_cap",
+        label: "Nhà sản xuất hoặc nhà cung cấp",
+        placeholder: "Tên đơn vị"
+      },
+      xuat_xu: {
+        key: "xuat_xu",
+        label: "Xuất xứ",
+        placeholder: "Quốc gia xuất xứ"
+      },
+      dang_hang_hoa: {
+        key: "dang_hang_hoa",
+        label: "Dạng hàng hóa",
+        type: "select",
+        options: ["Thành phẩm hoàn chỉnh", "Bán thành phẩm", "Bộ phận/phụ tùng", "Nguyên liệu", "Bộ sản phẩm", "Chưa xác định"]
+      },
+      quy_cach_dong_goi: {
+        key: "quy_cach_dong_goi",
+        label: "Quy cách đóng gói",
+        placeholder: "Đóng gói bán lẻ, thùng, cuộn, tấm, chai 500 ml…"
+      },
+      thong_tin_bo_sung: {
+        key: "thong_tin_bo_sung",
+        label: "Thông tin bổ sung",
+        placeholder: "Thông tin khác có thể ảnh hưởng đến việc phân loại",
+        type: "textarea",
+        full: true
+      }
+    };
+
+    const GROUP_QUESTIONS = {
+      generic: {
+        title: "Thông tin cần cho nhóm hàng đã chọn",
+        fields: [],
+        optional: ["cau_tao_dac_diem", "nha_san_xuat_nha_cung_cap", "xuat_xu", "dang_hang_hoa", "thong_tin_bo_sung"]
+      },
+      food: {
+        title: "Thông tin cần cho thực phẩm và đồ uống",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên cụ thể và loại thực phẩm/đồ uống" },
+          thanh_phan_vat_lieu: { label: "Thành phần và tỷ lệ từng thành phần" },
+          cong_dung_chinh: { label: "Cách sử dụng", placeholder: "Dùng trực tiếp, pha chế hay phải qua chế biến?" },
+          thong_so_ky_thuat: { label: "Khối lượng, dung tích và quy cách" }
+        },
+        fields: [
+          { key: "dang_che_bien", label: "Dạng và mức độ chế biến", placeholder: "Tươi, đông lạnh, sấy, nấu chín, dạng bột, cô đặc…", required: true },
+          { key: "quy_cach_ban_thuc_pham", label: "Hình thức đóng gói", type: "select", options: ["Đóng gói bán lẻ", "Số lượng lớn", "Chưa xác định"], required: true },
+          { key: "thanh_phan_dac_biet", label: "Đường, sữa, thịt, cồn hoặc phụ gia", placeholder: "Nêu rõ có/không và tỷ lệ nếu có", required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      agriculture: {
+        title: "Thông tin cần cho nông sản",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên nông sản và giống/loài" },
+          thanh_phan_vat_lieu: { label: "Thành phần hoặc bộ phận của cây" },
+          cong_dung_chinh: { label: "Mục đích sử dụng", placeholder: "Làm thực phẩm, làm giống, thức ăn chăn nuôi hay nguyên liệu?" },
+          thong_so_ky_thuat: { label: "Cấp chất lượng, độ ẩm, kích cỡ hoặc quy cách" }
+        },
+        fields: [
+          { key: "trang_thai_nong_san", label: "Trạng thái sản phẩm", type: "select", options: ["Tươi", "Khô", "Đông lạnh", "Đã sơ chế", "Đã chế biến", "Chưa xác định"], required: true },
+          { key: "xu_ly_nong_san", label: "Phương pháp xử lý", placeholder: "Bóc vỏ, xay, rang, sấy, ngâm, tẩm hoặc chưa xử lý", required: true }
+        ],
+        optional: ["quy_cach_dong_goi", "xuat_xu", "nha_san_xuat_nha_cung_cap", "thong_tin_bo_sung"]
+      },
+      animal: {
+        title: "Thông tin cần cho động vật và sản phẩm động vật",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên sản phẩm và loài động vật" },
+          thanh_phan_vat_lieu: { label: "Bộ phận hoặc thành phần từ động vật" },
+          cong_dung_chinh: { label: "Mục đích sử dụng", placeholder: "Làm thực phẩm, giống, nguyên liệu hay mục đích khác?" }
+        },
+        fields: [
+          { key: "dang_san_pham_dong_vat", label: "Dạng sản phẩm", placeholder: "Nguyên con, thịt, nội tạng, sữa, trứng, da, lông…", required: true },
+          { key: "xu_ly_san_pham_dong_vat", label: "Tình trạng chế biến/bảo quản", placeholder: "Sống, tươi, ướp lạnh, đông lạnh, sấy, nấu chín…", required: true },
+          { key: "muc_dich_an_duoc", label: "Dùng làm thực phẩm cho người?", type: "select", options: ["Có", "Không", "Chưa xác định"], required: true }
+        ],
+        optional: ["quy_cach_dong_goi", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      chemical: {
+        title: "Thông tin cần cho hóa chất",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên hóa học hoặc tên thương mại cụ thể" },
+          thanh_phan_vat_lieu: { label: "Thành phần hóa học và nồng độ/tỷ lệ" },
+          thong_so_ky_thuat: { label: "Độ tinh khiết, pH và thông số kỹ thuật" }
+        },
+        fields: [
+          { key: "ma_cas_cong_thuc", label: "Mã CAS hoặc công thức hóa học", placeholder: "Nếu có", required: false },
+          { key: "dang_san_pham_hoa_chat", label: "Dạng sản phẩm", placeholder: "Bột, hạt, dung dịch, khí, gel…", required: true },
+          { key: "quy_cach_hoa_chat", label: "Hình thức cung cấp", type: "select", options: ["Đóng gói bán lẻ", "Nguyên liệu sản xuất", "Hỗn hợp/chế phẩm", "Chưa xác định"], required: true }
+        ],
+        optional: ["quy_cach_dong_goi", "nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      cosmetics: {
+        title: "Thông tin cần cho mỹ phẩm",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại mỹ phẩm cụ thể" },
+          thanh_phan_vat_lieu: { label: "Thành phần INCI và nồng độ/tỷ lệ" },
+          cong_dung_chinh: { label: "Công dụng và vùng sử dụng" },
+          thong_so_ky_thuat: { label: "Dung tích, khối lượng và dạng đóng gói" }
+        },
+        fields: [
+          { key: "dang_my_pham", label: "Dạng sản phẩm", placeholder: "Kem, gel, serum, bột, dung dịch, xịt…", required: true },
+          { key: "dang_cung_cap_my_pham", label: "Hình thức cung cấp", type: "select", options: ["Đóng gói bán lẻ", "Nguyên liệu sản xuất", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      medical: {
+        title: "Thông tin cần cho dược phẩm và thiết bị y tế",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên thuốc hoặc loại thiết bị y tế" },
+          thanh_phan_vat_lieu: { label: "Hoạt chất/nồng độ hoặc vật liệu cấu tạo" },
+          cong_dung_chinh: { label: "Chỉ định hoặc công dụng y tế" },
+          thong_so_ky_thuat: { label: "Liều lượng hoặc thông số kỹ thuật" }
+        },
+        fields: [
+          { key: "loai_duoc_y_te", label: "Phân loại sản phẩm", type: "select", options: ["Dược phẩm", "Thiết bị y tế", "Vật tư tiêu hao", "Chưa xác định"], required: true },
+          { key: "co_che_hoat_dong_y_te", label: "Cơ chế/nguyên lý hoạt động", placeholder: "Tác dụng dược lý, cơ học, điện, quang học…", required: true },
+          { key: "vo_trung_dung_mot_lan", label: "Vô trùng hoặc dùng một lần?", type: "select", options: ["Vô trùng", "Không vô trùng", "Dùng một lần", "Tái sử dụng", "Chưa xác định"], required: false }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "dang_hang_hoa", "thong_tin_bo_sung"]
+      },
+      material: {
+        title: "Thông tin cần cho sản phẩm theo vật liệu",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên sản phẩm cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu chính, cấp/loại và tỷ lệ" },
+          thong_so_ky_thuat: { label: "Kích thước, độ dày, trọng lượng hoặc quy cách" }
+        },
+        fields: [
+          { key: "dang_vat_lieu", label: "Dạng của hàng hóa", placeholder: "Tấm, thanh, ống, cuộn, hạt, chi tiết đúc, sản phẩm hoàn chỉnh…", required: true },
+          { key: "muc_do_gia_cong", label: "Mức độ gia công/bề mặt", placeholder: "Thô, cắt, đánh bóng, sơn, phủ, ghép lớp…", required: true }
+        ],
+        optional: ["cau_tao_dac_diem", "nha_san_xuat_nha_cung_cap", "xuat_xu", "dang_hang_hoa", "thong_tin_bo_sung"]
+      },
+      textile: {
+        title: "Thông tin cần cho dệt may",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên vải/sợi hoặc sản phẩm dệt cụ thể" },
+          thanh_phan_vat_lieu: { label: "Thành phần sợi và tỷ lệ" },
+          cong_dung_chinh: { label: "Công dụng của vải/sản phẩm dệt" },
+          thong_so_ky_thuat: { label: "Khổ, định lượng, độ dày hoặc quy cách" }
+        },
+        fields: [
+          { key: "dang_det_may", label: "Dạng sản phẩm", type: "select", options: ["Xơ/sợi", "Vải", "Sản phẩm dệt hoàn chỉnh", "Chưa xác định"], required: true },
+          { key: "phuong_phap_det", label: "Phương pháp tạo vải", type: "select", options: ["Dệt kim", "Dệt thoi", "Không dệt", "Không áp dụng", "Chưa xác định"], required: true },
+          { key: "xu_ly_be_mat_vai", label: "Xử lý bề mặt", placeholder: "Nhuộm, in, tráng phủ, ép lớp hoặc chưa xử lý", required: false }
+        ],
+        optional: ["quy_cach_dong_goi", "xuat_xu", "nha_san_xuat_nha_cung_cap", "thong_tin_bo_sung"]
+      },
+      apparel: {
+        title: "Thông tin cần cho quần áo và phụ kiện",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại quần áo/phụ kiện cụ thể" },
+          thanh_phan_vat_lieu: { label: "Thành phần sợi và tỷ lệ" },
+          cong_dung_chinh: { label: "Công dụng/loại trang phục" },
+          thong_so_ky_thuat: { label: "Kích cỡ, kiểu dáng và quy cách" }
+        },
+        fields: [
+          { key: "phuong_phap_det", label: "Dệt kim hay dệt thoi?", type: "select", options: ["Dệt kim", "Dệt thoi", "Không áp dụng", "Chưa xác định"], required: true },
+          { key: "doi_tuong_det_may", label: "Đối tượng sử dụng", type: "select", options: ["Nam", "Nữ", "Trẻ em", "Trẻ sơ sinh", "Không phân biệt", "Chưa xác định"], required: true },
+          { key: "dac_diem_trang_phuc", label: "Đặc điểm quyết định loại hàng", placeholder: "Có tay/không tay, cổ áo, độ dài, có lót, bộ rời hay liền…", required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      footwear: {
+        title: "Thông tin cần cho giày dép",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại giày dép cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu cấu tạo chính" },
+          thong_so_ky_thuat: { label: "Kích cỡ và đặc điểm kỹ thuật" }
+        },
+        fields: [
+          { key: "vat_lieu_mu_giay", label: "Vật liệu mũ giày", placeholder: "Da, vải dệt, nhựa, cao su…", required: true },
+          { key: "vat_lieu_de_ngoai", label: "Vật liệu đế ngoài", placeholder: "Cao su, nhựa, da, vật liệu khác…", required: true },
+          { key: "dac_diem_giay", label: "Đặc điểm kiểu dáng", placeholder: "Che mắt cá, hở mũi, giày thể thao, chống nước…", required: true }
+        ],
+        optional: ["doi_tuong_su_dung", "nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      bags: {
+        title: "Thông tin cần cho túi xách, ba lô và vali",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại túi/ba lô/vali cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu mặt ngoài", placeholder: "Vải dệt, nhựa, da tự nhiên, da tổng hợp…" },
+          cong_dung_chinh: { label: "Công dụng chứa đựng" },
+          thong_so_ky_thuat: { label: "Kích thước hoặc dung tích" }
+        },
+        fields: [
+          { key: "cach_deo_su_dung", label: "Cách mang hoặc sử dụng", placeholder: "Đeo vai, đeo lưng, cầm tay, kéo bằng bánh xe…", required: true },
+          { key: "cau_tao_tui", label: "Cấu tạo chính", placeholder: "Số ngăn, khóa kéo, dây đeo, khung cứng, bánh xe…", required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      machinery: {
+        title: "Thông tin cần cho máy móc và thiết bị cơ khí",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên máy/thiết bị cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu và các bộ phận chính" },
+          cong_dung_chinh: { label: "Chức năng chính của máy" },
+          thong_so_ky_thuat: { label: "Công suất, năng suất và thông số kỹ thuật" }
+        },
+        fields: [
+          { key: "nguyen_ly_hoat_dong_may", label: "Nguyên lý hoạt động", placeholder: "Mô tả cơ chế vận hành", required: true },
+          { key: "nganh_su_dung", label: "Ngành/lĩnh vực sử dụng", placeholder: "Thực phẩm, dệt may, đóng gói, xây dựng…", required: true },
+          { key: "dang_may", label: "Tình trạng nhập khẩu", type: "select", options: ["Máy hoàn chỉnh", "Chưa hoàn chỉnh", "Tháo rời", "Bộ phận của máy", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      electrical: {
+        title: "Thông tin cần cho điện và điện tử",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên thiết bị điện/điện tử cụ thể" },
+          thanh_phan_vat_lieu: { label: "Cấu tạo và linh kiện chính" },
+          cong_dung_chinh: { label: "Chức năng chính của thiết bị" },
+          thong_so_ky_thuat: { label: "Điện áp, công suất và thông số kỹ thuật" }
+        },
+        fields: [
+          { key: "nguon_dien", label: "Nguồn điện/cách cấp điện", placeholder: "AC, DC, pin, ắc quy, không dùng điện…", required: true },
+          { key: "truyen_nhan_du_lieu", label: "Có truyền hoặc nhận dữ liệu?", type: "select", options: ["Có", "Không", "Chưa xác định"], required: true },
+          { key: "dang_thiet_bi_dien", label: "Dạng hàng", type: "select", options: ["Thiết bị hoàn chỉnh", "Linh kiện/bộ phận", "Cụm lắp ráp", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      ict: {
+        title: "Thông tin cần cho máy tính và thiết bị viễn thông",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên thiết bị CNTT/viễn thông cụ thể" },
+          thanh_phan_vat_lieu: { label: "Cấu tạo và linh kiện chính" },
+          cong_dung_chinh: { label: "Chức năng xử lý/truyền nhận dữ liệu" },
+          thong_so_ky_thuat: { label: "Chuẩn kết nối, băng tần, tốc độ, điện áp/công suất" }
+        },
+        fields: [
+          { key: "kieu_ket_noi_du_lieu", label: "Kiểu kết nối/truyền dữ liệu", placeholder: "Có dây, Wi‑Fi, Bluetooth, di động, quang…", required: true },
+          { key: "kha_nang_hoat_dong_doc_lap", label: "Khả năng hoạt động", type: "select", options: ["Hoạt động độc lập", "Chỉ hoạt động khi gắn vào thiết bị khác", "Chưa xác định"], required: true },
+          { key: "dang_thiet_bi_ict", label: "Dạng hàng", type: "select", options: ["Thiết bị hoàn chỉnh", "Linh kiện/bộ phận", "Cụm lắp ráp", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      parts: {
+        title: "Thông tin cần cho linh kiện và phụ tùng",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên linh kiện/phụ tùng cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu và cấu tạo" },
+          cong_dung_chinh: { label: "Chức năng của linh kiện trong máy" },
+          thong_so_ky_thuat: { label: "Thông số, kích thước và part number" }
+        },
+        fields: [
+          { key: "may_su_dung_bo_phan", label: "Dùng cho máy/thiết bị nào?", placeholder: "Nêu tên, chức năng và model của máy chính", required: true },
+          { key: "muc_do_chuyen_dung", label: "Mức độ chuyên dùng", type: "select", options: ["Chuyên dùng duy nhất cho một loại máy", "Dùng được cho nhiều loại máy", "Có thể hoạt động độc lập", "Chưa xác định"], required: true },
+          { key: "tinh_trang_linh_kien", label: "Tình trạng lắp ráp", type: "select", options: ["Chi tiết rời", "Cụm lắp ráp", "Bộ hoàn chỉnh", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      vehicles: {
+        title: "Thông tin cần cho phương tiện vận tải",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại phương tiện/phụ tùng cụ thể" },
+          thanh_phan_vat_lieu: { label: "Cấu tạo và vật liệu chính" },
+          cong_dung_chinh: { label: "Công dụng vận tải/chuyên dùng" },
+          thong_so_ky_thuat: { label: "Dung tích xi-lanh, công suất, tải trọng và kích thước" }
+        },
+        fields: [
+          { key: "loai_phuong_tien", label: "Loại phương tiện", placeholder: "Ô tô, xe máy, xe đạp, rơ-moóc, tàu thuyền…", required: true },
+          { key: "dong_co_nhien_lieu", label: "Động cơ/nguồn năng lượng", placeholder: "Xăng, diesel, điện, hybrid, không động cơ…", required: true },
+          { key: "dang_phuong_tien", label: "Dạng hàng", type: "select", options: ["Phương tiện hoàn chỉnh", "Chưa hoàn chỉnh/tháo rời", "Phụ tùng/bộ phận", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      furniture: {
+        title: "Thông tin cần cho nội thất",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại đồ nội thất cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu khung, bề mặt và tỷ lệ" },
+          cong_dung_chinh: { label: "Công dụng và nơi sử dụng" },
+          thong_so_ky_thuat: { label: "Kích thước, trọng lượng và quy cách" }
+        },
+        fields: [
+          { key: "kieu_noi_that", label: "Kiểu lắp đặt/sử dụng", type: "select", options: ["Đặt sàn", "Treo/tường", "Gắn cố định", "Loại khác", "Chưa xác định"], required: true },
+          { key: "tinh_trang_lap_rap_noi_that", label: "Tình trạng lắp ráp", type: "select", options: ["Hoàn chỉnh", "Tháo rời đồng bộ", "Bộ phận rời", "Chưa xác định"], required: true }
+        ],
+        optional: ["cau_tao_dac_diem", "nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      household: {
+        title: "Thông tin cần cho đồ gia dụng",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên đồ gia dụng cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu và cấu tạo chính" },
+          cong_dung_chinh: { label: "Công dụng gia đình chính" }
+        },
+        fields: [
+          { key: "co_su_dung_dien", label: "Có sử dụng điện?", type: "select", options: ["Có", "Không", "Chưa xác định"], required: true },
+          { key: "co_che_do_gia_dung", label: "Cơ chế hoạt động", placeholder: "Gia nhiệt, làm lạnh, cơ học, thủ công…", required: true }
+        ],
+        optional: ["cau_tao_dac_diem", "nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      toys: {
+        title: "Thông tin cần cho đồ chơi và dụng cụ thể thao",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại đồ chơi/dụng cụ thể thao" },
+          thanh_phan_vat_lieu: { label: "Vật liệu cấu tạo chính" },
+          cong_dung_chinh: { label: "Cách chơi/môn thể thao và đối tượng sử dụng" }
+        },
+        fields: [
+          { key: "co_che_do_choi", label: "Cơ chế hoạt động", type: "select", options: ["Thủ công", "Cơ học", "Dùng điện/pin", "Điện tử có xử lý dữ liệu", "Chưa xác định"], required: true },
+          { key: "dang_bo_do_choi", label: "Cách cung cấp", type: "select", options: ["Sản phẩm đơn", "Bộ sản phẩm", "Bộ phận/phụ kiện", "Chưa xác định"], required: true }
+        ],
+        optional: ["cau_tao_dac_diem", "nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      jewelry: {
+        title: "Thông tin cần cho trang sức và đồng hồ",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại trang sức/đồng hồ cụ thể" },
+          thanh_phan_vat_lieu: { label: "Kim loại, độ tinh khiết và vật liệu khác" },
+          cong_dung_chinh: { label: "Công dụng đeo/trang trí/đo thời gian" },
+          thong_so_ky_thuat: { label: "Trọng lượng, kích thước và thông số máy" }
+        },
+        fields: [
+          { key: "kim_loai_quy", label: "Có kim loại quý hoặc mạ kim loại quý?", type: "select", options: ["Có", "Không", "Chưa xác định"], required: true },
+          { key: "da_ngoc_vat_lieu_quy", label: "Đá quý/ngọc trai/vật liệu quý", placeholder: "Loại, tự nhiên hay nhân tạo, tỷ lệ nếu có", required: true },
+          { key: "co_che_dong_ho", label: "Cơ chế máy (nếu là đồng hồ)", placeholder: "Cơ, quartz, điện tử hoặc không áp dụng", required: false }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      building: {
+        title: "Thông tin cần cho vật liệu xây dựng",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên vật liệu/sản phẩm xây dựng" },
+          thanh_phan_vat_lieu: { label: "Vật liệu, cấp/loại và tỷ lệ" },
+          cong_dung_chinh: { label: "Vị trí và công dụng trong công trình" },
+          thong_so_ky_thuat: { label: "Kích thước, độ dày, khối lượng và tiêu chuẩn" }
+        },
+        fields: [
+          { key: "dang_vat_lieu_xay_dung", label: "Dạng sản phẩm", placeholder: "Tấm, viên, khối, ống, thanh, hỗn hợp khô…", required: true },
+          { key: "muc_do_hoan_thien_xay_dung", label: "Mức độ hoàn thiện/bề mặt", placeholder: "Thô, nung, tráng men, phủ, gia cường…", required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "dang_hang_hoa", "thong_tin_bo_sung"]
+      },
+      handicraft: {
+        title: "Thông tin cần cho hàng thủ công mỹ nghệ",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Tên sản phẩm thủ công cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu chính và tỷ lệ" },
+          cong_dung_chinh: { label: "Công dụng trang trí hoặc sử dụng thực tế" }
+        },
+        fields: [
+          { key: "phuong_phap_che_tac", label: "Phương pháp chế tác", placeholder: "Đan, dệt, chạm khắc, đúc, sơn mài, làm thủ công…", required: true },
+          { key: "muc_do_hoan_thien_thu_cong", label: "Tình trạng hoàn thiện", type: "select", options: ["Hoàn chỉnh", "Bán thành phẩm", "Bộ phận", "Chưa xác định"], required: true }
+        ],
+        optional: ["cau_tao_dac_diem", "nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      },
+      packaging: {
+        title: "Thông tin cần cho bao bì",
+        commonOverrides: {
+          ten_san_pham_cu_the: { label: "Loại bao bì cụ thể" },
+          thanh_phan_vat_lieu: { label: "Vật liệu từng lớp và tỷ lệ" },
+          cong_dung_chinh: { label: "Loại hàng được chứa/đóng gói" },
+          thong_so_ky_thuat: { label: "Kích thước, dung tích, độ dày và tải trọng" }
+        },
+        fields: [
+          { key: "dang_bao_bi", label: "Dạng bao bì", placeholder: "Chai, lọ, hộp, túi, bao, thùng, pallet…", required: true },
+          { key: "cau_tao_dong_kin", label: "Cấu tạo và cách đóng kín", placeholder: "Nắp vặn, khóa kéo, hàn mép, có van, nhiều lớp…", required: true },
+          { key: "tinh_trang_bao_bi", label: "Tình trạng cung cấp", type: "select", options: ["Hoàn chỉnh", "Dạng phôi/bán thành phẩm", "Bộ phận của bao bì", "Chưa xác định"], required: true }
+        ],
+        optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
+      }
+    };
+
+    const GROUP_PROFILE_MAP = {
+      "Thực phẩm và đồ uống": "food",
+      "Nông sản": "agriculture",
+      "Động vật và sản phẩm động vật": "animal",
+      "Hóa chất": "chemical",
+      "Mỹ phẩm": "cosmetics",
+      "Dược phẩm và thiết bị y tế": "medical",
+      "Nhựa và sản phẩm bằng nhựa": "material",
+      "Cao su và sản phẩm bằng cao su": "material",
+      "Gỗ và sản phẩm bằng gỗ": "material",
+      "Giấy và sản phẩm bằng giấy": "material",
+      "Dệt may": "textile",
+      "Quần áo và phụ kiện": "apparel",
+      "Giày dép": "footwear",
+      "Túi xách, ba lô và vali": "bags",
+      "Kim loại và sản phẩm kim loại": "material",
+      "Máy móc và thiết bị cơ khí": "machinery",
+      "Điện, điện tử": "electrical",
+      "Máy tính và thiết bị viễn thông": "ict",
+      "Linh kiện và phụ tùng": "parts",
+      "Phương tiện vận tải": "vehicles",
+      "Nội thất": "furniture",
+      "Đồ gia dụng": "household",
+      "Đồ chơi và dụng cụ thể thao": "toys",
+      "Trang sức và đồng hồ": "jewelry",
+      "Vật liệu xây dựng": "building",
+      "Hàng thủ công mỹ nghệ": "handicraft",
+      "Bao bì": "packaging",
+      "Hàng hóa khác": "generic"
+    };
+
+    let activeHSMethod = "";
+    let manualItemCounter = 0;
+    let listFileCounter = 0;
+    let extractedItemCounter = 0;
+    const manualItemFiles = new Map();
+    let uploadedListFiles = [];
+    let replaceListFileId = null;
+    let extractedItems = [];
+    let previewEditing = false;
+    let listConfirmed = false;
+    let analysisEntries = [];
+    let batchAnalysisResults = [];
+    const batchSupplementalAnswers = {};
+
+    function showWorkflowError(message, focusTarget = null) {
+      const box = $("#workflowError");
+      box.innerHTML = message;
+      box.classList.remove("hidden");
+      if (focusTarget) focusTarget.focus();
+      box.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function clearWorkflowError() {
+      $("#workflowError").classList.add("hidden");
+      $("#workflowError").textContent = "";
+    }
+
+    function selectHSMethod(method) {
+      activeHSMethod = method;
+      $$("[data-method]", $("#methodCard")).forEach(button => {
+        const selected = button.dataset.method === method;
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      });
+      $("#manualMethodPanel").classList.toggle("hidden", method !== "manual");
+      $("#uploadMethodPanel").classList.toggle("hidden", method !== "upload");
+      clearWorkflowError();
+      const target = method === "manual" ? $("#manualProductCard") : $("#uploadMethodPanel .card");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    $$("[data-method]", $("#methodCard")).forEach(button => {
+      button.addEventListener("click", () => selectHSMethod(button.dataset.method));
+    });
+
+    function addManualItem(initialData = {}, files = []) {
+      const id = ++manualItemCounter;
+      manualItemFiles.set(id, [...files]);
+      const wrapper = document.createElement("article");
+      wrapper.className = "item-card";
+      wrapper.dataset.itemId = String(id);
+      wrapper.innerHTML = `
+        <div class="item-card-head">
+          <h4>Mặt hàng <span data-item-order></span></h4>
+          <div class="item-card-actions">
+            <button class="mini-btn" type="button" data-copy-item>Sao chép mặt hàng</button>
+            <button class="mini-btn danger" type="button" data-delete-item>Xóa mặt hàng</button>
+          </div>
+        </div>
+        <div class="item-card-body">
+          <div class="form-grid">
+            <div class="field half">
+              <label>1. Tên hàng trên Invoice/chứng từ <span class="required">*</span></label>
+              <input class="control" data-field="ten_hang_chung_tu" value="${esc(initialData.ten_hang_chung_tu || "")}" placeholder="Women’s sports top, Dyna Pro 7 S, Plastic part, LED lamp">
+              <small>Trường bắt buộc.</small>
+            </div>
+            <div class="field half">
+              <label>2. Nhóm hàng <span class="required">*</span></label>
+              <input class="control" data-field="nhom_hang" list="productGroupOptions" value="${esc(initialData.nhom_hang || "")}" placeholder="Gõ để tìm và chọn nhóm hàng">
+              <small>Chọn nhóm để hiện đúng các thông tin cần bổ sung.</small>
+            </div>
+          </div>
+          <div class="dynamic-fields hidden" data-dynamic-fields></div>
+          <div class="group-waiting-note" data-group-waiting>
+            Chọn một nhóm hàng ở trên để hệ thống hiển thị các trường phù hợp. Các nhóm khác nhau sẽ có bộ câu hỏi khác nhau.
+          </div>
+          <div class="item-upload">
+            <div class="item-upload-top">
+              <div>
+                <strong>Tải thêm tài liệu tham khảo</strong>
+                <p>Catalogue, datasheet, hình ảnh, PDF, Word hoặc Excel · Không bắt buộc</p>
+              </div>
+              <label class="btn btn-secondary" for="manual-files-${id}">Chọn tài liệu</label>
+              <input id="manual-files-${id}" data-manual-file-input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.webp">
+            </div>
+            <div class="file-list" data-manual-file-list></div>
+          </div>
+        </div>`;
+      $("#manualItems").appendChild(wrapper);
+
+      const groupInput = $('[data-field="nhom_hang"]', wrapper);
+      groupInput.addEventListener("input", () => renderGroupQuestions(wrapper, groupInput.value));
+      $('[data-manual-file-input]', wrapper).addEventListener("change", event => {
+        addManualFiles(id, event.target.files);
+        event.target.value = "";
+      });
+      $("[data-copy-item]", wrapper).addEventListener("click", () => {
+        const data = collectManualItem(wrapper);
+        addManualItem(data, manualItemFiles.get(id) || []);
+        updateManualItemOrder();
+        $("#manualItems").lastElementChild.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      $("[data-delete-item]", wrapper).addEventListener("click", () => {
+        manualItemFiles.delete(id);
+        wrapper.remove();
+        if (!$("#manualItems").children.length) addManualItem();
+        updateManualItemOrder();
+      });
+      renderGroupQuestions(wrapper, initialData.nhom_hang || "", initialData);
+      renderManualFiles(id);
+      updateManualItemOrder();
+      return wrapper;
+    }
+
+    function groupQuestionType(group) {
+      return GROUP_PROFILE_MAP[group] || "";
+    }
+
+    function currentFieldValue(data, key) {
+      if (key === "nhan_hieu_model") {
+        return data.nhan_hieu_model ||
+          [data.nhan_hieu, data.model_part_number].filter(Boolean).join(" · ");
+      }
+      return data[key] || "";
+    }
+
+    function renderDynamicControl(field, value) {
+      const attributes = `class="control" data-field="${esc(field.key)}" data-description-required="${field.required ? "true" : "false"}"`;
+      if (field.type === "select") {
+        return `<select ${attributes}>
+          <option value="">— Chọn —</option>
+          ${(field.options || []).map(option => `<option value="${esc(option)}" ${value === option ? "selected" : ""}>${esc(option)}</option>`).join("")}
+        </select>`;
+      }
+      if (field.type === "textarea") {
+        return `<textarea ${attributes} placeholder="${esc(field.placeholder || "")}">${esc(value)}</textarea>`;
+      }
+      return `<input ${attributes} value="${esc(value)}" placeholder="${esc(field.placeholder || "")}">`;
+    }
+
+    function renderDynamicField(field, data) {
+      const value = currentFieldValue(data, field.key);
+      const importance = field.required
+        ? `<span class="field-importance">Cần cho mô tả</span>`
+        : `<span class="field-importance optional">Không bắt buộc</span>`;
+      return `<div class="field ${field.full ? "full" : "half"}">
+        <label>${esc(field.label)} ${importance}</label>
+        ${renderDynamicControl(field, value)}
+      </div>`;
+    }
+
+    function snapshotManualDraft(card) {
+      const draft = { ...(card._manualDraft || {}) };
+      $$("[data-field]", card).forEach(control => {
+        draft[control.dataset.field] = control.value.trim();
+      });
+      card._manualDraft = draft;
+      return draft;
+    }
+
+    function syncDynamicCompleteness(card) {
+      const requiredControls = $$('[data-description-required="true"]', card);
+      const completed = requiredControls.filter(control => control.value.trim()).length;
+      const badge = $("[data-completion-badge]", card);
+      if (!badge) return;
+      badge.textContent = `${completed}/${requiredControls.length} mục cần có`;
+      badge.classList.toggle("complete", completed === requiredControls.length);
+    }
+
+    function renderGroupQuestions(card, group, initialData = {}) {
+      const container = $("[data-dynamic-fields]", card);
+      const waiting = $("[data-group-waiting]", card);
+      const type = groupQuestionType(group);
+      const config = GROUP_QUESTIONS[type];
+      const draft = snapshotManualDraft(card);
+      card._manualDraft = { ...initialData, ...draft };
+      if (!config) {
+        container.classList.add("hidden");
+        container.innerHTML = "";
+        waiting?.classList.remove("hidden");
+        return;
+      }
+
+      const commonFields = CORE_DESCRIPTION_FIELDS.map(field => ({
+        ...field,
+        ...(config.commonOverrides?.[field.key] || {})
+      }));
+      const requiredAndRelevantFields = [...commonFields, ...(config.fields || [])];
+      const optionalFields = (config.optional || [])
+        .map(key => OPTIONAL_DESCRIPTION_FIELDS[key] || {
+          key,
+          label: key === "doi_tuong_su_dung" ? "Đối tượng sử dụng" : key,
+          placeholder: "Nhập thông tin nếu có"
+        });
+
+      waiting?.classList.add("hidden");
+      container.classList.remove("hidden");
+      container.innerHTML = `
+        <div class="dynamic-fields-intro">
+          <div>
+            <h5>${esc(config.title)}</h5>
+            <p>Dấu “Cần cho mô tả” là thông tin quan trọng khi khai báo tên hàng. Nếu chưa biết, bạn vẫn có thể phân tích sơ bộ để hệ thống đặt câu hỏi bổ sung.</p>
+          </div>
+          <span class="completion-badge" data-completion-badge aria-live="polite"></span>
+        </div>
+        <div class="form-grid">
+          ${requiredAndRelevantFields.map(field => renderDynamicField(field, card._manualDraft)).join("")}
+        </div>
+        ${optionalFields.length ? `
+          <details class="group-optional">
+            <summary>Thông tin thêm – chỉ bổ sung khi có</summary>
+            <div class="form-grid">
+              ${optionalFields.map(field => renderDynamicField({ ...field, required: false }, card._manualDraft)).join("")}
+            </div>
+          </details>` : ""}
+      `;
+      $$("[data-field]", container).forEach(control => {
+        control.addEventListener("input", () => {
+          card._manualDraft[control.dataset.field] = control.value.trim();
+          syncDynamicCompleteness(card);
+        });
+        control.addEventListener("change", () => {
+          card._manualDraft[control.dataset.field] = control.value.trim();
+          syncDynamicCompleteness(card);
+        });
+      });
+      syncDynamicCompleteness(card);
+    }
+
+    function updateManualItemOrder() {
+      $$(".item-card", $("#manualItems")).forEach((card, index) => {
+        $("[data-item-order]", card).textContent = String(index + 1);
+      });
+    }
+
+    function collectManualItem(card) {
+      const data = {};
+      $$("[data-field]", card).forEach(control => {
+        data[control.dataset.field] = control.value.trim();
+      });
+      data._id = Number(card.dataset.itemId);
+      return data;
+    }
+
+    function collectManualItems() {
+      return $$(".item-card", $("#manualItems")).map(collectManualItem);
+    }
+
+    function addManualFiles(itemId, fileList) {
+      const allowed = /\.(pdf|doc|docx|xls|xlsx|csv|png|jpe?g|webp)$/i;
+      const files = manualItemFiles.get(itemId) || [];
+      Array.from(fileList || []).filter(file => allowed.test(file.name)).forEach(file => {
+        const duplicate = files.some(item => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified);
+        if (!duplicate) files.push(file);
+      });
+      manualItemFiles.set(itemId, files);
+      renderManualFiles(itemId);
+    }
+
+    function renderManualFiles(itemId) {
+      const card = $(`.item-card[data-item-id="${itemId}"]`);
+      if (!card) return;
+      const files = manualItemFiles.get(itemId) || [];
+      const list = $("[data-manual-file-list]", card);
+      list.innerHTML = files.map((file, index) => `
+        <div class="file-item">
+          <div class="file-name">${esc(file.name)} <span class="file-meta">· ${formatBytes(file.size)}</span></div>
+          <button class="icon-btn" type="button" data-remove-manual-file="${index}" aria-label="Xóa ${esc(file.name)}">×</button>
+        </div>`).join("");
+      $$("[data-remove-manual-file]", list).forEach(button => {
+        button.addEventListener("click", () => {
+          files.splice(Number(button.dataset.removeManualFile), 1);
+          renderManualFiles(itemId);
+        });
+      });
+    }
+
+    function validateManualItems(items) {
+      const errors = [];
+      const cards = $$(".item-card", $("#manualItems"));
+      items.forEach((item, index) => {
+        const card = cards[index];
+        const name = $('[data-field="ten_hang_chung_tu"]', card);
+        const group = $('[data-field="nhom_hang"]', card);
+        name.style.borderColor = item.ten_hang_chung_tu ? "" : "var(--red)";
+        group.style.borderColor = PRODUCT_GROUPS.includes(item.nhom_hang) ? "" : "var(--red)";
+        if (!item.ten_hang_chung_tu) errors.push(`Mặt hàng ${index + 1}: chưa nhập tên hàng trên Invoice/chứng từ.`);
+        if (!PRODUCT_GROUPS.includes(item.nhom_hang)) errors.push(`Mặt hàng ${index + 1}: hãy chọn một nhóm hàng hợp lệ trong danh sách.`);
+      });
+      if (errors.length) {
+        showWorkflowError(`<strong>Vui lòng kiểm tra thông tin bắt buộc.</strong><br>${errors.map(esc).join("<br>")}`, cards[0]?.querySelector('[data-field="ten_hang_chung_tu"]'));
+        return false;
+      }
+      clearWorkflowError();
+      return true;
+    }
+
+    $("#addManualItemBtn").addEventListener("click", () => {
+      const card = addManualItem();
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    $("#clearManualBtn").addEventListener("click", () => {
+      if (!confirm("Xóa toàn bộ mặt hàng tự nhập, tài liệu và kết quả hiện tại?")) return;
+      $("#manualItems").innerHTML = "";
+      manualItemFiles.clear();
+      batchAnalysisResults = [];
+      analysisEntries = [];
+      addManualItem();
+      clearBatchResults();
+      clearWorkflowError();
+    });
+    $("#analyzeManualBtn").addEventListener("click", () => {
+      const items = collectManualItems();
+      if (!validateManualItems(items)) return;
+      const entries = items.map((item, index) => ({
+        key: `manual-${item._id}`,
+        label: `Mặt hàng ${index + 1}: ${item.ten_hang_chung_tu}`,
+        product: item,
+        files: manualItemFiles.get(item._id) || [],
+        method: "Tự nhập thông tin"
+      }));
+      analyzeBatch(entries);
+    });
+
+    function invalidateExtractedList(message = "") {
+      extractedItems = [];
+      previewEditing = false;
+      listConfirmed = false;
+      $("#listPreviewSection").classList.add("hidden");
+      $("#listPreviewBody").innerHTML = "";
+      updatePreviewConfirmStatus();
+      if (message) setExtractionStatus(message, "notice");
+    }
+
+    function setExtractionStatus(message, kind = "notice") {
+      const box = $("#listExtractionStatus");
+      box.className = `${kind} ${message ? "" : "hidden"}`.trim();
+      box.textContent = message;
+    }
+
+    function addUploadedListFiles(fileList) {
+      const allowed = /\.(pdf|doc|docx|xls|xlsx|csv|png|jpe?g|webp)$/i;
+      Array.from(fileList || []).filter(file => allowed.test(file.name)).forEach(file => {
+        const duplicate = uploadedListFiles.some(item => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified);
+        if (!duplicate) uploadedListFiles.push({ id: ++listFileCounter, file, status: "Chờ xử lý", state: "" });
+      });
+      invalidateExtractedList(uploadedListFiles.length ? "Đã nhận file. Bấm “Đọc và trích xuất danh sách” để tiếp tục." : "");
+      renderUploadedListFiles();
+    }
+
+    function renderUploadedListFiles() {
+      const list = $("#listFileList");
+      list.innerHTML = uploadedListFiles.map(item => `
+        <div class="file-item">
+          <div class="file-name">
+            ${esc(item.file.name)}
+            <span class="file-meta">· ${formatBytes(item.file.size)}</span>
+          </div>
+          <div class="upload-file-actions">
+            <span class="file-state ${esc(item.state)}">${esc(item.status)}</span>
+            <button class="mini-btn" type="button" data-replace-list-file="${item.id}">Thay thế</button>
+            <button class="icon-btn" type="button" data-remove-list-file="${item.id}" aria-label="Xóa ${esc(item.file.name)}">×</button>
+          </div>
+        </div>`).join("");
+      $$("[data-remove-list-file]", list).forEach(button => button.addEventListener("click", () => {
+        uploadedListFiles = uploadedListFiles.filter(item => item.id !== Number(button.dataset.removeListFile));
+        invalidateExtractedList(uploadedListFiles.length ? "Danh sách file đã thay đổi. Vui lòng trích xuất lại." : "");
+        renderUploadedListFiles();
+      }));
+      $$("[data-replace-list-file]", list).forEach(button => button.addEventListener("click", () => {
+        replaceListFileId = Number(button.dataset.replaceListFile);
+        $("#replaceListFileInput").click();
+      }));
+    }
+
+    $("#listFileInput").addEventListener("change", event => {
+      addUploadedListFiles(event.target.files);
+      event.target.value = "";
+    });
+    $("#replaceListFileInput").addEventListener("change", event => {
+      const file = event.target.files[0];
+      const item = uploadedListFiles.find(entry => entry.id === replaceListFileId);
+      if (file && item) {
+        item.file = file;
+        item.status = "Chờ xử lý";
+        item.state = "";
+        invalidateExtractedList("File đã được thay thế. Vui lòng trích xuất lại danh sách.");
+        renderUploadedListFiles();
+      }
+      replaceListFileId = null;
+      event.target.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach(type => $("#listDropZone").addEventListener(type, event => {
+      event.preventDefault();
+      $("#listDropZone").classList.add("dragging");
+    }));
+    ["dragleave", "drop"].forEach(type => $("#listDropZone").addEventListener(type, event => {
+      event.preventDefault();
+      $("#listDropZone").classList.remove("dragging");
+    }));
+    $("#listDropZone").addEventListener("drop", event => addUploadedListFiles(event.dataTransfer.files));
+    $("#clearListFilesBtn").addEventListener("click", () => {
+      if (!uploadedListFiles.length || confirm("Xóa toàn bộ file danh sách và dữ liệu đã trích xuất?")) {
+        uploadedListFiles = [];
+        invalidateExtractedList("");
+        renderUploadedListFiles();
+        setExtractionStatus("", "notice");
+      }
+    });
+
+    $("#extractListBtn").addEventListener("click", extractProductList);
+
+    async function extractProductList() {
+      if (!apiKey) {
+        showWorkflowError("Vui lòng nhập và lưu DeepSeek API key trước khi đọc danh sách hàng hóa.", $("#apiKeyInput"));
+        return;
+      }
+      if (!uploadedListFiles.length) {
+        showWorkflowError("Vui lòng chọn ít nhất một file danh sách hàng hóa.");
+        return;
+      }
+      clearWorkflowError();
+      $("#extractListBtn").disabled = true;
+      uploadedListFiles.forEach(item => {
+        item.status = "Đang đọc";
+        item.state = "processing";
+      });
+      renderUploadedListFiles();
+      setExtractionStatus("Đang đọc nội dung và tách riêng từng mặt hàng…", "notice");
+      try {
+        const instruction = `Trích xuất danh sách mặt hàng từ các file bên dưới.
+
+Yêu cầu bắt buộc:
+- Giữ nguyên thứ tự xuất hiện của các mặt hàng theo thứ tự file và thứ tự dòng trong từng file.
+- Mỗi model hoặc part number khác nhau phải là một mặt hàng riêng, kể cả khi tên hàng giống nhau.
+- Không xem tiêu đề bảng, tên cột, dòng tổng cộng/subtotal/total, ghi chú, điều khoản, địa chỉ hoặc thông tin giao dịch là mặt hàng.
+- Không gộp các dòng có model hoặc mã sản phẩm khác nhau.
+- Chỉ trích xuất dữ liệu thực sự có trong file; trường không có phải để chuỗi rỗng.
+- Trả về duy nhất JSON hợp lệ, không markdown.
+
+Cấu trúc:
+{
+  "mat_hang": [{
+    "ten_hang": "",
+    "mo_ta": "",
+    "model_part_number": "",
+    "nhan_hieu": "",
+    "vat_lieu_thanh_phan": "",
+    "cong_dung": "",
+    "thong_so": "",
+    "so_luong": "",
+    "don_vi_tinh": "",
+    "xuat_xu": "",
+    "nhom_hang_goi_y": "",
+    "ten_file_nguon": "",
+    "vi_tri_trong_file": ""
+  }]
+}`;
+        const content = await buildAIContent(
+          instruction,
+          uploadedListFiles.map((item, index) => ({ file: item.file, label: `File ${index + 1}` })),
+          22000
+        );
+        const raw = await callDeepSeek([
+          {
+            role: "system",
+            content: "Bạn là chuyên viên trích xuất danh sách hàng hóa từ chứng từ xuất nhập khẩu. Không suy đoán dữ liệu, không gộp model khác nhau và chỉ trả JSON hợp lệ."
+          },
+          { role: "user", content }
+        ], 8000, 0);
+        const data = parseAIJson(raw);
+        if (!Array.isArray(data.mat_hang)) throw new Error("Kết quả trích xuất thiếu danh sách mat_hang.");
+        extractedItems = data.mat_hang
+          .filter(item => item && typeof item === "object" && textOf(item.ten_hang || item.mo_ta || item.model_part_number).trim())
+          .map(item => ({
+            id: ++extractedItemCounter,
+            ten_hang: textOf(item.ten_hang).trim(),
+            model_part_number: textOf(item.model_part_number).trim(),
+            mo_ta: textOf(item.mo_ta).trim(),
+            so_luong: textOf(item.so_luong).trim(),
+            don_vi_tinh: textOf(item.don_vi_tinh).trim(),
+            nhan_hieu: textOf(item.nhan_hieu).trim(),
+            vat_lieu_thanh_phan: textOf(item.vat_lieu_thanh_phan).trim(),
+            cong_dung: textOf(item.cong_dung).trim(),
+            thong_so: textOf(item.thong_so).trim(),
+            xuat_xu: textOf(item.xuat_xu).trim(),
+            nhom_hang: PRODUCT_GROUPS.includes(item.nhom_hang_goi_y) ? item.nhom_hang_goi_y : "",
+            ten_file_nguon: textOf(item.ten_file_nguon).trim(),
+            vi_tri_trong_file: textOf(item.vi_tri_trong_file).trim(),
+            selected: false
+          }));
+        if (!extractedItems.length) throw new Error("Không tìm thấy dòng mặt hàng hợp lệ trong các file đã chọn.");
+        uploadedListFiles.forEach(item => {
+          item.status = "Đã đọc";
+          item.state = "done";
+        });
+        previewEditing = true;
+        listConfirmed = false;
+        renderUploadedListFiles();
+        renderPreviewTable();
+        $("#listPreviewSection").classList.remove("hidden");
+        setExtractionStatus(`Đã trích xuất ${extractedItems.length} mặt hàng. Vui lòng kiểm tra và xác nhận danh sách.`, "success");
+        $("#listPreviewSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        uploadedListFiles.forEach(item => {
+          item.status = "Lỗi xử lý";
+          item.state = "failed";
+        });
+        renderUploadedListFiles();
+        setExtractionStatus(friendlyError(error), "error");
+      } finally {
+        $("#extractListBtn").disabled = false;
+      }
+    }
+
+    function previewStatus(item) {
+      if (!item.ten_hang) return "Thiếu tên hàng";
+      if (!item.mo_ta && !item.model_part_number && !item.vat_lieu_thanh_phan && !item.cong_dung) return "Cần bổ sung mô tả";
+      return "Đã có thông tin cơ bản";
+    }
+
+    function renderPreviewTable() {
+      $("#listPreviewBody").innerHTML = extractedItems.map((item, index) => {
+        const readonly = previewEditing ? "" : "readonly";
+        return `<tr class="preview-row ${item.selected ? "selected" : ""}" data-preview-id="${item.id}">
+          <td><label style="display:flex;align-items:center;gap:8px"><input class="preview-check" type="checkbox" data-preview-select ${item.selected ? "checked" : ""}> ${index + 1}</label></td>
+          <td><input class="preview-input" data-preview-field="ten_hang" value="${esc(item.ten_hang)}" ${readonly}></td>
+          <td><input class="preview-input" data-preview-field="model_part_number" value="${esc(item.model_part_number)}" ${readonly}></td>
+          <td><textarea class="preview-input" data-preview-field="mo_ta" ${readonly}>${esc(item.mo_ta)}</textarea></td>
+          <td><input class="preview-input" data-preview-field="so_luong" value="${esc(item.so_luong)}" ${readonly}></td>
+          <td><input class="preview-input" data-preview-field="don_vi_tinh" value="${esc(item.don_vi_tinh)}" ${readonly}></td>
+          <td><span class="file-state">${esc(previewStatus(item))}</span></td>
+        </tr>`;
+      }).join("");
+      $$(".preview-row", $("#listPreviewBody")).forEach(row => {
+        const item = extractedItems.find(entry => entry.id === Number(row.dataset.previewId));
+        $("[data-preview-select]", row).addEventListener("change", event => {
+          item.selected = event.target.checked;
+          row.classList.toggle("selected", item.selected);
+        });
+        $$("[data-preview-field]", row).forEach(input => input.addEventListener("input", () => {
+          item[input.dataset.previewField] = input.value.trim();
+          listConfirmed = false;
+          updatePreviewConfirmStatus();
+          const status = $(".file-state", row);
+          status.textContent = previewStatus(item);
+        }));
+      });
+      $("#editPreviewBtn").textContent = previewEditing ? "Khóa chỉnh sửa" : "Sửa thông tin";
+      updatePreviewConfirmStatus();
+    }
+
+    function updatePreviewConfirmStatus() {
+      const status = $("#previewConfirmStatus");
+      status.textContent = listConfirmed ? "Đã xác nhận" : "Chưa xác nhận";
+      status.className = `file-state preview-status ${listConfirmed ? "done" : ""}`;
+    }
+
+    $("#editPreviewBtn").addEventListener("click", () => {
+      previewEditing = !previewEditing;
+      if (previewEditing) listConfirmed = false;
+      renderPreviewTable();
+    });
+    $("#addPreviewItemBtn").addEventListener("click", () => {
+      extractedItems.push({
+        id: ++extractedItemCounter,
+        ten_hang: "",
+        model_part_number: "",
+        mo_ta: "",
+        so_luong: "",
+        don_vi_tinh: "",
+        nhan_hieu: "",
+        vat_lieu_thanh_phan: "",
+        cong_dung: "",
+        thong_so: "",
+        xuat_xu: "",
+        nhom_hang: "",
+        ten_file_nguon: "Người dùng thêm",
+        vi_tri_trong_file: "",
+        selected: false
+      });
+      previewEditing = true;
+      listConfirmed = false;
+      renderPreviewTable();
+      $("#listPreviewBody").lastElementChild?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    $("#deletePreviewItemBtn").addEventListener("click", () => {
+      const selectedCount = extractedItems.filter(item => item.selected).length;
+      if (!selectedCount) {
+        showWorkflowError("Hãy đánh dấu mặt hàng cần xóa tại cột STT.");
+        return;
+      }
+      extractedItems = extractedItems.filter(item => !item.selected);
+      listConfirmed = false;
+      renderPreviewTable();
+      clearWorkflowError();
+    });
+    $("#confirmListBtn").addEventListener("click", () => {
+      if (!extractedItems.length) {
+        showWorkflowError("Danh sách chưa có mặt hàng để xác nhận.");
+        return;
+      }
+      const missingIndex = extractedItems.findIndex(item => !item.ten_hang);
+      if (missingIndex >= 0) {
+        showWorkflowError(`Mặt hàng số ${missingIndex + 1} chưa có tên hàng. Có thể để trống các trường khác nhưng cần nhập tên hàng trước khi xác nhận.`);
+        previewEditing = true;
+        renderPreviewTable();
+        return;
+      }
+      previewEditing = false;
+      listConfirmed = true;
+      renderPreviewTable();
+      clearWorkflowError();
+      setExtractionStatus(`Đã xác nhận ${extractedItems.length} mặt hàng. Danh sách sẵn sàng để phân tích mã HS.`, "success");
+    });
+    $("#analyzeListBtn").addEventListener("click", () => {
+      if (!listConfirmed) {
+        showWorkflowError("Vui lòng kiểm tra và bấm “Xác nhận danh sách” trước khi phân tích mã HS.");
+        return;
+      }
+      const entries = extractedItems.map((item, index) => ({
+        key: `upload-${item.id}`,
+        label: `Mặt hàng ${index + 1}: ${item.ten_hang}`,
+        product: {
+          ten_hang_chung_tu: item.ten_hang,
+          nhom_hang: item.nhom_hang,
+          model_part_number: item.model_part_number,
+          mo_ta_trich_xuat: item.mo_ta,
+          nhan_hieu: item.nhan_hieu,
+          thanh_phan_vat_lieu: item.vat_lieu_thanh_phan,
+          cong_dung_chinh: item.cong_dung,
+          thong_so_ky_thuat: item.thong_so,
+          so_luong: item.so_luong,
+          don_vi_tinh: item.don_vi_tinh,
+          xuat_xu: item.xuat_xu,
+          ten_file_nguon: item.ten_file_nguon,
+          vi_tri_trong_file: item.vi_tri_trong_file
+        },
+        files: [],
+        method: "Tải danh sách hàng hóa"
+      }));
+      analyzeBatch(entries);
+    });
+
+    function validateBatchHSResponse(data) {
+      const required = ["tom_tat_hang_hoa", "thong_tin_con_thieu", "cau_hoi_bo_sung", "ma_hs_de_xuat", "nguon_tham_khao", "ngay_tra_cuu"];
+      const missing = required.filter(key => !(key in data));
+      if (missing.length) throw new Error("Kết quả thiếu trường bắt buộc: " + missing.join(", ") + ".");
+      if (!Array.isArray(data.cau_hoi_bo_sung) || !Array.isArray(data.ma_hs_de_xuat) || !Array.isArray(data.nguon_tham_khao)) {
+        throw new Error("Một số trường kết quả không đúng cấu trúc danh sách.");
+      }
+    }
+
+    async function analyzeEntry(entry) {
+      const payload = {
+        quoc_gia_ap_dung: "Việt Nam",
+        ngay_phan_tich: new Date().toISOString(),
+        phuong_thuc_cung_cap: entry.method,
+        thong_tin_hang_hoa: entry.product,
+        tai_lieu_da_tai_len: entry.files.map(file => ({
+          ten_file: file.name,
+          dinh_dang: file.type || file.name.split(".").pop(),
+          kich_thuoc: file.size
+        })),
+        cau_tra_loi_bo_sung: batchSupplementalAnswers[entry.key] || {}
+      };
+      const instruction = `Phân tích riêng mặt hàng dưới đây theo system prompt.
+
+Dữ liệu do người dùng cung cấp:
+${JSON.stringify(payload, null, 2)}
+
+Không được coi trường để trống là lỗi. Nếu thông tin còn thiếu có thể làm thay đổi mã, vẫn gợi ý mã 8 số theo hướng có khả năng nhất ở mức Thấp/Chưa đủ căn cứ và hỏi tối đa 3 câu bổ sung. Chỉ để trống mã khi hoàn toàn không nhận diện được hàng hóa. Phiên phân tích không có công cụ tìm kiếm Internet được bảo đảm; không được bịa nguồn hoặc tuyên bố đã xác minh dữ liệu hiện hành.`;
+      const content = entry.files.length
+        ? await buildAIContent(
+            instruction,
+            entry.files.map(file => ({ file, label: "Tài liệu tham khảo của mặt hàng" })),
+            14000
+          )
+        : instruction;
+      const messages = [
+        { role: "system", content: HS_SYSTEM_PROMPT },
+        { role: "user", content }
+      ];
+      const raw = await callDeepSeek(messages, 7000, 0.05);
+      let data = parseAIJson(raw);
+      validateBatchHSResponse(data);
+      data = await ensureEightDigitSuggestions(data, messages, payload);
+      return data;
+    }
+
+    async function analyzeBatch(entries, targetKey = "") {
+      if (!apiKey) {
+        showWorkflowError("Vui lòng nhập và lưu DeepSeek API key ở thanh phía trên trước khi phân tích.", $("#apiKeyInput"));
+        return;
+      }
+      if (!entries.length) {
+        showWorkflowError("Chưa có mặt hàng để phân tích.");
+        return;
+      }
+      clearWorkflowError();
+      setBatchBusy(true);
+      $("#batchLoadingCard").classList.remove("hidden");
+      $("#batchLoadingTitle").textContent = targetKey ? "Đang phân tích lại mặt hàng…" : "Đang phân tích các mặt hàng…";
+      $("#batchResults").classList.add("hidden");
+      $("#batchExportArea").classList.add("hidden");
+      $("#batchLegalDisclaimer").classList.add("hidden");
+      $("#batchLoadingCard").scrollIntoView({ behavior: "smooth", block: "center" });
+
+      if (!targetKey) {
+        analysisEntries = entries;
+        batchAnalysisResults = [];
+      }
+
+      const targets = targetKey
+        ? entries.filter(entry => entry.key === targetKey)
+        : entries;
+
+      for (let index = 0; index < targets.length; index += 1) {
+        const entry = targets[index];
+        $("#batchLoadingDetail").textContent = `${targetKey ? "" : `${index + 1}/${targets.length} · `}${entry.label}`;
+        let record;
+        try {
+          record = { key: entry.key, entry, data: await analyzeEntry(entry), error: "" };
+        } catch (error) {
+          record = { key: entry.key, entry, data: null, error: friendlyError(error) };
+        }
+        const existing = batchAnalysisResults.findIndex(item => item.key === entry.key);
+        if (existing >= 0) batchAnalysisResults.splice(existing, 1, record);
+        else batchAnalysisResults.push(record);
+      }
+
+      if (targetKey) {
+        batchAnalysisResults.sort((a, b) =>
+          analysisEntries.findIndex(item => item.key === a.key) - analysisEntries.findIndex(item => item.key === b.key)
+        );
+      }
+      $("#batchLoadingCard").classList.add("hidden");
+      setBatchBusy(false);
+      renderBatchResults();
+    }
+
+    function setBatchBusy(busy) {
+      [
+        "#analyzeManualBtn", "#analyzeListBtn", "#reanalyzeAllBtn",
+        "#extractListBtn", "#addManualItemBtn", "#confirmListBtn"
+      ].forEach(selector => {
+        const button = $(selector);
+        if (button) button.disabled = busy;
+      });
+    }
+
+    function clearBatchResults() {
+      $("#batchResults").innerHTML = "";
+      $("#batchResults").classList.add("hidden");
+      $("#batchExportArea").classList.add("hidden");
+      $("#batchLegalDisclaimer").classList.add("hidden");
+      $("#batchLoadingCard").classList.add("hidden");
+    }
+
+    function resultSummaryHtml(data) {
+      const summary = data.tom_tat_hang_hoa || {};
+      const entries = [
+        ["Tên hàng", summary.ten_hang || summary.ten],
+        ["Bản chất hàng hóa", summary.ban_chat_hang_hoa || summary.ban_chat],
+        ["Thành phần / vật liệu chính", summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan],
+        ["Công dụng chính", summary.cong_dung_chinh || summary.cong_dung],
+        ["Đặc điểm quyết định phân loại", summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh],
+        ["Thông tin còn thiếu", textOf(data.thong_tin_con_thieu || summary.thong_tin_con_thieu) || "Không ghi nhận"]
+      ];
+      return `<div class="summary-grid">${entries.map(([label, value]) => `
+        <div class="summary-item"><span>${esc(label)}</span><strong>${esc(textOf(value) || "Chưa xác định")}</strong></div>
+      `).join("")}</div>`;
+    }
+
+    function resultQuestionsHtml(record, resultIndex) {
+      const questions = (record.data.cau_hoi_bo_sung || []).slice(0, 3);
+      if (!questions.length) return "";
+      return `<div class="result-section">
+        <h4>Thông tin cần bổ sung</h4>
+        <div class="warning" style="margin-bottom:11px">Thông tin thiếu có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</div>
+        <div class="questions">${questions.map((question, questionIndex) => {
+          const id = question.id || `cau_hoi_${questionIndex + 1}`;
+          const label = question.cau_hoi || question.question || String(question);
+          return `<div class="question">
+            <label>${questionIndex + 1}. ${esc(label)}</label>
+            <textarea class="control" data-batch-question="${esc(id)}" placeholder="Nhập thông tin xác minh…"></textarea>
+          </div>`;
+        }).join("")}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
+          <button class="btn btn-primary" type="button" data-submit-batch-answers="${resultIndex}">Gửi thông tin bổ sung</button>
+        </div>
+      </div>`;
+    }
+
+    function resultSuggestionsHtml(data, resultIndex) {
+      const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
+      const note = suggestions.length < 3
+        ? suggestions.length
+          ? `Chỉ tìm thấy ${suggestions.length} phương án có căn cứ phân loại. Hệ thống không tạo thêm mã chỉ để đủ 3 kết quả.`
+          : "Dữ liệu chưa cho biết hàng hóa là gì. Hãy bổ sung tên hoặc mô tả ngắn để hệ thống gợi ý mã HS đủ 8 số."
+        : "";
+      const rows = suggestions.map((item, index) => {
+        const code = normalizeHSCode(item.ma_hs || item.hs_code || item.code) || "Chưa xác định";
+        const level = normalizeLevel(item.muc_do_phu_hop || item.muc_do || item.match_level);
+        return `<tr>
+          <td><strong>${index + 1}</strong></td>
+          <td><span class="hs-code">${esc(code)}</span></td>
+          <td>${esc(item.mo_ta_hang_hoa || item.mo_ta || item.description || "")}</td>
+          <td><span class="level level-${slugLevel(level)}">${esc(level)}</span></td>
+          <td><button class="mini-btn" type="button" data-open-batch-detail="${resultIndex}-${index}">Xem chi tiết</button></td>
+        </tr>`;
+      }).join("");
+      return `<div class="result-section">
+        <h4>Mã HS được đề xuất</h4>
+        ${note ? `<div class="notice" style="margin-bottom:11px">${esc(note)}</div>` : ""}
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Xếp hạng</th><th>Mã HS đề xuất</th><th>Mô tả</th><th>Mức độ phù hợp</th><th>Chi tiết</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="5">Chưa có mã được đề xuất.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    function resultDetailsHtml(data, resultIndex) {
+      const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
+      if (!suggestions.length) return "";
+      const considered = textOf(data.chuong_da_xem_xet || []);
+      const rejected = textOf(data.ma_da_loai || []);
+      return `<div class="result-section"><h4>Phân tích chi tiết</h4>${
+        suggestions.map((item, index) => {
+          const code = normalizeHSCode(item.ma_hs || item.hs_code || item.code);
+          const structure = item.cau_truc_phan_loai || item.cau_truc || [item.phan, item.chuong, item.nhom, item.phan_nhom, code].filter(Boolean).join(" → ");
+          const rules = item.quy_tac_ap_dung || item.quy_tac_da_ap_dung || data.quy_tac_da_ap_dung || [];
+          const ruleHtml = Array.isArray(rules) && rules.length
+            ? rules.map(rule => `<div class="rule">
+                <strong>${esc(rule.quy_tac || rule.ten || rule.rule || "Quy tắc áp dụng")}</strong>
+                <div>${esc(textOf(rule.ly_do || rule.giai_thich || rule.reason))}</div>
+                ${rule.dac_diem_xem_xet ? `<div><b>Đặc điểm xem xét:</b> ${esc(textOf(rule.dac_diem_xem_xet))}</div>` : ""}
+                ${rule.ket_qua ? `<div><b>Kết quả:</b> ${esc(textOf(rule.ket_qua))}</div>` : ""}
+              </div>`).join("")
+            : `<div class="rule">${esc(textOf(rules) || "Chưa có diễn giải quy tắc.")}</div>`;
+          return `<details class="detail-card" id="batch-detail-${resultIndex}-${index}" ${index === 0 ? "open" : ""}>
+            <summary><span class="hs-code">${esc(code)}</span> ${esc(item.mo_ta_hang_hoa || item.mo_ta || "")}</summary>
+            <div class="detail-body"><div class="detail-grid">
+              <div class="detail-block full"><h5>Cấu trúc phân loại</h5><p>${esc(textOf(structure) || "Chưa có")}</p></div>
+              <div class="detail-block full"><h5>Quy tắc tổng quát đã áp dụng</h5>${ruleHtml}</div>
+              <div class="detail-block"><h5>Đặc điểm hàng hóa làm căn cứ</h5><p>${esc(textOf(item.dac_diem_lam_can_cu || item.dac_diem_hang_hoa || data.can_cu_phan_loai) || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Chú giải đã kiểm tra</h5><p>${esc(textOf(item.chu_giai_da_kiem_tra || item.chu_giai) || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Điều khoản bao gồm</h5><p>${esc(textOf(item.dieu_khoan_bao_gom || item.bao_gom) || "Không ghi nhận")}</p></div>
+              <div class="detail-block"><h5>Điều khoản loại trừ</h5><p>${esc(textOf(item.dieu_khoan_loai_tru || item.loai_tru) || "Không ghi nhận")}</p></div>
+              <div class="detail-block"><h5>Lý do phù hợp</h5><p>${esc(textOf(item.ly_do_phu_hop || item.ly_do) || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Lý do không chọn mã cạnh tranh</h5><p>${esc(textOf(item.ly_do_khong_chon_ma_canh_tranh || item.ly_do_khong_chon) || rejected || "Chưa có")}</p></div>
+              <div class="detail-block"><h5>Thông tin cần xác minh thêm</h5><p>${esc(textOf(item.thong_tin_can_xac_minh || item.diem_can_xac_minh) || "Không ghi nhận")}</p></div>
+              <div class="detail-block"><h5>Phần / Chương đã xem xét</h5><p>${esc(considered || "Chưa có")}</p></div>
+            </div></div>
+          </details>`;
+        }).join("")
+      }</div>`;
+    }
+
+    function resultSourcesHtml(data) {
+      const sources = data.nguon_tham_khao || [];
+      const officialCount = sources.filter(source => String(source.muc_do_nguon || source.muc_do || "").toLowerCase().includes("chính")).length;
+      const cards = sources.map(source => {
+        const kindRaw = source.muc_do_nguon || source.muc_do || "Tham khảo";
+        const isOfficial = String(kindRaw).toLowerCase().includes("chính");
+        const link = safeUrl(source.duong_dan || source.url || source.link);
+        return `<article class="source-card">
+          <div class="source-top">
+            <h5>${esc(source.ten_nguon || source.ten_tai_lieu || "Nguồn tham khảo")}</h5>
+            <span class="source-kind ${isOfficial ? "official" : "reference"}">${isOfficial ? "Chính thức" : "Tham khảo"}</span>
+          </div>
+          <p><b>Cơ quan:</b> ${esc(source.co_quan_ban_hanh || source.co_quan || "Chưa xác định")}</p>
+          <p><b>Loại tài liệu:</b> ${esc(source.loai_tai_lieu || "Chưa xác định")}${source.so_hieu_van_ban ? ` · <b>Số hiệu:</b> ${esc(source.so_hieu_van_ban)}` : ""}</p>
+          <p><b>Nội dung sử dụng:</b> ${esc(textOf(source.noi_dung_su_dung || source.noi_dung_lam_can_cu) || "Chưa mô tả")}</p>
+          ${link ? `<a class="source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Mở nguồn ↗</a>` : '<p><b>Đường dẫn:</b> Chưa được xác minh</p>'}
+        </article>`;
+      }).join("");
+      return `<div class="result-section">
+        <h4>Nguồn được sử dụng</h4>
+        ${cards ? `<div class="source-grid">${cards}</div>` : ""}
+        ${officialCount ? "" : '<div class="warning" style="margin-top:11px">Hệ thống chưa tìm thấy nguồn chính thức đủ để xác minh mã này. Kết quả chỉ là định hướng tham khảo và cần được kiểm tra bởi người có chuyên môn.</div>'}
+      </div>`;
+    }
+
+    function renderBatchResults() {
+      const container = $("#batchResults");
+      container.innerHTML = batchAnalysisResults.map((record, resultIndex) => {
+        if (record.error) {
+          return `<article class="card result-item-card" data-result-key="${esc(record.key)}">
+            <div class="result-item-head">
+              <div><h3>${esc(record.entry.label)}</h3><p>Không thể hoàn tất phân tích mặt hàng này.</p></div>
+              <button class="mini-btn" type="button" data-reanalyze-single="${resultIndex}">Thử lại</button>
+            </div>
+            <div class="result-section"><div class="error">${esc(record.error)}</div></div>
+          </article>`;
+        }
+        return `<article class="card result-item-card" data-result-key="${esc(record.key)}">
+          <div class="result-item-head">
+            <div><h3>${esc(record.entry.label)}</h3><p>${esc(record.entry.method)} · Ngày tra cứu: ${esc(record.data.ngay_tra_cuu || new Date().toLocaleDateString("vi-VN"))}</p></div>
+            <button class="mini-btn" type="button" data-reanalyze-single="${resultIndex}">Phân tích lại mặt hàng</button>
+          </div>
+          <div class="result-section"><h4>Tóm tắt hàng hóa</h4>${resultSummaryHtml(record.data)}</div>
+          ${resultQuestionsHtml(record, resultIndex)}
+          ${resultSuggestionsHtml(record.data, resultIndex)}
+          ${resultDetailsHtml(record.data, resultIndex)}
+          ${resultSourcesHtml(record.data)}
+        </article>`;
+      }).join("");
+      container.classList.toggle("hidden", !batchAnalysisResults.length);
+      $("#batchExportArea").classList.toggle("hidden", !batchAnalysisResults.length);
+      $("#batchLegalDisclaimer").classList.toggle("hidden", !batchAnalysisResults.length);
+
+      $$("[data-open-batch-detail]", container).forEach(button => button.addEventListener("click", () => {
+        const detail = $("#batch-detail-" + button.dataset.openBatchDetail);
+        if (detail) {
+          detail.open = true;
+          detail.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }));
+      $$("[data-reanalyze-single]", container).forEach(button => button.addEventListener("click", () => {
+        const record = batchAnalysisResults[Number(button.dataset.reanalyzeSingle)];
+        if (record) analyzeBatch([record.entry], record.key);
+      }));
+      $$("[data-submit-batch-answers]", container).forEach(button => button.addEventListener("click", () => {
+        const resultIndex = Number(button.dataset.submitBatchAnswers);
+        const record = batchAnalysisResults[resultIndex];
+        const card = button.closest(".result-item-card");
+        const answers = {};
+        let missing = false;
+        $$("[data-batch-question]", card).forEach(input => {
+          const value = input.value.trim();
+          input.style.borderColor = value ? "" : "var(--red)";
+          if (!value) missing = true;
+          answers[input.dataset.batchQuestion] = value;
+        });
+        if (missing || !record) return;
+        batchSupplementalAnswers[record.key] = { ...(batchSupplementalAnswers[record.key] || {}), ...answers };
+        analyzeBatch([record.entry], record.key);
+      }));
+      container.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    $("#reanalyzeAllBtn").addEventListener("click", () => {
+      if (analysisEntries.length) analyzeBatch(analysisEntries);
+    });
+    $("#batchExportPdfBtn").addEventListener("click", () => window.print());
+    $("#batchExportExcelBtn").addEventListener("click", exportBatchExcel);
+
+    function exportBatchExcel() {
+      if (!batchAnalysisResults.length) return;
+      const rows = [["BÁO CÁO GỢI Ý MÃ HS NHIỀU MẶT HÀNG"], []];
+      batchAnalysisResults.forEach((record, itemIndex) => {
+        rows.push([`Mặt hàng ${itemIndex + 1}`, record.entry.label]);
+        if (record.error) {
+          rows.push(["Lỗi", record.error], []);
+          return;
+        }
+        rows.push(["Xếp hạng", "Mã HS", "Mô tả hàng hóa", "Mức độ phù hợp", "Lý do phù hợp"]);
+        (record.data.ma_hs_de_xuat || []).forEach((item, index) => rows.push([
+          index + 1,
+          item.ma_hs || item.hs_code || item.code || "",
+          item.mo_ta_hang_hoa || item.mo_ta || "",
+          normalizeLevel(item.muc_do_phu_hop || item.muc_do),
+          textOf(item.ly_do_phu_hop || item.ly_do)
+        ]));
+        rows.push([], ["Nguồn", "Cơ quan", "Số hiệu", "Mức độ", "Đường dẫn"]);
+        (record.data.nguon_tham_khao || []).forEach(source => rows.push([
+          source.ten_nguon || source.ten_tai_lieu || "",
+          source.co_quan_ban_hanh || source.co_quan || "",
+          source.so_hieu_van_ban || "",
+          source.muc_do_nguon || source.muc_do || "",
+          source.duong_dan || source.url || ""
+        ]));
+        rows.push([]);
+      });
+      const tsv = "\uFEFF" + rows.map(row => row.map(cell => String(cell ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ")).join("\t")).join("\n");
+      const blob = new Blob([tsv], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `bao-cao-ma-hs-nhieu-mat-hang-${new Date().toISOString().slice(0, 10)}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      const url = link.href;
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    const DEMO_RESULT = {
+      tom_tat_hang_hoa: {
+        ten_hang: "Tủ đông dạng cốc dùng bảo quản thực phẩm",
+        ban_chat_hang_hoa: "Thiết bị làm lạnh độc lập, có cụm máy nén và khoang bảo quản",
+        thanh_phan_vat_lieu_chinh: "Vỏ thép sơn, lớp cách nhiệt, cụm máy nén và môi chất lạnh",
+        cong_dung_chinh: "Làm đông và bảo quản thực phẩm ở nhiệt độ âm",
+        dac_diem_quyet_dinh_phan_loai: "Chức năng làm đông chủ động bằng thiết bị lạnh",
+        thong_tin_con_thieu: "Cần xác minh dung tích thực và kiểu cửa"
+      },
+      thong_tin_con_thieu: ["Dung tích thực", "Kiểu cửa"],
+      cau_hoi_bo_sung: [],
+      chuong_da_xem_xet: ["Chương 84 - Máy và thiết bị cơ khí"],
+      quy_tac_da_ap_dung: [{ quy_tac: "Quy tắc 1", ly_do: "Căn cứ nội dung Nhóm và Chú giải Chương", ket_qua: "Xem xét nhóm thiết bị làm lạnh" }],
+      ma_hs_de_xuat: [{
+        ma_hs: "8418.30.00",
+        mo_ta_hang_hoa: "Tủ đông loại cửa trên, dung tích không quá 800 lít",
+        muc_do_phu_hop: "Trung bình",
+        cau_truc_phan_loai: "Phần XVI → Chương 84 → Nhóm 8418 → Phân nhóm 8418.30 → 8418.30.00",
+        dac_diem_lam_can_cu: "Có chức năng làm đông chủ động bằng cụm máy nén",
+        chu_giai_da_kiem_tra: "Cần xác minh thêm bằng tài liệu chính thức",
+        dieu_khoan_bao_gom: "Thiết bị làm lạnh hoặc kết đông",
+        dieu_khoan_loai_tru: "Chưa ghi nhận",
+        ly_do_phu_hop: "Bản chất là tủ đông độc lập",
+        ly_do_khong_chon_ma_canh_tranh: "Chưa đủ dữ liệu để kết luận sang phân nhóm loại khác",
+        thong_tin_can_xac_minh: "Dung tích và kiểu cửa"
+      }],
+      ma_da_loai: [],
+      can_cu_phan_loai: "Chức năng làm đông và cấu tạo thiết bị",
+      nguon_tham_khao: [{
+        ten_nguon: "Dữ liệu minh họa giao diện",
+        co_quan_ban_hanh: "Không phải nguồn pháp lý",
+        loai_tai_lieu: "Dữ liệu kiểm thử",
+        muc_do_nguon: "Tham khảo",
+        noi_dung_su_dung: "Chỉ dùng để kiểm tra cách hiển thị giao diện"
+      }],
+      canh_bao: "Kết quả minh họa, không dùng để khai báo",
+      ngay_tra_cuu: new Date().toLocaleDateString("vi-VN")
+    };
+
+    buildDocGrid();
+    updateDocHint();
+    updateKeyUI(apiKey ? "saved" : "empty");
+    addManualItem();
+    renderUploadedListFiles();
+    updatePreviewConfirmStatus();
+    if (apiKey) pingDeepSeek();
+
+    if (new URLSearchParams(location.search).get("demo") === "1") {
+      lastResult = DEMO_RESULT;
+      renderHSResult(DEMO_RESULT);
+    }
+  </script>
+</body>
+</html>
