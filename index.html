@@ -603,6 +603,8 @@
     }
     .required { color: var(--red); }
     .field small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .brand-choice { display: grid; gap: 8px; }
+    .brand-choice-input.hidden { display: none; }
     .control {
       width: 100%;
       min-height: 42px;
@@ -1135,22 +1137,25 @@
                 </div>
                 <div class="field">
                   <label for="nhan_hieu">4. Nhãn hiệu</label>
-                  <input class="control" id="nhan_hieu" name="nhan_hieu" placeholder="Brand">
+                  <div class="brand-choice">
+                    <select class="control" id="nhan_hieu_trang_thai_legacy" name="nhan_hieu_trang_thai">
+                      <option value="">— Chọn nếu cần khai nhãn hiệu —</option>
+                      <option value="Tự nhập">Tự nhập</option>
+                      <option value="Không hiệu">Không hiệu</option>
+                    </select>
+                    <input class="control brand-choice-input hidden" id="nhan_hieu" name="nhan_hieu" placeholder="Ví dụ: Samsung, Osprey, Yamaha">
+                  </div>
                 </div>
                 <div class="field">
-                  <label for="model">5. Model hoặc mã sản phẩm</label>
-                  <input class="control" id="model" name="model" placeholder="Model / SKU">
-                </div>
-                <div class="field">
-                  <label for="nha_san_xuat">6. Nhà sản xuất</label>
+                  <label for="nha_san_xuat">5. Nhà sản xuất</label>
                   <input class="control" id="nha_san_xuat" name="nha_san_xuat" placeholder="Tên nhà sản xuất">
                 </div>
                 <div class="field">
-                  <label for="xuat_xu">7. Quốc gia xuất xứ</label>
+                  <label for="xuat_xu">6. Quốc gia xuất xứ</label>
                   <input class="control" id="xuat_xu" name="xuat_xu" placeholder="Ví dụ: Hàn Quốc">
                 </div>
                 <div class="field">
-                  <label for="loai_hang_hoa">8. Loại hàng hóa</label>
+                  <label for="loai_hang_hoa">7. Loại hàng hóa</label>
                   <select class="control" id="loai_hang_hoa" name="loai_hang_hoa">
                     <option value="">— Chọn loại hàng —</option>
                     <option>Thực phẩm / đồ uống</option>
@@ -1836,19 +1841,24 @@
         || [...hsNodeChain(record.nodeIndex)].reverse().map(entry => entry.node[2]).find(value => value && !/^Loại khác/i.test(value))
         || record.mo_ta_8;
       if (name) parts.push(name);
-      const model = firstProductValue(product, ["model", "model_part_number"]);
       const material = firstProductValue(product, ["thanh_phan_vat_lieu", "vat_lieu_thanh_phan", "ty_le_thanh_phan"]);
       const specs = firstProductValue(product, ["thong_so_ky_thuat", "thong_so", "chi_so_dinh_luong"]);
       const use = firstProductValue(product, ["cong_dung_chinh", "cong_dung"]);
-      const brand = firstProductValue(product, ["nhan_hieu"]);
       const maker = firstProductValue(product, ["nha_san_xuat"]);
       const packing = firstProductValue(product, ["quy_cach_dong_goi"]);
       const condition = firstProductValue(product, ["tinh_trang_hang_hoa"]);
-      if (model) parts.push(`model/mã: ${model}`);
-      if (material) parts.push(`thành phần/chất liệu: ${material}`);
+      const brandMode = customsBrandMode(product);
+      const brand = brandMode === "custom" ? firstProductValue(product, ["nhan_hieu"]) : "";
+      if (material) {
+        const cleanedMaterial = material.replace(/^\s*(?:thành phần(?:\/chất liệu)?|tỷ lệ)\s*[:\-]?\s*/i, "");
+        parts.push(/(?:^|\s)\d+(?:[.,]\d+)?\s*%/.test(cleanedMaterial)
+          ? cleanedMaterial
+          : `chất liệu: ${cleanedMaterial}`);
+      }
       if (specs) parts.push(`thông số: ${specs}`);
       if (use) parts.push(`công dụng: ${use}`);
-      if (brand) parts.push(`hiệu: ${brand}`);
+      if (brandMode === "none") parts.push("không hiệu");
+      else if (brand) parts.push(`hiệu: ${brand}`);
       if (maker) parts.push(`NSX: ${maker}`);
       if (packing) parts.push(`quy cách: ${packing}`);
       if (/đã qua|hàng cũ/i.test(condition)) parts.push("hàng đã qua sử dụng");
@@ -1856,10 +1866,63 @@
       return parts.filter(Boolean).join(", ");
     }
 
+    function customsBrandMode(product) {
+      const choice = firstProductValue(product, ["nhan_hieu_trang_thai", "lua_chon_nhan_hieu"]);
+      if (/^không hiệu$/i.test(choice)) return "none";
+      if (/^tự nhập$/i.test(choice)) return "custom";
+      return "omit";
+    }
+
+    function sanitizeCustomsDeclarationName(value, product) {
+      let name = String(value || "").replace(/\s+/g, " ").trim();
+      if (!name) return "";
+
+      name = name
+        .split(/\s*[,;]\s*/)
+        .map(part => part
+          .replace(/\s*(?:model|mã\s*(?:hàng|sản phẩm|hiệu)|sku|part\s*number|p\/n)\s*[:#\-]?\s*.*$/i, "")
+          .trim())
+        .filter(Boolean)
+        .join(", ");
+
+      name = name.replace(
+        /(?:thành phần(?:\/chất liệu)?|tỷ lệ)\s*(?:gồm\s*)?[:\-]?\s*(?=\d+(?:[.,]\d+)?\s*%)/gi,
+        ""
+      );
+
+      const brandMode = customsBrandMode(product);
+      if (brandMode === "omit") {
+        const knownBrand = firstProductValue(product, ["nhan_hieu"]);
+        if (knownBrand) {
+          const escapedBrand = knownBrand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          name = name.replace(new RegExp(`\\b${escapedBrand}\\b`, "gi"), "").replace(/\s{2,}/g, " ").trim();
+        }
+      }
+      const segments = name.split(/\s*,\s*/).filter(Boolean);
+      const filtered = segments.filter(segment => {
+        if (/^(?:model|mã\s*(?:hàng|sản phẩm|hiệu)|sku|part\s*number|p\/n)\b/i.test(segment)) return false;
+        if (brandMode === "omit" && /^(?:nhãn hiệu|hiệu|brand)\s*[:\-]?\s*/i.test(segment)) return false;
+        if (brandMode === "omit" && /^không hiệu$/i.test(segment)) return false;
+        if (brandMode === "none" && /^(?:nhãn hiệu|hiệu|brand)\s*[:\-]?\s*/i.test(segment)) return false;
+        return !(brandMode !== "none" && /^không hiệu$/i.test(segment));
+      });
+      name = filtered.join(", ").replace(/\s+,/g, ",").replace(/,\s*,/g, ",").replace(/^,\s*|\s*,$/g, "").trim();
+
+      if (brandMode === "none" && !/(?:^|,\s*)không hiệu(?:,|$)/i.test(name)) {
+        name += `${name ? ", " : ""}không hiệu`;
+      } else if (brandMode === "custom") {
+        const brand = firstProductValue(product, ["nhan_hieu"]);
+        if (brand && !name.toLocaleLowerCase("vi").includes(brand.toLocaleLowerCase("vi"))) {
+          name += `${name ? ", " : ""}hiệu: ${brand}`;
+        }
+      }
+      return name;
+    }
+
     function finalCustomsDeclarationName(proposed, payload, record) {
-      let name = String(proposed || "").replace(/\s+/g, " ").trim()
-        || fallbackCustomsDeclarationName(payload, record);
       const product = payload?.thong_tin_hang_hoa || {};
+      let name = sanitizeCustomsDeclarationName(proposed, product)
+        || sanitizeCustomsDeclarationName(fallbackCustomsDeclarationName(payload, record), product);
       const condition = firstProductValue(product, ["tinh_trang_hang_hoa", "tinh_trang"]);
       if (/đã qua|hàng cũ/i.test(condition) && !/đã qua sử dụng|hàng cũ/i.test(name)) {
         name += `${name ? ", " : ""}hàng đã qua sử dụng`;
@@ -2388,6 +2451,9 @@ Chỉ ghi dữ liệu thật sự tìm thấy. Không suy đoán giá trị thi�
       const form = new FormData($("#hsForm"));
       const product = {};
       for (const [key, value] of form.entries()) product[key] = String(value).trim();
+      if (product.nhan_hieu_trang_thai === "Không hiệu") product.nhan_hieu = "Không hiệu";
+      else if (product.nhan_hieu_trang_thai !== "Tự nhập") product.nhan_hieu = "";
+      delete product.model;
       return product;
     }
 
@@ -2409,12 +2475,19 @@ Chỉ ghi dữ liệu thật sự tìm thấy. Không suy đoán giá trị thi�
       event.preventDefault();
       analyzeHS(false);
     });
+    $("#nhan_hieu_trang_thai_legacy")?.addEventListener("change", event => {
+      const brandInput = $("#nhan_hieu");
+      const isManual = event.target.value === "Tự nhập";
+      brandInput.classList.toggle("hidden", !isManual);
+      if (!isManual) brandInput.value = "";
+    });
     $("#reanalyzeBtn").addEventListener("click", () => analyzeHS(false));
     $("#clearFormBtn").addEventListener("click", clearHSForm);
 
     function clearHSForm() {
       if (!confirm("Xóa toàn bộ thông tin hàng hóa, tài liệu và kết quả hiện tại?")) return;
       $("#hsForm").reset();
+      $("#nhan_hieu").classList.add("hidden");
       productFiles = [];
       supplementalAnswers = {};
       lastResult = null;
@@ -2555,28 +2628,31 @@ Không tự hạ xuống Thấp chỉ vì phiên làm việc không có tìm ki�
 
 QUY TẮC GỢI Ý TÊN KHAI HẢI QUAN
 - Viết bằng tiếng Việt; bắt đầu bằng tên thương mại thông thường phù hợp với bản chất hàng hóa.
-- Sau tên hàng, chỉ thêm dữ kiện người dùng/tài liệu đã cung cấp: vật liệu, thành phần và tỷ lệ; cấu tạo; công dụng; quy cách; công suất; điện áp; dung tích; kích thước; khối lượng; model/mã hiệu; nhãn hiệu; nhà sản xuất; đóng gói.
-- Không tự điền model, hiệu, xuất xứ, tỷ lệ, công suất, kích thước hoặc tình trạng chưa được cung cấp.
+- Sau tên hàng, chỉ thêm dữ kiện người dùng/tài liệu đã cung cấp: vật liệu, thành phần và tỷ lệ; cấu tạo; công dụng; quy cách; công suất; điện áp; dung tích; kích thước; khối lượng; nhãn hiệu; nhà sản xuất; đóng gói.
+- Tuyệt đối không ghi model, mã hàng, mã sản phẩm, mã hiệu, SKU hoặc part number trong goi_y_ten_khai_hai_quan, kể cả khi dữ liệu đầu vào có các thông tin này.
+- Nếu thành phần được thể hiện bằng tỷ lệ, ví dụ "92% nylon và 8% spandex", viết trực tiếp tỷ lệ đó; không đặt chữ "thành phần", "thành phần/chất liệu" hoặc "tỷ lệ" ở phía trước.
+- Chỉ ghi nhãn hiệu khi nhan_hieu_trang_thai là "Tự nhập" và người dùng đã nhập tên nhãn hiệu.
+- Nếu nhan_hieu_trang_thai là "Không hiệu", bắt buộc ghi đúng cụm "không hiệu".
+- Nếu nhan_hieu_trang_thai để trống, không ghi nhãn hiệu, hiệu, brand hoặc "không hiệu" trong tên khai.
+- Không tự điền hiệu, xuất xứ, tỷ lệ, công suất, kích thước hoặc tình trạng chưa được cung cấp.
 - Hàng mới không bắt buộc ghi "mới 100%"; chỉ ghi khi dữ liệu có. Hàng đã qua sử dụng bắt buộc có cụm "hàng đã qua sử dụng" hoặc "hàng cũ".
-- Nếu là nguyên liệu/vật tư gia công hoặc sản xuất xuất khẩu và có mã nội bộ thật sự được cung cấp, dùng dạng "Mã nguyên liệu#&tên hàng, quy cách, phẩm chất".
-- Nếu là sản phẩm gia công và có mã sản phẩm, dùng dạng "Mã sản phẩm#&tên hàng, quy cách, phẩm chất".
 - Nếu là hàng xuất khẩu và có mã nước xuất xứ đã được cung cấp, có thể dùng dạng "mô tả hàng hóa#&mã nước xuất xứ".
 - Không đưa đơn vị tính vào tên hàng nếu dữ liệu không có quy cách quy đổi; đơn vị tính phải phù hợp với BT2026 và chứng từ.
 
 Các trường ưu tiên theo nhóm hàng, chỉ dùng trường có thật:
-- Ô tô: loại xe, nhãn hiệu, kiểu xe, số chỗ/cửa/cầu, dung tích xi lanh, hộp số, nhiên liệu, tải trọng, model, năm sản xuất và số km nếu đã qua sử dụng.
-- Xe máy/xe đạp điện: kiểu dáng, số/ga, dung tích xi lanh hoặc công suất, số ắc quy, model, nhãn hiệu.
-- Điều hòa: kiểu máy, số cục, một/hai chiều, công suất BTU, model, nhãn hiệu.
-- Máy giặt: cửa trên/ngang, kg giặt, vật liệu lồng, tốc độ vắt, nước nóng, sấy, điều khiển, model.
-- Tủ lạnh/tủ đông: kiểu tủ, dung tích, số cửa, làm đá/vòi nước, model, nhãn hiệu.
-- Động cơ/máy nổ/máy phát điện: công dụng, công suất, số pha, điện áp, nhiên liệu, tự động chuyển nguồn, model.
-- Bếp ga: số bếp, lò nướng, kiểu âm/dương, kiểu đánh lửa, vật liệu mặt bếp, tính năng an toàn, model.
+- Ô tô: loại xe, nhãn hiệu nếu được chọn, kiểu xe, số chỗ/cửa/cầu, dung tích xi lanh, hộp số, nhiên liệu, tải trọng, năm sản xuất và số km nếu đã qua sử dụng.
+- Xe máy/xe đạp điện: kiểu dáng, số/ga, dung tích xi lanh hoặc công suất, số ắc quy, nhãn hiệu nếu được chọn.
+- Điều hòa: kiểu máy, số cục, một/hai chiều, công suất BTU, nhãn hiệu nếu được chọn.
+- Máy giặt: cửa trên/ngang, kg giặt, vật liệu lồng, tốc độ vắt, nước nóng, sấy, điều khiển.
+- Tủ lạnh/tủ đông: kiểu tủ, dung tích, số cửa, làm đá/vòi nước, nhãn hiệu nếu được chọn.
+- Động cơ/máy nổ/máy phát điện: công dụng, công suất, số pha, điện áp, nhiên liệu, tự động chuyển nguồn.
+- Bếp ga: số bếp, lò nướng, kiểu âm/dương, kiểu đánh lửa, vật liệu mặt bếp, tính năng an toàn.
 - Sắt thép: loại hợp kim, dạng thanh/tấm/dây/hình, quy cách, công dụng.
 - Kính xây dựng: loại kính, màu/phản quang, công dụng, quy cách.
 - Vải: thành phần và tỷ lệ, công nghệ dệt, định lượng/mật độ, khổ vải, công dụng.
 - Rượu/bia: loại, bao bì, dung tích, độ cồn, tuổi rượu nếu có.
-- Điện thoại: nhãn hiệu, kiểu máy, model.
-- Hàng may mặc: loại hàng, giới tính/đối tượng, dệt kim hay dệt thoi, thành phần và tỷ lệ, model/mã hàng, nhãn hiệu, nhà sản xuất.
+- Điện thoại: nhãn hiệu nếu được chọn và kiểu máy.
+- Hàng may mặc: loại hàng, giới tính/đối tượng, dệt kim hay dệt thoi, thành phần và tỷ lệ, nhãn hiệu nếu được chọn, nhà sản xuất.
 
 CÂU HỎI BỔ SUNG
 - Hỏi tối đa 3 câu thật sự có thể thay đổi Chương, Nhóm, Phân nhóm hoặc mã 8 số.
@@ -2667,6 +2743,9 @@ Yêu cầu bắt buộc:
 - Chọn 1–3 mã 8 số chỉ từ danh sách trên.
 - mo_ta_hang_hoa phải chép đúng mo_ta_8_so_nguyen_van.
 - Mỗi mã phải có goi_y_ten_khai_hai_quan bằng tiếng Việt và chỉ dùng dữ kiện thật sự có.
+- Không ghi model, mã hàng, mã sản phẩm, mã hiệu, SKU hoặc part number trong goi_y_ten_khai_hai_quan.
+- Nếu thành phần có tỷ lệ phần trăm, viết trực tiếp tỷ lệ, ví dụ "92% nylon và 8% spandex"; không thêm chữ "thành phần" phía trước.
+- nhan_hieu_trang_thai = "Không hiệu": ghi "không hiệu"; = "Tự nhập": chỉ ghi nhãn hiệu đã nhập; để trống: không ghi bất kỳ thông tin nhãn hiệu nào.
 - Nếu chưa đủ dữ kiện để chọn một mã duy nhất, vẫn đưa các mã ứng viên có căn cứ nhất, nêu điều kiện áp dụng, thông tin còn thiếu và mức Thấp/Chưa đủ căn cứ.
 - Không tạo nguồn hoặc khẳng định đã tìm kiếm Internet.`;
     }
@@ -2779,6 +2858,9 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
 - Không chỉ trả mã Chương, Nhóm hoặc mã 6 số.
 - mo_ta_hang_hoa phải chép nguyên văn mô tả của đúng mã ứng viên.
 - Phải có goi_y_ten_khai_hai_quan bằng tiếng Việt, chỉ dùng dữ kiện người dùng đã cung cấp.
+- Không ghi model, mã hàng, mã sản phẩm, mã hiệu, SKU hoặc part number trong goi_y_ten_khai_hai_quan.
+- Nếu thành phần có tỷ lệ phần trăm, viết trực tiếp tỷ lệ và không thêm chữ "thành phần" phía trước.
+- Tuân thủ nhan_hieu_trang_thai: "Không hiệu" thì ghi "không hiệu"; "Tự nhập" thì chỉ ghi nhãn hiệu đã nhập; để trống thì không ghi nhãn hiệu.
 - Không bịa mã hoặc nguồn.
 - Chỉ để ma_hs_de_xuat là [] nếu dữ liệu hoàn toàn không cho biết hàng hóa là gì.`;
 
@@ -3017,7 +3099,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       {
         key: "thanh_phan_vat_lieu",
         label: "Thành phần, chất liệu và tỷ lệ",
-        placeholder: "Ví dụ: 92% polyester, 8% spandex; nhựa ABS; thép không gỉ",
+        placeholder: "Vật liệu hoặc thành phần chính của sản phẩm",
         type: "textarea",
         required: true
       },
@@ -3036,10 +3118,10 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
         required: true
       },
       {
-        key: "nhan_hieu_model",
-        label: "Nhãn hiệu và model/mã sản phẩm",
-        placeholder: "Ví dụ: Dyna Pro 7 S; Brand ABC, model X100; không nhãn hiệu",
-        required: true
+        key: "nhan_hieu_trang_thai",
+        label: "Nhãn hiệu",
+        type: "brand-choice",
+        required: false
       },
       {
         key: "tinh_trang_hang_hoa",
@@ -3049,6 +3131,153 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
         required: true
       }
     ];
+
+    const GROUP_FIELD_EXAMPLES = {
+      generic: {
+        ten_hang_chung_tu: "Nhập đúng tên hàng trên Invoice/chứng từ",
+        thanh_phan_vat_lieu: "Vật liệu hoặc thành phần chính của sản phẩm",
+        cong_dung_chinh: "Sản phẩm được dùng chủ yếu để làm gì?",
+        thong_so_ky_thuat: "Kích thước, công suất, dung tích hoặc thông số liên quan"
+      },
+      food: {
+        ten_hang_chung_tu: "Ví dụ: Nước chấm cá minh thái, bột gia vị Tteokbokki",
+        thanh_phan_vat_lieu: "Ví dụ: nước 45%, đường 20%, nước tương 15%, tỏi 5%…",
+        cong_dung_chinh: "Ví dụ: dùng trực tiếp làm nước chấm hoặc dùng để chế biến món ăn",
+        thong_so_ky_thuat: "Ví dụ: 500 g/gói; 250 ml/chai; độ cồn 5%"
+      },
+      agriculture: {
+        ten_hang_chung_tu: "Ví dụ: Hạt cà phê Arabica chưa rang, xoài sấy",
+        thanh_phan_vat_lieu: "Ví dụ: 100% hạt cà phê; phần thịt quả xoài",
+        cong_dung_chinh: "Ví dụ: dùng làm thực phẩm, làm giống hoặc nguyên liệu chế biến",
+        thong_so_ky_thuat: "Ví dụ: độ ẩm 12%; cỡ hạt 18; 25 kg/bao"
+      },
+      animal: {
+        ten_hang_chung_tu: "Ví dụ: Sò điệp luộc chín đông lạnh, da bò muối",
+        thanh_phan_vat_lieu: "Ví dụ: 100% sò điệp; thịt bò; da lợn",
+        cong_dung_chinh: "Ví dụ: dùng làm thực phẩm cho người hoặc nguyên liệu sản xuất",
+        thong_so_ky_thuat: "Ví dụ: 500 g/gói; nguyên con; cắt miếng; không xương"
+      },
+      chemical: {
+        ten_hang_chung_tu: "Ví dụ: Sodium carbonate, chất tẩy rửa dạng lỏng",
+        thanh_phan_vat_lieu: "Ví dụ: sodium carbonate 99,2%; dung môi 20%; phụ gia 3%",
+        cong_dung_chinh: "Ví dụ: dùng xử lý nước, tẩy rửa hoặc làm nguyên liệu sản xuất",
+        thong_so_ky_thuat: "Ví dụ: CAS 497-19-8; độ tinh khiết 99,2%; pH 11"
+      },
+      cosmetics: {
+        ten_hang_chung_tu: "Ví dụ: Serum dưỡng da, dầu gội đầu",
+        thanh_phan_vat_lieu: "Ví dụ: Aqua, glycerin 5%, niacinamide 4%…",
+        cong_dung_chinh: "Ví dụ: dưỡng ẩm da mặt hoặc làm sạch tóc",
+        thong_so_ky_thuat: "Ví dụ: dạng serum; chai 30 ml; kem 50 g"
+      },
+      medical: {
+        ten_hang_chung_tu: "Ví dụ: Viên nén paracetamol, máy đo huyết áp điện tử",
+        thanh_phan_vat_lieu: "Ví dụ: paracetamol 500 mg/viên; vỏ nhựa ABS, cảm biến điện tử",
+        cong_dung_chinh: "Ví dụ: giảm đau, hạ sốt hoặc đo huyết áp",
+        thong_so_ky_thuat: "Ví dụ: 500 mg/viên; dải đo 0–300 mmHg; nguồn 6 V"
+      },
+      material: {
+        ten_hang_chung_tu: "Ví dụ: Tấm nhựa PVC, ống thép không gỉ, giấy kraft",
+        thanh_phan_vat_lieu: "Ví dụ: nhựa PVC 100%; thép không gỉ SUS 304; bột giấy kraft",
+        cong_dung_chinh: "Ví dụ: dùng làm ống dẫn, chi tiết máy hoặc bao bì",
+        thong_so_ky_thuat: "Ví dụ: dày 2 mm; Ø25 × 1,5 mm; khổ 1,2 × 2,4 m"
+      },
+      textile: {
+        ten_hang_chung_tu: "Ví dụ: Vải dệt kim nylon pha spandex",
+        thanh_phan_vat_lieu: "Ví dụ: 92% nylon và 8% spandex",
+        cong_dung_chinh: "Ví dụ: dùng may quần áo thể thao",
+        thong_so_ky_thuat: "Ví dụ: khổ 160 cm; định lượng 180 g/m²; dạng cuộn"
+      },
+      apparel: {
+        ten_hang_chung_tu: "Ví dụ: Áo thể thao nữ dệt kim, quần shorts nữ",
+        thanh_phan_vat_lieu: "Ví dụ: 92% nylon và 8% spandex",
+        cong_dung_chinh: "Ví dụ: trang phục nữ dùng tập thể thao",
+        thong_so_ky_thuat: "Ví dụ: cỡ S–XL; áo không tay; bộ gồm áo và quần rời"
+      },
+      footwear: {
+        ten_hang_chung_tu: "Ví dụ: Giày thể thao nữ, dép nhựa",
+        thanh_phan_vat_lieu: "Ví dụ: mũ giày bằng vải dệt, đế ngoài bằng cao su",
+        cong_dung_chinh: "Ví dụ: dùng đi bộ, chạy bộ hoặc bảo hộ lao động",
+        thong_so_ky_thuat: "Ví dụ: cỡ 36–40; che mắt cá; không chống nước"
+      },
+      bags: {
+        ten_hang_chung_tu: "Ví dụ: Ba lô du lịch, vali kéo",
+        thanh_phan_vat_lieu: "Ví dụ: mặt ngoài bằng vải polyester phủ PU",
+        cong_dung_chinh: "Ví dụ: chứa đồ cá nhân khi đi học hoặc du lịch",
+        thong_so_ky_thuat: "Ví dụ: 45 × 30 × 15 cm; dung tích 25 lít"
+      },
+      machinery: {
+        ten_hang_chung_tu: "Ví dụ: Máy đóng gói thực phẩm, bơm ly tâm",
+        thanh_phan_vat_lieu: "Ví dụ: khung thép, động cơ điện và bộ điều khiển",
+        cong_dung_chinh: "Ví dụ: đóng gói túi hoặc bơm chất lỏng",
+        thong_so_ky_thuat: "Ví dụ: 220 V; 1,5 kW; năng suất 30 túi/phút"
+      },
+      electrical: {
+        ten_hang_chung_tu: "Ví dụ: Đèn LED, bộ nguồn chuyển đổi",
+        thanh_phan_vat_lieu: "Ví dụ: bo mạch, chip LED, vỏ nhôm và dây dẫn",
+        cong_dung_chinh: "Ví dụ: chiếu sáng hoặc chuyển đổi điện áp",
+        thong_so_ky_thuat: "Ví dụ: 220 V; 18 W; đầu ra 12 VDC"
+      },
+      ict: {
+        ten_hang_chung_tu: "Ví dụ: Bộ định tuyến mạng, điểm truy cập Wi‑Fi",
+        thanh_phan_vat_lieu: "Ví dụ: bo mạch xử lý, cổng Ethernet và ăng-ten",
+        cong_dung_chinh: "Ví dụ: định tuyến dữ liệu hoặc phát mạng Wi‑Fi",
+        thong_so_ky_thuat: "Ví dụ: Wi‑Fi 6; 1 Gbps; 4 cổng Ethernet; 12 VDC"
+      },
+      parts: {
+        ten_hang_chung_tu: "Ví dụ: Cánh bơm, bo mạch điều khiển máy giặt",
+        thanh_phan_vat_lieu: "Ví dụ: thép không gỉ; bo mạch và linh kiện điện tử",
+        cong_dung_chinh: "Ví dụ: truyền chất lỏng trong bơm hoặc điều khiển máy giặt",
+        thong_so_ky_thuat: "Ví dụ: Ø120 mm; điện áp 12 V; dùng cho bơm ly tâm"
+      },
+      vehicles: {
+        ten_hang_chung_tu: "Ví dụ: Xe máy điện hai bánh, ô tô chở người",
+        thanh_phan_vat_lieu: "Ví dụ: khung thép, động cơ điện và bộ pin lithium",
+        cong_dung_chinh: "Ví dụ: chở người hoặc vận chuyển hàng hóa",
+        thong_so_ky_thuat: "Ví dụ: 5 chỗ; 1.500 cc; tải trọng 2 tấn; công suất 3 kW"
+      },
+      furniture: {
+        ten_hang_chung_tu: "Ví dụ: Bàn làm việc bằng gỗ, ghế kim loại bọc nệm",
+        thanh_phan_vat_lieu: "Ví dụ: khung thép, mặt gỗ MDF phủ melamine",
+        cong_dung_chinh: "Ví dụ: dùng làm bàn làm việc trong văn phòng",
+        thong_so_ky_thuat: "Ví dụ: 120 × 60 × 75 cm; dạng tháo rời đồng bộ"
+      },
+      household: {
+        ten_hang_chung_tu: "Ví dụ: Nồi cơm điện, hộp nhựa đựng thực phẩm",
+        thanh_phan_vat_lieu: "Ví dụ: thân nhựa PP, lòng nồi hợp kim nhôm",
+        cong_dung_chinh: "Ví dụ: nấu cơm hoặc chứa bảo quản thực phẩm",
+        thong_so_ky_thuat: "Ví dụ: 220 V; 700 W; dung tích 1,8 lít"
+      },
+      toys: {
+        ten_hang_chung_tu: "Ví dụ: Ô tô đồ chơi chạy pin, vợt cầu lông",
+        thanh_phan_vat_lieu: "Ví dụ: nhựa ABS, động cơ điện nhỏ; khung carbon",
+        cong_dung_chinh: "Ví dụ: đồ chơi cho trẻ em hoặc dùng chơi cầu lông",
+        thong_so_ky_thuat: "Ví dụ: dùng 2 pin AA; dài 20 cm; trọng lượng 85 g"
+      },
+      jewelry: {
+        ten_hang_chung_tu: "Ví dụ: Dây chuyền bạc, đồng hồ đeo tay quartz",
+        thanh_phan_vat_lieu: "Ví dụ: bạc 925; vỏ thép, dây da, kính khoáng",
+        cong_dung_chinh: "Ví dụ: đeo trang trí hoặc đo thời gian",
+        thong_so_ky_thuat: "Ví dụ: 10 g; mặt 40 mm; máy quartz"
+      },
+      building: {
+        ten_hang_chung_tu: "Ví dụ: Gạch ceramic tráng men, tấm xi măng",
+        thanh_phan_vat_lieu: "Ví dụ: đất sét nung phủ men; xi măng và sợi cellulose",
+        cong_dung_chinh: "Ví dụ: lát nền, ốp tường hoặc làm vách ngăn",
+        thong_so_ky_thuat: "Ví dụ: 600 × 600 × 9 mm; khối lượng 18 kg/m²"
+      },
+      handicraft: {
+        ten_hang_chung_tu: "Ví dụ: Giỏ mây đan thủ công, tượng gỗ chạm khắc",
+        thanh_phan_vat_lieu: "Ví dụ: 100% mây; gỗ cao su phủ sơn",
+        cong_dung_chinh: "Ví dụ: đựng đồ hoặc trang trí nội thất",
+        thong_so_ky_thuat: "Ví dụ: 30 × 20 × 15 cm; trọng lượng 1,2 kg"
+      },
+      packaging: {
+        ten_hang_chung_tu: "Ví dụ: Chai nhựa PET, túi giấy kraft",
+        thanh_phan_vat_lieu: "Ví dụ: nhựa PET một lớp; giấy kraft ghép màng PE",
+        cong_dung_chinh: "Ví dụ: chứa đồ uống hoặc đóng gói thực phẩm",
+        thong_so_ky_thuat: "Ví dụ: dung tích 500 ml; dày 80 μm; tải trọng 5 kg"
+      }
+    };
 
     const OPTIONAL_DESCRIPTION_FIELDS = {
       cau_tao_dac_diem: {
@@ -3103,7 +3332,6 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
         },
         fields: [
           { key: "dang_che_bien", label: "Dạng và mức độ chế biến", placeholder: "Tươi, đông lạnh, sấy, nấu chín, dạng bột, cô đặc…", required: true },
-          { key: "quy_cach_ban_thuc_pham", label: "Hình thức đóng gói", type: "select", options: ["Đóng gói bán lẻ", "Số lượng lớn", "Chưa xác định"], required: true },
           { key: "thanh_phan_dac_biet", label: "Đường, sữa, thịt, cồn hoặc phụ gia", placeholder: "Nêu rõ có/không và tỷ lệ nếu có", required: true }
         ],
         optional: ["nha_san_xuat_nha_cung_cap", "xuat_xu", "thong_tin_bo_sung"]
@@ -3301,10 +3529,10 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
           ten_san_pham_cu_the: { label: "Tên linh kiện/phụ tùng cụ thể" },
           thanh_phan_vat_lieu: { label: "Vật liệu và cấu tạo" },
           cong_dung_chinh: { label: "Chức năng của linh kiện trong máy" },
-          thong_so_ky_thuat: { label: "Thông số, kích thước và part number" }
+          thong_so_ky_thuat: { label: "Thông số và kích thước" }
         },
         fields: [
-          { key: "may_su_dung_bo_phan", label: "Dùng cho máy/thiết bị nào?", placeholder: "Nêu tên, chức năng và model của máy chính", required: true },
+          { key: "may_su_dung_bo_phan", label: "Dùng cho máy/thiết bị nào?", placeholder: "Nêu tên và chức năng của máy/thiết bị chính", required: true },
           { key: "muc_do_chuyen_dung", label: "Mức độ chuyên dùng", type: "select", options: ["Chuyên dùng duy nhất cho một loại máy", "Dùng được cho nhiều loại máy", "Có thể hoạt động độc lập", "Chưa xác định"], required: true },
           { key: "tinh_trang_linh_kien", label: "Tình trạng lắp ráp", type: "select", options: ["Chi tiết rời", "Cụm lắp ráp", "Bộ hoàn chỉnh", "Chưa xác định"], required: true }
         ],
@@ -3585,15 +3813,29 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
     }
 
     function currentFieldValue(data, key) {
-      if (key === "nhan_hieu_model") {
-        return data.nhan_hieu_model ||
-          [data.nhan_hieu, data.model_part_number].filter(Boolean).join(" · ");
+      if (key === "nhan_hieu_trang_thai") {
+        if (data.nhan_hieu_trang_thai) return data.nhan_hieu_trang_thai;
+        if (/^(?:không hiệu|không nhãn hiệu)$/i.test(data.nhan_hieu || data.nhan_hieu_model || "")) return "Không hiệu";
+        if (data.nhan_hieu && !data.model_part_number) return "Tự nhập";
+        return "";
       }
       return data[key] || "";
     }
 
-    function renderDynamicControl(field, value) {
+    function renderDynamicControl(field, value, data = {}) {
       const attributes = `class="control" data-field="${esc(field.key)}" data-description-required="${field.required ? "true" : "false"}"`;
+      if (field.type === "brand-choice") {
+        const brandValue = /^(?:không hiệu|không nhãn hiệu)$/i.test(data.nhan_hieu || "") ? "" : (data.nhan_hieu || "");
+        return `<div class="brand-choice">
+          <select ${attributes}>
+            <option value="">— Chọn nếu cần khai nhãn hiệu —</option>
+            <option value="Tự nhập" ${value === "Tự nhập" ? "selected" : ""}>Tự nhập</option>
+            <option value="Không hiệu" ${value === "Không hiệu" ? "selected" : ""}>Không hiệu</option>
+          </select>
+          <input class="control brand-choice-input ${value === "Tự nhập" ? "" : "hidden"}" data-field="nhan_hieu" value="${esc(brandValue)}" placeholder="Ví dụ: Samsung, Osprey, Yamaha">
+          <small>Để trống nếu không muốn ghi thông tin nhãn hiệu trong tên khai hải quan.</small>
+        </div>`;
+      }
       if (field.type === "select") {
         return `<select ${attributes}>
           <option value="">— Chọn —</option>
@@ -3613,7 +3855,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
         : `<span class="field-importance optional">Không bắt buộc</span>`;
       return `<div class="field ${field.full ? "full" : "half"}">
         <label>${esc(field.label)} ${importance}</label>
-        ${renderDynamicControl(field, value)}
+        ${renderDynamicControl(field, value, data)}
       </div>`;
     }
 
@@ -3640,6 +3882,9 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       const waiting = $("[data-group-waiting]", card);
       const type = groupQuestionType(group);
       const config = GROUP_QUESTIONS[type];
+      const examples = GROUP_FIELD_EXAMPLES[type] || GROUP_FIELD_EXAMPLES.generic;
+      const nameInput = $('[data-field="ten_hang_chung_tu"]', card);
+      if (nameInput) nameInput.placeholder = examples.ten_hang_chung_tu;
       const draft = snapshotManualDraft(card);
       card._manualDraft = { ...initialData, ...draft };
       if (!config) {
@@ -3651,7 +3896,8 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
 
       const commonFields = CORE_DESCRIPTION_FIELDS.map(field => ({
         ...field,
-        ...(config.commonOverrides?.[field.key] || {})
+        ...(config.commonOverrides?.[field.key] || {}),
+        ...(examples[field.key] ? { placeholder: examples[field.key] } : {})
       }));
       const requiredAndRelevantFields = [...commonFields, ...(config.fields || [])];
       const optionalFields = (config.optional || [])
@@ -3692,6 +3938,20 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
           syncDynamicCompleteness(card);
         });
       });
+      const brandChoice = $('[data-field="nhan_hieu_trang_thai"]', container);
+      const brandInput = $('[data-field="nhan_hieu"]', container);
+      if (brandChoice && brandInput) {
+        const syncBrandInput = () => {
+          const isManual = brandChoice.value === "Tự nhập";
+          brandInput.classList.toggle("hidden", !isManual);
+          if (!isManual) {
+            brandInput.value = "";
+            card._manualDraft.nhan_hieu = brandChoice.value === "Không hiệu" ? "Không hiệu" : "";
+          }
+        };
+        brandChoice.addEventListener("change", syncBrandInput);
+        syncBrandInput();
+      }
       syncDynamicCompleteness(card);
     }
 
@@ -3706,6 +3966,10 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       $$("[data-field]", card).forEach(control => {
         data[control.dataset.field] = control.value.trim();
       });
+      if (data.nhan_hieu_trang_thai === "Không hiệu") data.nhan_hieu = "Không hiệu";
+      else if (data.nhan_hieu_trang_thai !== "Tự nhập") data.nhan_hieu = "";
+      delete data.nhan_hieu_model;
+      delete data.model;
       data._id = Number(card.dataset.itemId);
       return data;
     }
