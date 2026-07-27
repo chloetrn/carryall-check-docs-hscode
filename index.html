@@ -763,6 +763,28 @@
       -webkit-line-clamp: 2;
     }
     .compact-summary-name strong { color: var(--teal-dark); font-size: 13.5px; font-weight: 800; }
+    .result-intro {
+      padding: 15px 18px;
+      border-left: 4px solid var(--teal);
+      background: linear-gradient(90deg, var(--teal-tint), var(--white) 72%);
+    }
+    .result-intro h3 {
+      margin: 0;
+      color: var(--teal-dark);
+      font-size: 16px;
+      line-height: 1.35;
+    }
+    .result-intro p,
+    .result-item-description {
+      display: -webkit-box;
+      overflow: hidden;
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.45;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+    }
     .compact-missing {
       display: flex;
       align-items: center;
@@ -1400,23 +1422,15 @@
           </div>
         </div>
 
-        <div class="card hidden" id="summaryCard">
-          <div class="card-head">
-            <div>
-              <h3>Tóm tắt hàng hóa</h3>
-              <p>Bản chất hàng hóa được tổng hợp trước khi xem xét mã HS.</p>
-            </div>
-            <span class="step">02</span>
-          </div>
-          <div class="card-body">
-            <div class="compact-summary" id="summaryGrid"></div>
-          </div>
+        <div class="card hidden result-intro" id="resultIntroCard">
+          <h3 id="resultIntroName">Tên hàng hóa</h3>
+          <p id="resultIntroDescription">Mô tả ngắn hàng hóa</p>
         </div>
 
         <div class="card hidden" id="suggestionsCard">
           <div class="card-head">
             <div>
-              <h3>Mã HS được đề xuất</h3>
+              <h3>Mã HS được gợi ý</h3>
               <p>Hiển thị tối đa ba mã 8 số đã được kiểm tra tồn tại trong BT2026, kèm tên khai hải quan gợi ý.</p>
             </div>
             <span class="step">03</span>
@@ -1444,6 +1458,19 @@
             </div>
           </div>
         </div>
+
+        <details class="card collapsible-card hidden" id="summaryCard">
+          <summary class="card-head">
+            <div>
+              <h3>Xem tóm tắt hàng hóa</h3>
+              <p>Nhấn để xem bản chất, thành phần, công dụng và căn cứ phân loại.</p>
+            </div>
+            <span class="collapse-arrow" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="card-body">
+            <div class="compact-summary" id="summaryGrid"></div>
+          </div>
+        </details>
 
         <details class="card collapsible-card hidden" id="detailsCard">
           <summary class="card-head">
@@ -2907,7 +2934,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
     }
 
     function resetResultUI(keepLoading = false) {
-      ["#summaryCard", "#suggestionsCard", "#detailsCard", "#sourcesCard", "#legalDisclaimer"].forEach(selector => $(selector).classList.add("hidden"));
+      ["#resultIntroCard", "#summaryCard", "#suggestionsCard", "#detailsCard", "#sourcesCard", "#legalDisclaimer"].forEach(selector => $(selector).classList.add("hidden"));
       if (!keepLoading) $("#loadingCard").classList.add("hidden");
       $("#summaryGrid").innerHTML = "";
       $("#suggestionsBody").innerHTML = "";
@@ -2915,21 +2942,26 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       $("#sourceGrid").innerHTML = "";
       $("#noOfficialSource").classList.add("hidden");
       $("#formError").classList.add("hidden");
+      $("#summaryCard").open = false;
       $("#detailsCard").open = false;
     }
 
     function renderHSResult(data) {
       const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
       renderSummary(data);
+      renderResultIntro(data);
 
       if (suggestions.length === 0) {
+        $("#resultIntroCard").classList.remove("hidden");
         $("#summaryCard").classList.remove("hidden");
         $("#legalDisclaimer").classList.remove("hidden");
-        $("#summaryCard").scrollIntoView({ behavior: "smooth", block: "start" });
+        $("#resultIntroCard").scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
 
+      $("#resultIntroCard").classList.remove("hidden");
       $("#summaryCard").classList.remove("hidden");
+      $("#summaryCard").open = false;
       renderSuggestions(suggestions);
       renderDetails(data, suggestions);
       renderSources(data.nguon_tham_khao || []);
@@ -2938,7 +2970,21 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       $("#detailsCard").classList.toggle("hidden", suggestions.length === 0);
       $("#sourcesCard").classList.remove("hidden");
       $("#legalDisclaimer").classList.remove("hidden");
-      $("#summaryCard").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("#suggestionsCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function shortProductDescription(data) {
+      const summary = data.tom_tat_hang_hoa || {};
+      const nature = textOf(summary.ban_chat_hang_hoa || summary.ban_chat);
+      const composition = textOf(summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan);
+      const use = textOf(summary.cong_dung_chinh || summary.cong_dung);
+      return [nature, composition, use].filter(Boolean).join(" · ") || "Chưa có mô tả ngắn.";
+    }
+
+    function renderResultIntro(data) {
+      const summary = data.tom_tat_hang_hoa || {};
+      $("#resultIntroName").textContent = textOf(summary.ten_hang || summary.ten) || "Hàng hóa đang tra cứu";
+      $("#resultIntroDescription").textContent = shortProductDescription(data);
     }
 
     function renderSummary(data) {
@@ -4535,6 +4581,16 @@ Cấu trúc:
       </div>`;
     }
 
+    function resultSummaryDetailsHtml(data, resultIndex) {
+      return `<details class="result-section result-collapsible" id="batch-summary-${resultIndex}">
+        <summary>
+          <span>Xem tóm tắt hàng hóa<span class="collapsible-hint">Nhấn để xem bản chất, thành phần, công dụng và căn cứ phân loại</span></span>
+          <span class="collapse-arrow" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="result-section-content">${resultSummaryHtml(data, resultIndex)}</div>
+      </details>`;
+    }
+
     function resultSuggestionsHtml(data, resultIndex) {
       const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
       const note = suggestions.length < 3
@@ -4555,7 +4611,7 @@ Cấu trúc:
         </tr>`;
       }).join("");
       return `<div class="result-section">
-        <h4>Mã HS được đề xuất</h4>
+        <h4>Mã HS được gợi ý</h4>
         ${note ? `<div class="notice" style="margin-bottom:11px">${esc(note)}</div>` : ""}
         <div class="table-scroll">
           <table>
@@ -4626,11 +4682,14 @@ Cấu trúc:
         }
         return `<article class="card result-item-card" data-result-key="${esc(record.key)}">
           <div class="result-item-head">
-            <div><h3>${esc(record.entry.label)}</h3></div>
+            <div>
+              <h3>${esc(textOf(record.data?.tom_tat_hang_hoa?.ten_hang || record.data?.tom_tat_hang_hoa?.ten) || record.entry.label)}</h3>
+              <p class="result-item-description" title="${esc(shortProductDescription(record.data))}">${esc(shortProductDescription(record.data))}</p>
+            </div>
             <button class="mini-btn" type="button" data-reanalyze-single="${resultIndex}">Phân tích lại mặt hàng</button>
           </div>
-          <div class="result-section"><h4>Tóm tắt hàng hóa</h4>${resultSummaryHtml(record.data, resultIndex)}</div>
           ${resultSuggestionsHtml(record.data, resultIndex)}
+          ${resultSummaryDetailsHtml(record.data, resultIndex)}
           ${resultDetailsHtml(record.data, resultIndex)}
         </article>`;
       }).join("");
