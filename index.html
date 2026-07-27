@@ -1395,24 +1395,6 @@
           </div>
         </div>
 
-        <details class="card collapsible-card hidden" id="questionsCard">
-          <summary class="card-head">
-            <div>
-              <h3>Thông tin cần bổ sung</h3>
-              <p>Nhấn để xem các nội dung có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</p>
-            </div>
-            <span class="collapse-arrow" aria-hidden="true">⌄</span>
-          </summary>
-          <div class="card-body">
-            <div class="warning" style="margin-bottom:14px">Thông tin thiếu có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</div>
-            <div class="questions" id="questionsList"></div>
-            <div class="actions" style="position:static">
-              <button class="btn btn-primary" id="submitAnswersBtn" type="button">Gửi thông tin bổ sung</button>
-              <button class="btn btn-ghost" id="backToFormBtn" type="button">Sửa form hàng hóa</button>
-            </div>
-          </div>
-        </details>
-
         <div class="card hidden" id="summaryCard">
           <div class="card-head">
             <div>
@@ -1473,9 +1455,7 @@
           <div class="card-head">
             <div>
               <h3>Nguồn được sử dụng</h3>
-              <p>Nguồn chính thức được tách riêng với nguồn chỉ dùng để tham khảo đặc điểm sản phẩm.</p>
             </div>
-            <span class="step">05</span>
           </div>
           <div class="card-body">
             <div class="source-grid" id="sourceGrid"></div>
@@ -1949,7 +1929,6 @@
 
     let productFiles = [];
     let lastResult = null;
-    let pendingQuestions = [];
     let supplementalAnswers = {};
     let apiKey = "";
 
@@ -2431,14 +2410,12 @@ Chỉ ghi dữ liệu thật sự tìm thấy. Không suy đoán giá trị thi�
       analyzeHS(false);
     });
     $("#reanalyzeBtn").addEventListener("click", () => analyzeHS(false));
-    $("#backToFormBtn").addEventListener("click", () => $("#productInputCard").scrollIntoView({ behavior: "smooth", block: "start" }));
     $("#clearFormBtn").addEventListener("click", clearHSForm);
 
     function clearHSForm() {
       if (!confirm("Xóa toàn bộ thông tin hàng hóa, tài liệu và kết quả hiện tại?")) return;
       $("#hsForm").reset();
       productFiles = [];
-      pendingQuestions = [];
       supplementalAnswers = {};
       lastResult = null;
       $("#detailedProductInfo").open = false;
@@ -2446,20 +2423,6 @@ Chỉ ghi dữ liệu thật sự tìm thấy. Không suy đoán giá trị thi�
       resetResultUI();
       $("#ten_vi").focus();
     }
-
-    $("#submitAnswersBtn").addEventListener("click", () => {
-      const answers = {};
-      let missing = false;
-      $$("[data-question-id]", $("#questionsList")).forEach(input => {
-        const value = input.value.trim();
-        input.style.borderColor = value ? "" : "var(--red)";
-        if (!value) missing = true;
-        answers[input.dataset.questionId] = value;
-      });
-      if (missing) return;
-      supplementalAnswers = { ...supplementalAnswers, ...answers };
-      analyzeHS(true);
-    });
 
     const HS_SYSTEM_PROMPT_LEGACY = `Bạn là chuyên viên phân loại hàng hóa theo Hệ thống hài hòa HS/AHTN, áp dụng tại Việt Nam.
 
@@ -2855,42 +2818,32 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
     }
 
     function setBusy(isBusy) {
-      ["#analyzeBtn", "#reanalyzeBtn", "#submitAnswersBtn"].forEach(selector => {
+      ["#analyzeBtn", "#reanalyzeBtn"].forEach(selector => {
         const button = $(selector);
         if (button) button.disabled = isBusy;
       });
     }
 
     function resetResultUI(keepLoading = false) {
-      ["#questionsCard", "#summaryCard", "#suggestionsCard", "#detailsCard", "#sourcesCard", "#legalDisclaimer"].forEach(selector => $(selector).classList.add("hidden"));
+      ["#summaryCard", "#suggestionsCard", "#detailsCard", "#sourcesCard", "#legalDisclaimer"].forEach(selector => $(selector).classList.add("hidden"));
       if (!keepLoading) $("#loadingCard").classList.add("hidden");
-      $("#questionsList").innerHTML = "";
       $("#summaryGrid").innerHTML = "";
       $("#suggestionsBody").innerHTML = "";
       $("#detailsList").innerHTML = "";
       $("#sourceGrid").innerHTML = "";
       $("#noOfficialSource").classList.add("hidden");
       $("#formError").classList.add("hidden");
-      $("#questionsCard").open = false;
       $("#detailsCard").open = false;
     }
 
     function renderHSResult(data) {
-      const questions = (data.cau_hoi_bo_sung || []).slice(0, 3);
       const suggestions = (data.ma_hs_de_xuat || []).slice(0, 3);
-      pendingQuestions = questions;
       renderSummary(data);
-
-      if (questions.length) {
-        renderQuestions(questions);
-        $("#questionsCard").open = false;
-        $("#questionsCard").classList.remove("hidden");
-      }
 
       if (suggestions.length === 0) {
         $("#summaryCard").classList.remove("hidden");
         $("#legalDisclaimer").classList.remove("hidden");
-        (questions.length ? $("#questionsCard") : $("#summaryCard")).scrollIntoView({ behavior: "smooth", block: "start" });
+        $("#summaryCard").scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
 
@@ -2906,17 +2859,6 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       $("#summaryCard").scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    function renderQuestions(questions) {
-      $("#questionsList").innerHTML = questions.map((question, index) => {
-        const id = question.id || `cau_hoi_${index + 1}`;
-        const label = question.cau_hoi || question.question || String(question);
-        return `<div class="question">
-          <label for="question-${index}">${index + 1}. ${esc(label)}</label>
-          <textarea class="control" id="question-${index}" data-question-id="${esc(id)}" placeholder="Nhập thông tin xác minh…"></textarea>
-        </div>`;
-      }).join("");
-    }
-
     function renderSummary(data) {
       const summary = data.tom_tat_hang_hoa || {};
       const composition = textOf(summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan);
@@ -2924,21 +2866,10 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       const compositionAndUse = [composition, use].filter(Boolean).join(" · ");
       const basis = summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh ||
         summary.ban_chat_hang_hoa || summary.ban_chat;
-      const missing = missingInfoItems(data);
-      const hasQuestions = pendingQuestions.length > 0;
       $("#summaryGrid").innerHTML = `
         ${compactSummaryRow("Tên hàng", summary.ten_hang || summary.ten, "compact-summary-name")}
         ${compactSummaryRow("Thành phần / Công dụng", compositionAndUse)}
-        ${compactSummaryRow("Căn cứ phân loại", basis)}
-        <div class="compact-missing ${missing.length ? "" : "is-clear"}">
-          <span>${missing.length ? `⚠ Còn thiếu ${missing.length} thông tin quan trọng` : "✓ Không ghi nhận thông tin còn thiếu"}</span>
-          ${hasQuestions ? '<button class="mini-btn" id="openSummaryQuestionsBtn" type="button">Xem câu hỏi bổ sung</button>' : ""}
-        </div>`;
-      $("#openSummaryQuestionsBtn")?.addEventListener("click", () => {
-        const questionsCard = $("#questionsCard");
-        questionsCard.open = true;
-        questionsCard.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+        ${compactSummaryRow("Căn cứ phân loại", basis)}`;
     }
 
     function renderSuggestions(suggestions) {
@@ -3006,35 +2937,9 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       }).join("");
     }
 
-    function renderSources(sources) {
-      const officialCount = sources.filter(source => String(source.muc_do_nguon || source.muc_do || "").toLowerCase().includes("chính")).length;
-      $("#noOfficialSource").classList.toggle("hidden", officialCount > 0);
-      if (!sources.length) {
-        $("#sourceGrid").innerHTML = "";
-        $("#noOfficialSource").classList.remove("hidden");
-        return;
-      }
-      $("#sourceGrid").innerHTML = sources.map(source => {
-        const kindRaw = source.muc_do_nguon || source.muc_do || "Tham khảo";
-        const isOfficial = String(kindRaw).toLowerCase().includes("chính");
-        const link = safeUrl(source.duong_dan || source.url || source.link);
-        const dates = [
-          source.ngay_ban_hanh ? `Ban hành: ${source.ngay_ban_hanh}` : "",
-          source.ngay_hieu_luc ? `Hiệu lực: ${source.ngay_hieu_luc}` : "",
-          source.ngay_truy_cap ? `Truy cập: ${source.ngay_truy_cap}` : ""
-        ].filter(Boolean).join(" · ");
-        return `<article class="source-card">
-          <div class="source-top">
-            <h5>${esc(source.ten_nguon || source.ten_tai_lieu || "Nguồn tham khảo")}</h5>
-            <span class="source-kind ${isOfficial ? "official" : "reference"}">${isOfficial ? "Chính thức" : "Tham khảo"}</span>
-          </div>
-          <p><b>Cơ quan:</b> ${esc(source.co_quan_ban_hanh || source.co_quan || "Chưa xác định")}</p>
-          <p><b>Loại tài liệu:</b> ${esc(source.loai_tai_lieu || "Chưa xác định")}${source.so_hieu_van_ban ? ` · <b>Số hiệu:</b> ${esc(source.so_hieu_van_ban)}` : ""}</p>
-          ${dates ? `<p>${esc(dates)}</p>` : ""}
-          <p><b>Nội dung sử dụng:</b> ${esc(textOf(source.noi_dung_su_dung || source.noi_dung_lam_can_cu) || "Chưa mô tả")}</p>
-          ${link ? `<a class="source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Mở nguồn ↗</a>` : '<p><b>Đường dẫn:</b> Chưa được xác minh</p>'}
-        </article>`;
-      }).join("");
+    function renderSources() {
+      $("#noOfficialSource").classList.add("hidden");
+      $("#sourceGrid").innerHTML = officialCustomsSourceCard();
     }
 
     $("#exportPdfBtn").addEventListener("click", () => window.print());
@@ -4359,42 +4264,11 @@ Cấu trúc:
       const use = textOf(summary.cong_dung_chinh || summary.cong_dung);
       const basis = summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh ||
         summary.ban_chat_hang_hoa || summary.ban_chat;
-      const missing = missingInfoItems(data);
-      const hasQuestions = (data.cau_hoi_bo_sung || []).length > 0;
       return `<div class="compact-summary">
         ${compactSummaryRow("Tên hàng", summary.ten_hang || summary.ten, "compact-summary-name")}
         ${compactSummaryRow("Thành phần / Công dụng", [composition, use].filter(Boolean).join(" · "))}
         ${compactSummaryRow("Căn cứ phân loại", basis)}
-        <div class="compact-missing ${missing.length ? "" : "is-clear"}">
-          <span>${missing.length ? `⚠ Còn thiếu ${missing.length} thông tin quan trọng` : "✓ Không ghi nhận thông tin còn thiếu"}</span>
-          ${hasQuestions ? `<button class="mini-btn" type="button" data-open-batch-questions="${resultIndex}">Xem câu hỏi bổ sung</button>` : ""}
-        </div>
       </div>`;
-    }
-
-    function resultQuestionsHtml(record, resultIndex) {
-      const questions = (record.data.cau_hoi_bo_sung || []).slice(0, 3);
-      if (!questions.length) return "";
-      return `<details class="result-section result-collapsible" id="batch-questions-${resultIndex}">
-        <summary>
-          <span>Thông tin cần bổ sung<span class="collapsible-hint">Nhấn để xem và trả lời ${questions.length} câu hỏi quan trọng</span></span>
-          <span class="collapse-arrow" aria-hidden="true">⌄</span>
-        </summary>
-        <div class="result-section-content">
-        <div class="warning" style="margin-bottom:11px">Thông tin thiếu có thể làm thay đổi Chương, Nhóm hoặc Phân nhóm.</div>
-        <div class="questions">${questions.map((question, questionIndex) => {
-          const id = question.id || `cau_hoi_${questionIndex + 1}`;
-          const label = question.cau_hoi || question.question || String(question);
-          return `<div class="question">
-            <label>${questionIndex + 1}. ${esc(label)}</label>
-            <textarea class="control" data-batch-question="${esc(id)}" placeholder="Nhập thông tin xác minh…"></textarea>
-          </div>`;
-        }).join("")}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
-          <button class="btn btn-primary" type="button" data-submit-batch-answers="${resultIndex}">Gửi thông tin bổ sung</button>
-        </div>
-        </div>
-      </details>`;
     }
 
     function resultSuggestionsHtml(data, resultIndex) {
@@ -4459,34 +4333,24 @@ Cấu trúc:
       }</div></details>`;
     }
 
-    function resultSourcesHtml(data) {
-      const sources = data.nguon_tham_khao || [];
-      const officialCount = sources.filter(source => String(source.muc_do_nguon || source.muc_do || "").toLowerCase().includes("chính")).length;
-      const cards = sources.map(source => {
-        const kindRaw = source.muc_do_nguon || source.muc_do || "Tham khảo";
-        const isOfficial = String(kindRaw).toLowerCase().includes("chính");
-        const link = safeUrl(source.duong_dan || source.url || source.link);
-        return `<article class="source-card">
-          <div class="source-top">
-            <h5>${esc(source.ten_nguon || source.ten_tai_lieu || "Nguồn tham khảo")}</h5>
-            <span class="source-kind ${isOfficial ? "official" : "reference"}">${isOfficial ? "Chính thức" : "Tham khảo"}</span>
-          </div>
-          <p><b>Cơ quan:</b> ${esc(source.co_quan_ban_hanh || source.co_quan || "Chưa xác định")}</p>
-          <p><b>Loại tài liệu:</b> ${esc(source.loai_tai_lieu || "Chưa xác định")}${source.so_hieu_van_ban ? ` · <b>Số hiệu:</b> ${esc(source.so_hieu_van_ban)}` : ""}</p>
-          <p><b>Nội dung sử dụng:</b> ${esc(textOf(source.noi_dung_su_dung || source.noi_dung_lam_can_cu) || "Chưa mô tả")}</p>
-          ${link ? `<a class="source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Mở nguồn ↗</a>` : '<p><b>Đường dẫn:</b> Chưa được xác minh</p>'}
-        </article>`;
-      }).join("");
-      return `<div class="result-section">
-        <h4>Nguồn được sử dụng</h4>
-        ${cards ? `<div class="source-grid">${cards}</div>` : ""}
-        ${officialCount ? "" : '<div class="warning" style="margin-top:11px">Hệ thống chưa tìm thấy nguồn chính thức đủ để xác minh mã này. Kết quả chỉ là định hướng tham khảo và cần được kiểm tra bởi người có chuyên môn.</div>'}
-      </div>`;
+    function officialCustomsSourceCard() {
+      const url = "https://www.customs.gov.vn/index.jsp?pageId=24&id=NHAP_KHAU&name=Nh%E1%BA%ADp%20kh%E1%BA%A9u&cid=1201";
+      return `<article class="source-card">
+        <p><b>Cơ quan:</b> Theo tài liệu biểu thuế Việt Nam do Tổng cục Hải quan Việt Nam ban hành</p>
+        <p><b>Đường dẫn:</b> <a class="source-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></p>
+      </article>`;
+    }
+
+    function batchSourceHtml() {
+      return `<section class="card" id="batchSourcesCard">
+        <div class="card-head"><div><h3>Nguồn được sử dụng</h3></div></div>
+        <div class="card-body"><div class="source-grid">${officialCustomsSourceCard()}</div></div>
+      </section>`;
     }
 
     function renderBatchResults() {
       const container = $("#batchResults");
-      container.innerHTML = batchAnalysisResults.map((record, resultIndex) => {
+      const itemResults = batchAnalysisResults.map((record, resultIndex) => {
         if (record.error) {
           return `<article class="card result-item-card" data-result-key="${esc(record.key)}">
             <div class="result-item-head">
@@ -4498,16 +4362,15 @@ Cấu trúc:
         }
         return `<article class="card result-item-card" data-result-key="${esc(record.key)}">
           <div class="result-item-head">
-            <div><h3>${esc(record.entry.label)}</h3><p>${esc(record.entry.method)} · Ngày tra cứu: ${esc(record.data.ngay_tra_cuu || new Date().toLocaleDateString("vi-VN"))}</p></div>
+            <div><h3>${esc(record.entry.label)}</h3></div>
             <button class="mini-btn" type="button" data-reanalyze-single="${resultIndex}">Phân tích lại mặt hàng</button>
           </div>
           <div class="result-section"><h4>Tóm tắt hàng hóa</h4>${resultSummaryHtml(record.data, resultIndex)}</div>
-          ${resultQuestionsHtml(record, resultIndex)}
           ${resultSuggestionsHtml(record.data, resultIndex)}
           ${resultDetailsHtml(record.data, resultIndex)}
-          ${resultSourcesHtml(record.data)}
         </article>`;
       }).join("");
+      container.innerHTML = itemResults + (batchAnalysisResults.length ? batchSourceHtml() : "");
       container.classList.toggle("hidden", !batchAnalysisResults.length);
       $("#batchExportArea").classList.toggle("hidden", !batchAnalysisResults.length);
       $("#batchLegalDisclaimer").classList.toggle("hidden", !batchAnalysisResults.length);
@@ -4522,32 +4385,9 @@ Cấu trúc:
           detail.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }));
-      $$("[data-open-batch-questions]", container).forEach(button => button.addEventListener("click", () => {
-        const questions = $("#batch-questions-" + button.dataset.openBatchQuestions);
-        if (questions) {
-          questions.open = true;
-          questions.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }));
       $$("[data-reanalyze-single]", container).forEach(button => button.addEventListener("click", () => {
         const record = batchAnalysisResults[Number(button.dataset.reanalyzeSingle)];
         if (record) analyzeBatch([record.entry], record.key);
-      }));
-      $$("[data-submit-batch-answers]", container).forEach(button => button.addEventListener("click", () => {
-        const resultIndex = Number(button.dataset.submitBatchAnswers);
-        const record = batchAnalysisResults[resultIndex];
-        const card = button.closest(".result-item-card");
-        const answers = {};
-        let missing = false;
-        $$("[data-batch-question]", card).forEach(input => {
-          const value = input.value.trim();
-          input.style.borderColor = value ? "" : "var(--red)";
-          if (!value) missing = true;
-          answers[input.dataset.batchQuestion] = value;
-        });
-        if (missing || !record) return;
-        batchSupplementalAnswers[record.key] = { ...(batchSupplementalAnswers[record.key] || {}), ...answers };
-        analyzeBatch([record.entry], record.key);
       }));
       container.scrollIntoView({ behavior: "smooth", block: "start" });
     }
