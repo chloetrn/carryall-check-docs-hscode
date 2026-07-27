@@ -396,6 +396,23 @@
     .item-card-head h4 { margin: 0; color: var(--teal-dark); font-size: 14px; }
     .item-card-actions { display: flex; gap: 7px; flex-wrap: wrap; }
     .item-card-body { padding: 16px; }
+    .analysis-collapse-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 9px 11px;
+      border: 1px solid #cfe1e2;
+      border-radius: 8px;
+      background: var(--teal-tint);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .item-card.analysis-collapsed .analysis-collapse-bar { display: flex; }
+    .item-card.analysis-collapsed:not(.analysis-expanded) .dynamic-fields,
+    .item-card.analysis-collapsed:not(.analysis-expanded) .group-waiting-note,
+    .item-card.analysis-collapsed:not(.analysis-expanded) .item-upload { display: none !important; }
     .mini-btn {
       min-height: 32px;
       border: 1px solid var(--gray-3);
@@ -710,6 +727,55 @@
     }
     .summary-item span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
     .summary-item strong { color: #243133; font-size: 13px; font-weight: 650; }
+    .compact-summary {
+      display: grid;
+      gap: 0;
+      border: 1px solid var(--gray-2);
+      border-radius: 9px;
+      background: var(--white);
+      overflow: hidden;
+    }
+    .compact-summary-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--gray-2);
+    }
+    .compact-summary-row span {
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .compact-summary-row strong {
+      display: -webkit-box;
+      overflow: hidden;
+      color: #243133;
+      font-size: 12.5px;
+      font-weight: 650;
+      line-height: 1.45;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .compact-summary-name strong { color: var(--teal-dark); font-size: 13.5px; font-weight: 800; }
+    .compact-missing {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #fffbf2;
+      color: #795300;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    .compact-missing.is-clear {
+      background: var(--green-tint);
+      color: var(--green);
+    }
     .pill-list { display: flex; flex-wrap: wrap; gap: 7px; }
     .pill { padding: 5px 9px; border-radius: 999px; background: var(--gray-1); color: #405052; font-size: 11.5px; }
 
@@ -897,6 +963,8 @@
       .card-head, .card-body { padding-left: 14px; padding-right: 14px; }
       .field, .field.half, .field.full { grid-column: 1 / -1; }
       .summary-grid, .detail-grid, .doc-grid { grid-template-columns: 1fr; }
+      .compact-summary-row { grid-template-columns: 1fr; gap: 3px; }
+      .compact-missing, .analysis-collapse-bar { align-items: flex-start; flex-direction: column; }
       .item-card-head, .result-item-head { align-items: flex-start; flex-direction: column; }
       .dynamic-fields-intro { flex-direction: column; }
       .completion-badge { white-space: normal; }
@@ -1354,7 +1422,7 @@
             <span class="step">02</span>
           </div>
           <div class="card-body">
-            <div class="summary-grid" id="summaryGrid"></div>
+            <div class="compact-summary" id="summaryGrid"></div>
           </div>
         </div>
 
@@ -2851,18 +2919,26 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
 
     function renderSummary(data) {
       const summary = data.tom_tat_hang_hoa || {};
-      const missing = data.thong_tin_con_thieu || [];
-      const entries = [
-        ["Tên hàng", summary.ten_hang || summary.ten],
-        ["Bản chất hàng hóa", summary.ban_chat_hang_hoa || summary.ban_chat],
-        ["Thành phần / vật liệu chính", summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan],
-        ["Công dụng chính", summary.cong_dung_chinh || summary.cong_dung],
-        ["Đặc điểm quyết định phân loại", summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh],
-        ["Thông tin còn thiếu", textOf(missing) || summary.thong_tin_con_thieu || "Không ghi nhận"]
-      ];
-      $("#summaryGrid").innerHTML = entries.map(([label, value]) => `
-        <div class="summary-item"><span>${esc(label)}</span><strong>${esc(textOf(value) || "Chưa xác định")}</strong></div>
-      `).join("");
+      const composition = textOf(summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan);
+      const use = textOf(summary.cong_dung_chinh || summary.cong_dung);
+      const compositionAndUse = [composition, use].filter(Boolean).join(" · ");
+      const basis = summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh ||
+        summary.ban_chat_hang_hoa || summary.ban_chat;
+      const missing = missingInfoItems(data);
+      const hasQuestions = pendingQuestions.length > 0;
+      $("#summaryGrid").innerHTML = `
+        ${compactSummaryRow("Tên hàng", summary.ten_hang || summary.ten, "compact-summary-name")}
+        ${compactSummaryRow("Thành phần / Công dụng", compositionAndUse)}
+        ${compactSummaryRow("Căn cứ phân loại", basis)}
+        <div class="compact-missing ${missing.length ? "" : "is-clear"}">
+          <span>${missing.length ? `⚠ Còn thiếu ${missing.length} thông tin quan trọng` : "✓ Không ghi nhận thông tin còn thiếu"}</span>
+          ${hasQuestions ? '<button class="mini-btn" id="openSummaryQuestionsBtn" type="button">Xem câu hỏi bổ sung</button>' : ""}
+        </div>`;
+      $("#openSummaryQuestionsBtn")?.addEventListener("click", () => {
+        const questionsCard = $("#questionsCard");
+        questionsCard.open = true;
+        questionsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
 
     function renderSuggestions(suggestions) {
@@ -3549,6 +3625,10 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
               <small>Bấm mũi tên để mở lại danh sách và đổi nhóm bất cứ lúc nào.</small>
             </div>
           </div>
+          <div class="analysis-collapse-bar">
+            <span>Các thông tin chi tiết và tài liệu vẫn được giữ nguyên.</span>
+            <button class="mini-btn" type="button" data-toggle-item-details>Xem lại thông tin đã nhập</button>
+          </div>
           <div class="dynamic-fields hidden" data-dynamic-fields></div>
           <div class="group-waiting-note" data-group-waiting>
             Chọn một nhóm hàng ở trên để hệ thống hiển thị các trường phù hợp. Các nhóm khác nhau sẽ có bộ câu hỏi khác nhau.
@@ -3569,6 +3649,10 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
 
       const groupInput = $('[data-field="nhom_hang"]', wrapper);
       groupInput.addEventListener("change", () => renderGroupQuestions(wrapper, groupInput.value));
+      $("[data-toggle-item-details]", wrapper).addEventListener("click", event => {
+        const expanded = wrapper.classList.toggle("analysis-expanded");
+        event.currentTarget.textContent = expanded ? "Thu gọn lại" : "Xem lại thông tin đã nhập";
+      });
       $('[data-manual-file-input]', wrapper).addEventListener("change", event => {
         addManualFiles(id, event.target.files);
         event.target.value = "";
@@ -3725,6 +3809,15 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
       return $$(".item-card", $("#manualItems")).map(collectManualItem);
     }
 
+    function collapseManualInputCards() {
+      $$(".item-card", $("#manualItems")).forEach(card => {
+        card.classList.add("analysis-collapsed");
+        card.classList.remove("analysis-expanded");
+        const toggle = $("[data-toggle-item-details]", card);
+        if (toggle) toggle.textContent = "Xem lại thông tin đã nhập";
+      });
+    }
+
     function addManualFiles(itemId, fileList) {
       const allowed = /\.(pdf|doc|docx|xls|xlsx|csv|png|jpe?g|webp)$/i;
       const files = manualItemFiles.get(itemId) || [];
@@ -3791,6 +3884,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
     $("#analyzeManualBtn").addEventListener("click", () => {
       const items = collectManualItems();
       if (!validateManualItems(items)) return;
+      collapseManualInputCards();
       const entries = items.map((item, index) => ({
         key: `manual-${item._id}`,
         label: `Mặt hàng ${index + 1}: ${item.ten_hang_chung_tu}`,
@@ -4241,19 +4335,41 @@ Cấu trúc:
       $("#batchLoadingCard").classList.add("hidden");
     }
 
-    function resultSummaryHtml(data) {
+    function missingInfoItems(data) {
       const summary = data.tom_tat_hang_hoa || {};
-      const entries = [
-        ["Tên hàng", summary.ten_hang || summary.ten],
-        ["Bản chất hàng hóa", summary.ban_chat_hang_hoa || summary.ban_chat],
-        ["Thành phần / vật liệu chính", summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan],
-        ["Công dụng chính", summary.cong_dung_chinh || summary.cong_dung],
-        ["Đặc điểm quyết định phân loại", summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh],
-        ["Thông tin còn thiếu", textOf(data.thong_tin_con_thieu || summary.thong_tin_con_thieu) || "Không ghi nhận"]
-      ];
-      return `<div class="summary-grid">${entries.map(([label, value]) => `
-        <div class="summary-item"><span>${esc(label)}</span><strong>${esc(textOf(value) || "Chưa xác định")}</strong></div>
-      `).join("")}</div>`;
+      const raw = data.thong_tin_con_thieu ?? summary.thong_tin_con_thieu ?? [];
+      if (Array.isArray(raw)) {
+        return raw.map(item => textOf(item).trim()).filter(Boolean);
+      }
+      const text = textOf(raw).trim();
+      if (!text || /^(không|không có|không ghi nhận|none|n\/a)$/i.test(text)) return [];
+      return text.split(/\r?\n|;|•|\s+\|\s+/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function compactSummaryRow(label, value, extraClass = "") {
+      return `<div class="compact-summary-row ${extraClass}">
+        <span>${esc(label)}</span>
+        <strong title="${esc(textOf(value) || "Chưa xác định")}">${esc(textOf(value) || "Chưa xác định")}</strong>
+      </div>`;
+    }
+
+    function resultSummaryHtml(data, resultIndex) {
+      const summary = data.tom_tat_hang_hoa || {};
+      const composition = textOf(summary.thanh_phan_vat_lieu_chinh || summary.thanh_phan);
+      const use = textOf(summary.cong_dung_chinh || summary.cong_dung);
+      const basis = summary.dac_diem_quyet_dinh_phan_loai || summary.dac_diem_quyet_dinh ||
+        summary.ban_chat_hang_hoa || summary.ban_chat;
+      const missing = missingInfoItems(data);
+      const hasQuestions = (data.cau_hoi_bo_sung || []).length > 0;
+      return `<div class="compact-summary">
+        ${compactSummaryRow("Tên hàng", summary.ten_hang || summary.ten, "compact-summary-name")}
+        ${compactSummaryRow("Thành phần / Công dụng", [composition, use].filter(Boolean).join(" · "))}
+        ${compactSummaryRow("Căn cứ phân loại", basis)}
+        <div class="compact-missing ${missing.length ? "" : "is-clear"}">
+          <span>${missing.length ? `⚠ Còn thiếu ${missing.length} thông tin quan trọng` : "✓ Không ghi nhận thông tin còn thiếu"}</span>
+          ${hasQuestions ? `<button class="mini-btn" type="button" data-open-batch-questions="${resultIndex}">Xem câu hỏi bổ sung</button>` : ""}
+        </div>
+      </div>`;
     }
 
     function resultQuestionsHtml(record, resultIndex) {
@@ -4385,7 +4501,7 @@ Cấu trúc:
             <div><h3>${esc(record.entry.label)}</h3><p>${esc(record.entry.method)} · Ngày tra cứu: ${esc(record.data.ngay_tra_cuu || new Date().toLocaleDateString("vi-VN"))}</p></div>
             <button class="mini-btn" type="button" data-reanalyze-single="${resultIndex}">Phân tích lại mặt hàng</button>
           </div>
-          <div class="result-section"><h4>Tóm tắt hàng hóa</h4>${resultSummaryHtml(record.data)}</div>
+          <div class="result-section"><h4>Tóm tắt hàng hóa</h4>${resultSummaryHtml(record.data, resultIndex)}</div>
           ${resultQuestionsHtml(record, resultIndex)}
           ${resultSuggestionsHtml(record.data, resultIndex)}
           ${resultDetailsHtml(record.data, resultIndex)}
@@ -4404,6 +4520,13 @@ Cấu trúc:
           if (analysis) analysis.open = true;
           detail.open = true;
           detail.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }));
+      $$("[data-open-batch-questions]", container).forEach(button => button.addEventListener("click", () => {
+        const questions = $("#batch-questions-" + button.dataset.openBatchQuestions);
+        if (questions) {
+          questions.open = true;
+          questions.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }));
       $$("[data-reanalyze-single]", container).forEach(button => button.addEventListener("click", () => {
