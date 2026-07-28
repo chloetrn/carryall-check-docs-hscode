@@ -107,6 +107,19 @@
       flex-wrap: wrap;
       padding: 11px 0;
     }
+    .api-key-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+    .api-key-row + .api-key-row {
+      padding-top: 10px;
+      margin-top: 1px;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .api-key-row > label { width: 136px; }
     .keybar label {
       color: #d9eeee;
       font-size: 12px;
@@ -164,6 +177,7 @@
       font-size: 10.5px;
     }
     .key-help a { color: #aee6e9; }
+    .api-key-row .key-help { width: 100%; }
 
     .tabs {
       position: sticky;
@@ -963,6 +977,23 @@
     .doc-picker { margin-top: auto; border: 1px dashed var(--gray-3); border-radius: 6px; background: var(--gray-0); color: var(--teal); padding: 8px; text-align: center; cursor: pointer; font-size: 11.5px; font-weight: 700; }
     .doc-file-name { margin-top: 7px; color: #334345; font-size: 10.5px; overflow-wrap: anywhere; }
     .doc-clear { position: absolute; top: 8px; right: 8px; }
+    .doc-progress {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--gray-2);
+      border-radius: 8px;
+      background: var(--gray-0);
+      color: var(--muted);
+      font-size: 11.5px;
+    }
+    .doc-progress strong { color: var(--teal-dark); }
+    .comparison-note {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.4;
+    }
 
     footer { padding: 18px 0 28px; color: var(--muted); text-align: center; font-size: 11px; }
 
@@ -980,6 +1011,7 @@
       .brand p { max-width: 260px; }
       .keybar-inner { align-items: stretch; }
       .keybar label { width: 100%; }
+      .api-key-row > label { width: 100%; }
       .key-input-wrap { max-width: none; flex-basis: 100%; }
       .key-help { margin-left: 0; }
       .hero { grid-template-columns: 1fr; gap: 12px; }
@@ -1027,19 +1059,36 @@
     </div>
   </header>
 
-  <section class="keybar" aria-label="Cấu hình DeepSeek API">
+  <section class="keybar" aria-label="Cấu hình API">
     <div class="wrap keybar-inner">
-      <label for="apiKeyInput">🔑 DeepSeek API Key:</label>
-      <div class="key-input-wrap">
-        <input class="key-input" type="password" id="apiKeyInput" placeholder="Dán key vào đây: sk-xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-        <button class="key-toggle" id="toggleKeyBtn" type="button" aria-label="Hiện hoặc ẩn API key">Hiện</button>
+      <div class="api-key-row">
+        <label for="apiKeyInput">🔑 DeepSeek API Key:</label>
+        <div class="key-input-wrap">
+          <input class="key-input" type="password" id="apiKeyInput" placeholder="Dán key vào đây: sk-xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+          <button class="key-toggle" id="toggleKeyBtn" type="button" aria-label="Hiện hoặc ẩn DeepSeek API key">Hiện</button>
+        </div>
+        <button class="btn btn-primary" id="saveKeyBtn" type="button">Lưu key</button>
+        <button class="btn btn-ghost" id="clearKeyBtn" type="button">Xóa key</button>
+        <span class="key-status" id="keyStatus">Chưa có key</span>
+        <div class="key-help">
+          Dùng để đối chiếu dữ liệu đã trích xuất và phân tích mã HS.
+          Lấy key tại <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a>.
+        </div>
       </div>
-      <button class="btn btn-primary" id="saveKeyBtn" type="button">Lưu key</button>
-      <button class="btn btn-ghost" id="clearKeyBtn" type="button">Xóa key</button>
-      <span class="key-status" id="keyStatus">Chưa có key</span>
-      <div class="key-help">
-        Key được lưu trên trình duyệt của thiết bị này và dùng để gọi trực tiếp DeepSeek API.
-        Lấy key tại <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a>.
+
+      <div class="api-key-row">
+        <label for="geminiApiKeyInput">✨ Gemini API Key:</label>
+        <div class="key-input-wrap">
+          <input class="key-input" type="password" id="geminiApiKeyInput" placeholder="Dán Gemini API key vào đây" autocomplete="off" spellcheck="false">
+          <button class="key-toggle" id="toggleGeminiKeyBtn" type="button" aria-label="Hiện hoặc ẩn Gemini API key">Hiện</button>
+        </div>
+        <button class="btn btn-primary" id="saveGeminiKeyBtn" type="button">Lưu key</button>
+        <button class="btn btn-ghost" id="clearGeminiKeyBtn" type="button">Xóa key</button>
+        <span class="key-status" id="geminiKeyStatus">Chưa có key</span>
+        <div class="key-help">
+          Dùng riêng cho tab đối chiếu để đọc PDF, Word, Excel và hình ảnh bằng Gemini 3.6 Flash.
+          Lấy key tại <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+        </div>
       </div>
     </div>
   </section>
@@ -1057,13 +1106,13 @@
         <div>
           <p class="eyebrow">Đối chiếu bộ chứng từ</p>
           <h2>Kiểm tra thông tin giữa các chứng từ</h2>
-          <p>Tải từng chứng từ vào đúng ô. DeepSeek sẽ trích xuất dữ liệu và chỉ ra các trường khớp, lệch hoặc chưa đủ căn cứ đối chiếu.</p>
+          <p>Tải từng chứng từ vào đúng ô. Gemini trích xuất thông tin; DeepSeek đối chiếu các cột và kết luận trường nào trùng khớp.</p>
         </div>
-        <div class="hero-badge">AI đọc chứng từ bằng DeepSeek</div>
+        <div class="hero-badge">Gemini đọc · DeepSeek đối chiếu</div>
       </div>
 
       <div class="notice" style="margin-bottom:16px">
-        File được đọc ngay trên trình duyệt rồi nội dung cần phân tích được gửi trực tiếp đến DeepSeek bằng API key bạn nhập. Không có server trung gian của DocCheck lưu chứng từ.
+        Mỗi file được gửi trực tiếp đến Gemini để trích xuất thành dữ liệu có cấu trúc. Sau đó chỉ dữ liệu đã trích xuất được gửi đến DeepSeek để đối chiếu; bảng kết quả có một cột cho từng chứng từ và cột cuối “Trùng khớp?”.
       </div>
 
       <div class="card">
@@ -1081,6 +1130,7 @@
             <span class="action-hint" id="docHint">Chưa có đủ chứng từ.</span>
             <button class="btn btn-danger" type="button" id="clearDocsBtn">Xóa tất cả</button>
           </div>
+          <div class="doc-progress hidden" id="docProgress" role="status" aria-live="polite"></div>
         </div>
       </div>
       <div id="docResultArea" class="result-stack"></div>
@@ -1540,6 +1590,9 @@
     const DEEPSEEK_API = "https://api.deepseek.com/chat/completions";
     const DEEPSEEK_MODEL = "deepseek-v4-flash";
     const KEY_STORAGE = "dc_deepseek_key";
+    const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+    const GEMINI_MODEL = "gemini-3.6-flash";
+    const GEMINI_KEY_STORAGE = "dc_gemini_key";
 
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -2021,11 +2074,14 @@
     let lastResult = null;
     let supplementalAnswers = {};
     let apiKey = "";
+    let geminiApiKey = "";
 
     try {
       apiKey = localStorage.getItem(KEY_STORAGE) || "";
+      geminiApiKey = localStorage.getItem(GEMINI_KEY_STORAGE) || "";
     } catch (_) {
       apiKey = "";
+      geminiApiKey = "";
     }
 
     const DOC_TYPES = [
@@ -2074,6 +2130,34 @@
       updateDocHint();
     }
 
+    function updateGeminiKeyUI(status = geminiApiKey ? "saved" : "empty", message = "") {
+      const keyStatus = $("#geminiKeyStatus");
+      $("#geminiApiKeyInput").value = geminiApiKey;
+
+      if (status === "online") {
+        keyStatus.className = "key-status ok";
+        keyStatus.textContent = "✓ Key hợp lệ";
+        keyStatus.title = "Gemini đã kết nối";
+      } else if (status === "key-error") {
+        keyStatus.className = "key-status bad";
+        keyStatus.textContent = "Key lỗi";
+        keyStatus.title = message || "API key Gemini không hợp lệ";
+      } else if (status === "error") {
+        keyStatus.className = "key-status bad";
+        keyStatus.textContent = "Chưa thể kiểm tra";
+        keyStatus.title = message || "Không kết nối được Gemini";
+      } else if (geminiApiKey) {
+        keyStatus.className = "key-status ok";
+        keyStatus.textContent = "✓ Đã lưu key";
+        keyStatus.title = "Đã lưu key · Chưa kiểm tra";
+      } else {
+        keyStatus.className = "key-status";
+        keyStatus.textContent = "Chưa có key";
+        keyStatus.title = "";
+      }
+      updateDocHint();
+    }
+
     function saveKey() {
       const value = $("#apiKeyInput").value.trim();
       if (!value) {
@@ -2096,6 +2180,30 @@
       try { localStorage.removeItem(KEY_STORAGE); } catch (_) {}
       $("#apiKeyInput").value = "";
       updateKeyUI("empty");
+    }
+
+    function saveGeminiKey() {
+      const value = $("#geminiApiKeyInput").value.trim();
+      if (!value) {
+        updateGeminiKeyUI("error", "Vui lòng nhập Gemini API key");
+        $("#geminiApiKeyInput").focus();
+        return;
+      }
+      geminiApiKey = value;
+      try {
+        localStorage.setItem(GEMINI_KEY_STORAGE, geminiApiKey);
+      } catch (_) {
+        // File vẫn hoạt động trong phiên hiện tại nếu trình duyệt chặn localStorage.
+      }
+      updateGeminiKeyUI("saved");
+      pingGemini();
+    }
+
+    function clearGeminiKey() {
+      geminiApiKey = "";
+      try { localStorage.removeItem(GEMINI_KEY_STORAGE); } catch (_) {}
+      $("#geminiApiKeyInput").value = "";
+      updateGeminiKeyUI("empty");
     }
 
     async function pingDeepSeek() {
@@ -2154,6 +2262,64 @@
       return content;
     }
 
+    async function callGemini(parts, maxTokens = 5000) {
+      if (!geminiApiKey) {
+        throw new Error("Chưa có Gemini API key. Vui lòng nhập và lưu Gemini API key ở thanh phía trên.");
+      }
+      const response = await fetch(`${GEMINI_API_BASE}/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": geminiApiKey
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: maxTokens,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const error = new Error(data?.error?.message || `Gemini API trả về lỗi HTTP ${response.status}.`);
+        error.status = response.status;
+        throw error;
+      }
+      const content = (data?.candidates?.[0]?.content?.parts || [])
+        .map(part => part?.text || "")
+        .join("")
+        .trim();
+      if (!content) {
+        const reason = data?.promptFeedback?.blockReason || data?.candidates?.[0]?.finishReason || "";
+        throw new Error(`Gemini không trả về dữ liệu trích xuất${reason ? ` (${reason})` : ""}.`);
+      }
+      return content;
+    }
+
+    async function pingGemini() {
+      if (!geminiApiKey) return;
+      const testedKey = geminiApiKey;
+      $("#geminiKeyStatus").className = "key-status";
+      $("#geminiKeyStatus").textContent = "Đang kiểm tra…";
+      try {
+        const raw = await callGemini([{ text: 'Chỉ trả về JSON: {"status":"OK"}' }], 64);
+        parseAIJson(raw);
+        if (geminiApiKey !== testedKey) return;
+        updateGeminiKeyUI("online");
+      } catch (error) {
+        if (geminiApiKey !== testedKey) return;
+        if (error?.status === 400 || error?.status === 401 || error?.status === 403) {
+          updateGeminiKeyUI("key-error", "API key Gemini hoặc tên model không hợp lệ");
+        } else if (error?.status === 429) {
+          updateGeminiKeyUI("error", "Gemini đang giới hạn số yêu cầu");
+        } else {
+          updateGeminiKeyUI("error", friendlyError(error));
+        }
+      }
+    }
+
     function parseAIJson(raw) {
       const clean = String(raw || "").replace(/```json|```/gi, "").trim();
       try {
@@ -2167,6 +2333,8 @@
 
     $("#saveKeyBtn").addEventListener("click", saveKey);
     $("#clearKeyBtn").addEventListener("click", clearKey);
+    $("#saveGeminiKeyBtn").addEventListener("click", saveGeminiKey);
+    $("#clearGeminiKeyBtn").addEventListener("click", clearGeminiKey);
     $("#apiKeyInput").addEventListener("keydown", event => {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -2178,6 +2346,18 @@
       const show = input.type === "password";
       input.type = show ? "text" : "password";
       $("#toggleKeyBtn").textContent = show ? "Ẩn" : "Hiện";
+    });
+    $("#geminiApiKeyInput").addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveGeminiKey();
+      }
+    });
+    $("#toggleGeminiKeyBtn").addEventListener("click", () => {
+      const input = $("#geminiApiKeyInput");
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      $("#toggleGeminiKeyBtn").textContent = show ? "Ẩn" : "Hiện";
     });
 
     $$(".tab-btn").forEach(button => {
@@ -2222,11 +2402,13 @@
     }
 
     function updateDocHint() {
-      $("#docHint").textContent = !apiKey
-        ? "Cần nhập DeepSeek API key trước."
+      $("#docHint").textContent = !geminiApiKey
+        ? "Cần nhập Gemini API key để đọc chứng từ."
+        : !apiKey
+          ? "Cần nhập DeepSeek API key để đối chiếu."
         : docFiles.size < 2
           ? `Cần tối thiểu 2 chứng từ (đã chọn ${docFiles.size}).`
-          : `Đã chọn ${docFiles.size} chứng từ · Sẵn sàng đối chiếu.`;
+          : `Đã chọn ${docFiles.size} chứng từ · Gemini sẽ đọc, DeepSeek sẽ đối chiếu.`;
     }
 
     $("#clearDocsBtn").addEventListener("click", () => {
@@ -2234,12 +2416,308 @@
       buildDocGrid();
       updateDocHint();
       $("#docResultArea").innerHTML = "";
+      $("#docProgress").classList.add("hidden");
+      $("#docProgress").innerHTML = "";
     });
+
+    function geminiMimeType(file) {
+      if (file.type) return file.type;
+      const extension = file.name.split(".").pop().toLowerCase();
+      return ({
+        pdf: "application/pdf",
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        webp: "image/webp",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xls: "application/vnd.ms-excel",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        csv: "text/csv"
+      })[extension] || "application/octet-stream";
+    }
+
+    async function fileToBase64(file) {
+      const dataUrl = await fileToDataUrl(file);
+      const comma = String(dataUrl).indexOf(",");
+      if (comma < 0) throw new Error(`Không mã hóa được file ${file.name}.`);
+      return String(dataUrl).slice(comma + 1);
+    }
+
+    async function officeFileToStructuredText(file) {
+      const extension = file.name.split(".").pop().toLowerCase();
+      let text = "";
+
+      if (["xlsx", "xls", "csv"].includes(extension)) {
+        if (!window.XLSX) throw new Error("Không tải được thư viện chuẩn bị Excel cho Gemini.");
+        const workbook = window.XLSX.read(await file.arrayBuffer(), {
+          type: "array",
+          cellDates: true,
+          cellFormula: true,
+          cellStyles: true
+        });
+        workbook.SheetNames.forEach(sheetName => {
+          const sheet = workbook.Sheets[sheetName];
+          text += `\n\n===== SHEET: ${sheetName} =====\n`;
+          text += window.XLSX.utils.sheet_to_csv(sheet, { blankrows: true, FS: "\t" });
+        });
+      } else if (extension === "docx") {
+        if (!window.mammoth) throw new Error("Không tải được thư viện chuẩn bị Word cho Gemini.");
+        const result = await window.mammoth.convertToHtml(
+          { arrayBuffer: await file.arrayBuffer() },
+          { includeDefaultStyleMap: true }
+        );
+        text = `[Nội dung Word được giữ dưới dạng HTML để bảo toàn tiêu đề và bảng]\n${result.value || ""}`;
+      } else if (extension === "doc") {
+        const extracted = await readFileForAI(file);
+        text = extracted.text;
+      } else {
+        text = await file.text();
+      }
+
+      if (!text.trim()) throw new Error(`${file.name} không có nội dung có thể gửi đến Gemini.`);
+      const maxChars = 300000;
+      if (text.length > maxChars) {
+        text = `${text.slice(0, maxChars)}\n\n[ĐÃ CẮT BỚT NỘI DUNG SAU ${maxChars.toLocaleString("vi-VN")} KÝ TỰ]`;
+      }
+      return text;
+    }
+
+    function documentExtractionPrompt(doc, file) {
+      return `Bạn là hệ thống trích xuất dữ liệu chứng từ xuất nhập khẩu.
+
+NHIỆM VỤ DUY NHẤT: đọc chứng từ và trích xuất dữ liệu. Không so sánh với chứng từ khác, không suy đoán dữ liệu bị thiếu.
+
+Thông tin ô tải:
+- ID cố định: ${doc.id}
+- Loại người dùng chọn: ${doc.en} / ${doc.vi}
+- Tên file: ${file.name}
+
+Yêu cầu:
+1. Tự nhận diện loại chứng từ thực tế; nếu khác loại người dùng chọn thì ghi cảnh báo.
+2. Giữ nguyên mọi số chứng từ, mã hàng, mã HS, số container, số tiền và số 0 ở đầu dưới dạng chuỗi.
+3. Trích xuất cả thông tin trong bảng, header, footer, dấu/ghi chú có thể đọc được.
+4. Với danh sách hàng hóa nhiều dòng, tạo key lần lượt như item_1_description, item_1_quantity, item_1_unit_price, item_2_description...
+5. Dùng key tiếng Anh dạng snake_case ổn định; label bằng tiếng Việt dễ hiểu.
+6. Chỉ trả các trường thật sự tìm thấy. Không điền "không có", "N/A" hoặc tự tạo giá trị.
+7. normalized_value chỉ dùng để chuẩn hóa cách viết nhằm phục vụ đối chiếu; value phải giữ gần nguyên văn chứng từ.
+8. Nếu không chắc, vẫn ghi value đọc được và thêm cảnh báo cụ thể.
+
+Ưu tiên tìm các trường nếu có: document_number, invoice_number, invoice_date, contract_number, bl_number, co_number, issue_date, seller, buyer, exporter, importer, shipper, consignee, notify_party, manufacturer, origin_country, departure_country, destination_country, transport_mode, vessel_voyage, port_of_loading, port_of_discharge, place_of_delivery, container_number, seal_number, marks_numbers, item_description, hs_code, quantity, unit, unit_price, net_weight, gross_weight, package_count, package_type, subtotal, freight, insurance, total_amount, currency, incoterm, payment_terms.
+
+Chỉ trả JSON hợp lệ:
+{
+  "document": {
+    "detected_type": "",
+    "detected_type_vi": ""
+  },
+  "fields": [
+    {
+      "key": "invoice_number",
+      "label": "Số hóa đơn",
+      "value": "INV-001",
+      "normalized_value": "INV-001",
+      "source": "Trang 1"
+    }
+  ],
+  "warnings": []
+}`;
+    }
+
+    async function extractDocumentWithGemini(doc, file) {
+      const extension = file.name.split(".").pop().toLowerCase();
+      const prompt = documentExtractionPrompt(doc, file);
+      let parts;
+
+      if (["pdf", "png", "jpg", "jpeg", "webp"].includes(extension)) {
+        if (file.size > 18 * 1024 * 1024) {
+          throw new Error(`${file.name} lớn hơn 18 MB. Hãy giảm dung lượng file trước khi dùng bản HTML độc lập.`);
+        }
+        parts = [
+          { text: prompt },
+          { inline_data: { mime_type: geminiMimeType(file), data: await fileToBase64(file) } }
+        ];
+      } else {
+        const structuredText = await officeFileToStructuredText(file);
+        parts = [
+          {
+            text: `${prompt}
+
+Nội dung dưới đây được trình duyệt chuyển sang dạng có cấu trúc trước khi gửi Gemini. Vị trí trường không cố định; hãy hiểu theo ngữ nghĩa và bố cục bảng, không lấy theo một ô hoặc một dòng cố định.
+
+===== NỘI DUNG FILE ${file.name} =====
+${structuredText}`
+          }
+        ];
+      }
+
+      const raw = await callGemini(parts, 6500);
+      const parsed = parseAIJson(raw);
+      let fields = parsed?.fields;
+      if (fields && !Array.isArray(fields) && typeof fields === "object") {
+        fields = Object.entries(fields).map(([key, value]) => ({
+          key,
+          label: key,
+          value: typeof value === "object" ? textOf(value?.value ?? value) : value,
+          normalized_value: typeof value === "object" ? textOf(value?.normalized_value ?? value?.value ?? value) : value
+        }));
+      }
+      if (!Array.isArray(fields)) throw new Error(`Gemini không trả về danh sách trường hợp lệ cho ${file.name}.`);
+
+      const cleanedFields = fields.map((field, index) => {
+        const value = textOf(field?.value).trim();
+        const key = String(field?.key || `field_${index + 1}`)
+          .trim()
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}]+/gu, "_")
+          .replace(/^_+|_+$/g, "");
+        if (!value || !key) return null;
+        return {
+          key,
+          label: textOf(field?.label || key).trim(),
+          value,
+          normalized_value: textOf(field?.normalized_value || value).trim(),
+          source: textOf(field?.source).trim()
+        };
+      }).filter(Boolean);
+
+      if (!cleanedFields.length) throw new Error(`Gemini không tìm thấy trường thông tin nào trong ${file.name}.`);
+      return {
+        document: {
+          id: doc.id,
+          label: doc.vi,
+          assigned_type: `${doc.en} / ${doc.vi}`,
+          detected_type: textOf(parsed?.document?.detected_type_vi || parsed?.document?.detected_type || doc.vi).trim(),
+          file_name: file.name
+        },
+        fields: cleanedFields,
+        warnings: Array.isArray(parsed?.warnings) ? parsed.warnings.map(textOf).filter(Boolean) : []
+      };
+    }
+
+    function normalizeComparisonStatus(value) {
+      const status = String(value || "").trim().toLowerCase();
+      if (["match", "matched", "khớp", "trùng", "yes", "true"].includes(status)) return "match";
+      if (["mismatch", "different", "lệch", "không khớp", "no", "false"].includes(status)) return "mismatch";
+      return "insufficient";
+    }
+
+    function fallbackComparisonStatus(field, extractions) {
+      const values = extractions
+        .map(item => item.fields.find(candidate => candidate.key === field.key))
+        .filter(Boolean)
+        .map(item => String(item.normalized_value || item.value || "").trim())
+        .filter(Boolean);
+      if (values.length < 2) return "insufficient";
+      const normalized = values.map(value => value
+        .normalize("NFKC")
+        .toLocaleLowerCase("vi")
+        .replace(/\s+/g, " ")
+        .replace(/\s*([,;:/\-])\s*/g, "$1")
+        .trim());
+      return normalized.every(value => value === normalized[0]) ? "match" : "mismatch";
+    }
+
+    function mergeComparisonResult(comparison, extractions) {
+      const comparisonRows = new Map(
+        (Array.isArray(comparison?.fields) ? comparison.fields : [])
+          .map(row => [String(row?.key || "").trim(), row])
+          .filter(([key]) => key)
+      );
+      const fieldOrder = [];
+      const fieldMeta = new Map();
+      extractions.forEach(extraction => {
+        extraction.fields.forEach(field => {
+          if (!fieldMeta.has(field.key)) fieldOrder.push(field.key);
+          fieldMeta.set(field.key, fieldMeta.get(field.key) || field);
+        });
+      });
+
+      const fields = fieldOrder.map(key => {
+        const meta = fieldMeta.get(key);
+        const deepSeekRow = comparisonRows.get(key) || {};
+        const values = {};
+        extractions.forEach(extraction => {
+          const field = extraction.fields.find(candidate => candidate.key === key);
+          values[extraction.document.id] = field?.value || "";
+        });
+        const availableCount = Object.values(values).filter(value => String(value || "").trim()).length;
+        const fallback = fallbackComparisonStatus(meta, extractions);
+        const requestedStatus = normalizeComparisonStatus(deepSeekRow.status);
+        const status = availableCount < 2 ? "insufficient" : (deepSeekRow.status ? requestedStatus : fallback);
+        return {
+          key,
+          label: textOf(deepSeekRow.label || meta.label || key),
+          values,
+          status,
+          explanation: textOf(deepSeekRow.explanation || deepSeekRow.reason || "")
+        };
+      });
+
+      return {
+        documents: extractions.map(item => item.document),
+        fields,
+        summary: textOf(comparison?.summary || comparison?.ket_luan || "")
+      };
+    }
+
+    async function compareExtractionsWithDeepSeek(extractions) {
+      const compact = extractions.map(item => ({
+        document: item.document,
+        fields: item.fields.map(field => ({
+          key: field.key,
+          label: field.label,
+          value: field.value,
+          normalized_value: field.normalized_value
+        })),
+        warnings: item.warnings
+      }));
+      const raw = await callDeepSeek([
+        {
+          role: "system",
+          content: `Bạn là chuyên viên đối chiếu chứng từ xuất nhập khẩu.
+Gemini đã trích xuất riêng từng chứng từ. Bạn chỉ so sánh dữ liệu giữa các chứng từ, không đọc lại file và không sửa giá trị gốc.
+Chỉ trả JSON hợp lệ, không markdown.
+Quy tắc:
+- Giữ nguyên đúng document id và field key đã nhận.
+- match: có ít nhất 2 chứng từ chứa trường đó và các giá trị tương đương về bản chất sau khi chuẩn hóa cách viết.
+- mismatch: có ít nhất 2 chứng từ chứa trường đó nhưng các giá trị mâu thuẫn.
+- insufficient: chỉ có 0 hoặc 1 chứng từ chứa trường đó, hoặc chưa đủ căn cứ.
+- Không đánh dấu mismatch chỉ vì khác định dạng ngày, dấu phân cách hàng nghìn, đơn vị có thể quy đổi hoặc khác thứ tự từ nhưng cùng nội dung.
+- explanation phải nêu ngắn gọn căn cứ, đặc biệt khi mismatch.`
+        },
+        {
+          role: "user",
+          content: `Đối chiếu dữ liệu sau và trả JSON:
+{
+  "fields": [
+    {
+      "key": "invoice_number",
+      "label": "Số hóa đơn",
+      "status": "match|mismatch|insufficient",
+      "explanation": ""
+    }
+  ],
+  "summary": ""
+}
+
+DỮ LIỆU GEMINI ĐÃ TRÍCH XUẤT:
+${JSON.stringify(compact)}`
+        }
+      ], 6500, 0);
+      return parseAIJson(raw);
+    }
 
     $("#compareDocsBtn").addEventListener("click", async () => {
       const area = $("#docResultArea");
+      const progress = $("#docProgress");
+      if (!geminiApiKey) {
+        area.innerHTML = '<div class="error">Vui lòng nhập và lưu Gemini API key để đọc chứng từ.</div>';
+        $("#geminiApiKeyInput").focus();
+        return;
+      }
       if (!apiKey) {
-        area.innerHTML = '<div class="error">Vui lòng nhập và lưu DeepSeek API key ở thanh phía trên.</div>';
+        area.innerHTML = '<div class="error">Vui lòng nhập và lưu DeepSeek API key để đối chiếu dữ liệu.</div>';
         $("#apiKeyInput").focus();
         return;
       }
@@ -2247,63 +2725,54 @@
         area.innerHTML = '<div class="error">Vui lòng chọn tối thiểu hai chứng từ.</div>';
         return;
       }
-      area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>Đang đọc và đối chiếu chứng từ…</strong></div></div>';
+      area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>Gemini đang trích xuất từng chứng từ…</strong></div></div>';
+      progress.classList.remove("hidden");
       try {
         const selectedDocs = DOC_TYPES.filter(doc => docFiles.has(doc.id));
-        const userContent = await buildAIContent(
-          `Hãy đọc và đối chiếu ${selectedDocs.length} chứng từ xuất nhập khẩu bên dưới.
-
-Trả về JSON theo cấu trúc:
-{
-  "documents": [{"id":"invoice","label":"Hóa đơn thương mại"}],
-  "fields": [
-    {
-      "key":"refNo",
-      "label":"Số chứng từ / Ref No.",
-      "values":{"invoice":"...","packing":"..."},
-      "status":"match|mismatch|insufficient"
-    }
-  ]
-}
-
-Các trường cần trích xuất và đối chiếu: refNo, date, shipper, consignee, itemName, qty, netWeight, grossWeight, unitPrice, amount, currency, incoterm, pol, pod, vessel, container, hsCode.
-Chỉ ghi dữ liệu thật sự tìm thấy. Không suy đoán giá trị thiếu. Giữ mã HS ở dạng chuỗi.`,
-          selectedDocs.map(doc => ({ file: docFiles.get(doc.id), label: `${doc.id} — ${doc.en} / ${doc.vi}` })),
-          15000
-        );
-        const raw = await callDeepSeek([
-          {
-            role: "system",
-            content: "Bạn là chuyên viên kiểm tra chứng từ xuất nhập khẩu. Chỉ trả về một JSON hợp lệ, không dùng markdown. Đánh dấu mismatch khi các giá trị cùng trường mâu thuẫn; insufficient khi chưa đủ dữ liệu để đối chiếu."
-          },
-          { role: "user", content: userContent }
-        ], 4500);
-        const data = parseAIJson(raw);
-        if (!Array.isArray(data?.fields)) throw new Error("Kết quả AI thiếu danh sách fields.");
-        renderDocumentResult(data);
+        const extractions = [];
+        for (let index = 0; index < selectedDocs.length; index += 1) {
+          const doc = selectedDocs[index];
+          const file = docFiles.get(doc.id);
+          progress.innerHTML = `<strong>Bước 1/2:</strong> Gemini đang đọc ${index + 1}/${selectedDocs.length} — ${esc(file.name)}`;
+          extractions.push(await extractDocumentWithGemini(doc, file));
+        }
+        progress.innerHTML = `<strong>Bước 2/2:</strong> DeepSeek đang đối chiếu ${extractions.length} cột dữ liệu…`;
+        area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>DeepSeek đang kiểm tra các trường trùng khớp…</strong></div></div>';
+        const comparison = await compareExtractionsWithDeepSeek(extractions);
+        const data = mergeComparisonResult(comparison, extractions);
+        renderDocumentResult(data, extractions);
+        progress.innerHTML = `<strong>Hoàn tất:</strong> Gemini đã trích xuất ${extractions.length} chứng từ; DeepSeek đã đối chiếu ${data.fields.length} trường.`;
       } catch (error) {
         area.innerHTML = `<div class="error"><strong>Không thể đối chiếu chứng từ.</strong><br>${esc(friendlyError(error))}</div>`;
+        progress.innerHTML = `<strong>Đã dừng:</strong> ${esc(friendlyError(error))}`;
       }
     });
 
-    function renderDocumentResult(data) {
+    function renderDocumentResult(data, extractions = []) {
       const area = $("#docResultArea");
       const rows = Array.isArray(data?.fields) ? data.fields : [];
       if (!rows.length) {
-        area.innerHTML = '<div class="warning">Backend chưa trả về danh sách trường đối chiếu theo cấu trúc <code>fields[]</code>.</div>';
+        area.innerHTML = '<div class="warning">Không tìm thấy trường thông tin đủ để tạo bảng đối chiếu.</div>';
         return;
       }
       const docs = Array.isArray(data.documents) ? data.documents : DOC_TYPES.filter(doc => docFiles.has(doc.id));
-      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Các trường lệch cần được kiểm tra trên chứng từ gốc.</p></div><span class="step">02</span></div><div class="card-body"><div class="table-scroll"><table><thead><tr><th>Trường thông tin</th>';
-      html += docs.map(doc => `<th>${esc(doc.label || doc.vi || doc.en || doc.id)}</th>`).join("");
-      html += "<th>Kết quả</th></tr></thead><tbody>";
+      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Mỗi cột là dữ liệu Gemini trích xuất từ một chứng từ; cột cuối là kết luận của DeepSeek.</p></div><span class="step">02</span></div><div class="card-body">';
+      if (data.summary) html += `<div class="notice" style="margin-bottom:12px">${esc(data.summary)}</div>`;
+      html += '<div class="table-scroll"><table><thead><tr><th>Trường thông tin</th>';
+      html += docs.map(doc => `<th>${esc(doc.label || doc.vi || doc.en || doc.id)}<span class="comparison-note">${esc(doc.file_name || "")}</span></th>`).join("");
+      html += "<th>Trùng khớp?</th></tr></thead><tbody>";
       rows.forEach(row => {
         const values = row.values || {};
         html += `<tr><td><strong>${esc(row.label || row.key)}</strong></td>`;
-        html += docs.map(doc => `<td>${esc(values[doc.id] ?? "—")}</td>`).join("");
-        html += `<td><span class="level level-${row.status === "match" ? "cao" : row.status === "mismatch" ? "thap" : "chua-du-can-cu"}">${row.status === "match" ? "Khớp" : row.status === "mismatch" ? "Lệch" : "Chưa đủ dữ liệu"}</span></td></tr>`;
+        html += docs.map(doc => `<td><div style="white-space:pre-line">${esc(values[doc.id] || "—")}</div></td>`).join("");
+        html += `<td><span class="level level-${row.status === "match" ? "cao" : row.status === "mismatch" ? "thap" : "chua-du-can-cu"}">${row.status === "match" ? "Có" : row.status === "mismatch" ? "Không" : "Chưa đủ dữ liệu"}</span>${row.explanation ? `<span class="comparison-note">${esc(row.explanation)}</span>` : ""}</td></tr>`;
       });
-      html += "</tbody></table></div></div></div>";
+      html += "</tbody></table></div>";
+      const warnings = extractions.flatMap(item => (item.warnings || []).map(warning => `${item.document.label}: ${warning}`));
+      if (warnings.length) {
+        html += `<div class="warning" style="margin-top:12px"><strong>Cần kiểm tra lại trên chứng từ gốc:</strong><ul>${warnings.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div>`;
+      }
+      html += "</div></div>";
       area.innerHTML = html;
     }
 
@@ -4841,10 +5310,12 @@ Cấu trúc:
     buildDocGrid();
     updateDocHint();
     updateKeyUI(apiKey ? "saved" : "empty");
+    updateGeminiKeyUI(geminiApiKey ? "saved" : "empty");
     addManualItem();
     renderUploadedListFiles();
     updatePreviewConfirmStatus();
     if (apiKey) pingDeepSeek();
+    if (geminiApiKey) pingGemini();
 
     if (new URLSearchParams(location.search).get("demo") === "1") {
       lastResult = DEMO_RESULT;
