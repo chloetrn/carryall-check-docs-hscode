@@ -891,6 +891,16 @@
     th, td { border-bottom: 1px solid var(--gray-2); padding: 11px 12px; text-align: left; vertical-align: top; }
     th { background: var(--teal); color: var(--white); font-size: 11.5px; }
     tbody tr:hover { background: #f6fbfb; }
+    .comparison-section-row td {
+      padding: 8px 12px;
+      background: var(--teal-tint);
+      color: var(--teal-dark);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+    }
+    .comparison-section-row:hover td { background: var(--teal-tint); }
     .hs-code { color: var(--teal-dark); font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 14px; font-weight: 850; white-space: nowrap; }
     .level {
       display: inline-flex;
@@ -1112,7 +1122,7 @@
       </div>
 
       <div class="notice" style="margin-bottom:16px">
-        Mỗi file được gửi trực tiếp đến OpenAI GPT-5.6 Terra để trích xuất thành dữ liệu có cấu trúc. Sau đó chỉ dữ liệu đã trích xuất được gửi đến DeepSeek để đối chiếu; bảng kết quả có một cột cho từng chứng từ và cột cuối “Trùng khớp?”.
+        Bảng chỉ giữ các thông tin nghiệp vụ quan trọng cần kiểm tra chéo: bên mua/bán, số và ngày chứng từ, điều kiện thương mại/thanh toán, hàng hóa, mã HS, số lượng, đóng gói, khối lượng, kích thước và vận chuyển. Exporter/Shipper được quy về người bán; Importer/Consignee/Ship to được quy về người mua.
       </div>
 
       <div class="card">
@@ -2298,6 +2308,308 @@
       }
     };
 
+    const DOCUMENT_COMPARISON_SECTIONS = [
+      { id: "parties", label: "Các bên liên quan" },
+      { id: "references", label: "Số tham chiếu chứng từ" },
+      { id: "dates", label: "Ngày chứng từ và mốc thời gian" },
+      { id: "terms", label: "Điều kiện thương mại và thanh toán" },
+      { id: "goods", label: "Thông tin hàng hóa" },
+      { id: "packing", label: "Đóng gói, khối lượng và kích thước" },
+      { id: "shipping", label: "Thông tin vận chuyển" }
+    ];
+
+    const DOCUMENT_COMPARISON_FIELDS = [
+      { key: "seller", label: "Người bán / Người xuất khẩu / Shipper", section: "parties" },
+      { key: "seller_address", label: "Địa chỉ người bán / người xuất khẩu", section: "parties" },
+      { key: "buyer", label: "Người mua / Người nhập khẩu / Ship to", section: "parties" },
+      { key: "buyer_address", label: "Địa chỉ người mua / Ship to", section: "parties" },
+      { key: "notify_party", label: "Bên được thông báo", section: "parties" },
+      { key: "notify_party_address", label: "Địa chỉ bên được thông báo", section: "parties" },
+
+      { key: "invoice_number", label: "Số Invoice", section: "references" },
+      { key: "contract_number", label: "Số hợp đồng", section: "references" },
+      { key: "purchase_order_number", label: "Số đơn đặt hàng (PO)", section: "references" },
+      { key: "packing_list_number", label: "Số Packing List", section: "references" },
+      { key: "hbl_number", label: "Số HBL", section: "references" },
+      { key: "mbl_number", label: "Số MBL", section: "references" },
+      { key: "bl_number", label: "Số vận đơn B/L", section: "references" },
+      { key: "co_number", label: "Số C/O", section: "references" },
+      { key: "co_form", label: "Mẫu C/O", section: "references" },
+      { key: "arrival_notice_number", label: "Số giấy báo hàng đến", section: "references" },
+      { key: "document_number", label: "Số chứng từ khác", section: "references" },
+
+      { key: "invoice_date", label: "Ngày Invoice", section: "dates" },
+      { key: "contract_date", label: "Ngày hợp đồng", section: "dates" },
+      { key: "packing_list_date", label: "Ngày Packing List", section: "dates" },
+      { key: "bl_date", label: "Ngày phát hành B/L", section: "dates" },
+      { key: "on_board_date", label: "Ngày hàng lên tàu", section: "dates" },
+      { key: "co_issue_date", label: "Ngày cấp C/O", section: "dates" },
+      { key: "arrival_notice_date", label: "Ngày giấy báo hàng đến", section: "dates" },
+      { key: "departure_date", label: "Ngày khởi hành", section: "dates" },
+      { key: "arrival_date", label: "Ngày đến", section: "dates" },
+      { key: "etd", label: "ETD / Ngày khởi hành dự kiến", section: "dates" },
+      { key: "eta", label: "ETA / Ngày đến dự kiến", section: "dates" },
+
+      { key: "incoterm", label: "Điều kiện Incoterms", section: "terms" },
+      { key: "payment_terms", label: "Điều kiện thanh toán", section: "terms" },
+      { key: "currency", label: "Loại tiền", section: "terms" },
+      { key: "total_amount", label: "Tổng trị giá", section: "terms" },
+
+      { key: "goods_description", label: "Mô tả hàng hóa", section: "goods" },
+      { key: "item_code", label: "Mã hàng / Model", section: "goods" },
+      { key: "hs_code", label: "Mã HS", section: "goods" },
+      { key: "origin_country", label: "Nước xuất xứ", section: "goods" },
+      { key: "origin_criterion", label: "Tiêu chí xuất xứ", section: "goods" },
+      { key: "quantity", label: "Số lượng", section: "goods" },
+      { key: "unit", label: "Đơn vị tính", section: "goods" },
+      { key: "unit_price", label: "Đơn giá", section: "goods" },
+
+      { key: "package_count", label: "Số kiện", section: "packing" },
+      { key: "package_type", label: "Loại bao bì / kiện", section: "packing" },
+      { key: "gross_weight", label: "Khối lượng cả bì", section: "packing" },
+      { key: "net_weight", label: "Khối lượng tịnh", section: "packing" },
+      { key: "dimensions", label: "Kích thước", section: "packing" },
+      { key: "volume", label: "Thể tích / CBM", section: "packing" },
+
+      { key: "transport_mode", label: "Phương thức vận chuyển", section: "shipping" },
+      { key: "vessel_voyage", label: "Tên tàu / Số chuyến", section: "shipping" },
+      { key: "port_of_loading", label: "Cảng xếp hàng", section: "shipping" },
+      { key: "port_of_discharge", label: "Cảng dỡ hàng", section: "shipping" },
+      { key: "place_of_delivery", label: "Địa điểm giao hàng", section: "shipping" },
+      { key: "container_number", label: "Số container", section: "shipping" },
+      { key: "seal_number", label: "Số seal", section: "shipping" },
+      { key: "marks_numbers", label: "Ký mã hiệu", section: "shipping" }
+    ];
+
+    const DOCUMENT_FIELD_ALIASES = {
+      exporter: "seller",
+      shipper: "seller",
+      supplier: "seller",
+      vendor: "seller",
+      exporter_name: "seller",
+      shipper_name: "seller",
+      supplier_name: "seller",
+      vendor_name: "seller",
+      exporter_address: "seller_address",
+      shipper_address: "seller_address",
+      supplier_address: "seller_address",
+      vendor_address: "seller_address",
+      importer: "buyer",
+      consignee: "buyer",
+      customer: "buyer",
+      sold_to: "buyer",
+      sold_to_name: "buyer",
+      bill_to: "buyer",
+      bill_to_name: "buyer",
+      ship_to: "buyer",
+      ship_to_name: "buyer",
+      ship_to_party: "buyer",
+      ship_to_company: "buyer",
+      importer_name: "buyer",
+      consignee_name: "buyer",
+      customer_name: "buyer",
+      importer_address: "buyer_address",
+      consignee_address: "buyer_address",
+      customer_address: "buyer_address",
+      sold_to_address: "buyer_address",
+      bill_to_address: "buyer_address",
+      ship_to_address: "buyer_address",
+      notify: "notify_party",
+      notify_party_name: "notify_party",
+      notify_address: "notify_party_address",
+      certificate_number: "co_number",
+      certificate_no: "co_number",
+      certificate_of_origin_number: "co_number",
+      certificate_reference_number: "co_number",
+      co_no: "co_number",
+      form: "co_form",
+      invoice_no: "invoice_number",
+      commercial_invoice_number: "invoice_number",
+      invoice_date_on_co: "invoice_date",
+      contract_no: "contract_number",
+      sales_contract_number: "contract_number",
+      po_number: "purchase_order_number",
+      purchase_order_no: "purchase_order_number",
+      packing_list_no: "packing_list_number",
+      hbl_no: "hbl_number",
+      house_bl_number: "hbl_number",
+      house_bill_of_lading_number: "hbl_number",
+      mbl_no: "mbl_number",
+      master_bl_number: "mbl_number",
+      master_bill_of_lading_number: "mbl_number",
+      bill_of_lading_number: "bl_number",
+      bill_of_lading_no: "bl_number",
+      arrival_notice_no: "arrival_notice_number",
+      country_of_origin: "origin_country",
+      originating_country: "origin_country",
+      goods_description: "goods_description",
+      description_of_goods: "goods_description",
+      item_description: "goods_description",
+      product_description: "goods_description",
+      commodity_description: "goods_description",
+      product_code: "item_code",
+      sku: "item_code",
+      model: "item_code",
+      tariff_code: "hs_code",
+      hs_no: "hs_code",
+      hscode: "hs_code",
+      total_quantity: "quantity",
+      total_packages: "package_count",
+      number_of_packages: "package_count",
+      packages: "package_count",
+      kind_of_packages: "package_type",
+      packaging_type: "package_type",
+      total_gross_weight: "gross_weight",
+      total_net_weight: "net_weight",
+      measurement: "dimensions",
+      measurements: "dimensions",
+      package_dimensions: "dimensions",
+      cbm: "volume",
+      cubic_measurement: "volume",
+      total_volume: "volume",
+      payment_condition: "payment_terms",
+      payment_method: "payment_terms",
+      terms_of_payment: "payment_terms",
+      trade_term: "incoterm",
+      incoterms: "incoterm",
+      total_value: "total_amount",
+      invoice_total: "total_amount",
+      amount_total: "total_amount",
+      vessel_and_voyage: "vessel_voyage",
+      vessel_voyage_number: "vessel_voyage",
+      loading_port: "port_of_loading",
+      port_loading: "port_of_loading",
+      discharge_port: "port_of_discharge",
+      port_discharge: "port_of_discharge",
+      delivery_place: "place_of_delivery",
+      container_no: "container_number",
+      seal_no: "seal_number",
+      marks_and_numbers: "marks_numbers",
+      shipping_marks: "marks_numbers",
+      onboard_date: "on_board_date",
+      shipped_on_board_date: "on_board_date",
+      date_of_issue: "issue_date",
+      estimated_time_of_departure: "etd",
+      estimated_departure_date: "etd",
+      estimated_time_of_arrival: "eta",
+      estimated_arrival_date: "eta"
+    };
+
+    const DOCUMENT_FIELD_BY_KEY = new Map(
+      DOCUMENT_COMPARISON_FIELDS.map((field, index) => {
+        const sectionOrder = DOCUMENT_COMPARISON_SECTIONS.findIndex(section => section.id === field.section);
+        return [field.key, { ...field, order: (sectionOrder * 10000) + index }];
+      })
+    );
+    const DOCUMENT_ITEM_SUFFIXES = [
+      ["description", "Tên / mô tả hàng"],
+      ["item_code", "Mã hàng / Model"],
+      ["hs_code", "Mã HS"],
+      ["origin_country", "Nước xuất xứ"],
+      ["origin_criterion", "Tiêu chí xuất xứ"],
+      ["quantity", "Số lượng"],
+      ["unit", "Đơn vị tính"],
+      ["unit_price", "Đơn giá"],
+      ["amount", "Trị giá"],
+      ["package_count", "Số kiện"],
+      ["package_type", "Loại bao bì / kiện"],
+      ["gross_weight", "Khối lượng cả bì"],
+      ["net_weight", "Khối lượng tịnh"],
+      ["dimensions", "Kích thước"],
+      ["volume", "Thể tích / CBM"]
+    ];
+    const DOCUMENT_ITEM_SUFFIX_ALIASES = {
+      goods_description: "description",
+      description_of_goods: "description",
+      product_description: "description",
+      commodity_description: "description",
+      product_code: "item_code",
+      sku: "item_code",
+      model: "item_code",
+      tariff_code: "hs_code",
+      hscode: "hs_code",
+      country_of_origin: "origin_country",
+      number_of_packages: "package_count",
+      kind_of_packages: "package_type",
+      measurement: "dimensions",
+      measurements: "dimensions",
+      package_dimensions: "dimensions",
+      cbm: "volume",
+      total_value: "amount"
+    };
+
+    function defaultDocumentNumberKey(docId) {
+      return ({
+        invoice: "invoice_number",
+        packing: "packing_list_number",
+        contract: "contract_number",
+        co: "co_number",
+        bl: "bl_number",
+        arrival: "arrival_notice_number"
+      })[docId] || "document_number";
+    }
+
+    function defaultDocumentDateKey(docId) {
+      return ({
+        invoice: "invoice_date",
+        packing: "packing_list_date",
+        contract: "contract_date",
+        co: "co_issue_date",
+        bl: "bl_date",
+        arrival: "arrival_notice_date"
+      })[docId] || "";
+    }
+
+    function canonicalDocumentFieldKey(rawKey, docId) {
+      let key = String(rawKey || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, "_")
+        .replace(/^_+|_+$/g, "");
+      if (!key) return "";
+
+      if (/^(?:box_\d+_)?(?:exporter|shipper|seller|supplier|vendor)(?:_name)?$/.test(key)) return "seller";
+      if (/^(?:box_\d+_)?(?:exporter|shipper|seller|supplier|vendor)_address$/.test(key)) return "seller_address";
+      if (/^(?:box_\d+_)?(?:importer|consignee|buyer|customer|sold_to|bill_to|ship_to)(?:_name|_party|_company)?$/.test(key)) return "buyer";
+      if (/^(?:box_\d+_)?(?:importer|consignee|buyer|customer|sold_to|bill_to|ship_to)_address$/.test(key)) return "buyer_address";
+
+      const itemMatch = key.match(/^item_(\d+)_(.+)$/);
+      if (itemMatch) {
+        const suffix = DOCUMENT_ITEM_SUFFIX_ALIASES[itemMatch[2]] || itemMatch[2];
+        return DOCUMENT_ITEM_SUFFIXES.some(([allowed]) => allowed === suffix)
+          ? `item_${itemMatch[1]}_${suffix}`
+          : "";
+      }
+
+      if (["reference_number", "reference_no", "document_no", "document_number", "number"].includes(key)) {
+        return defaultDocumentNumberKey(docId);
+      }
+      if (["document_date", "date", "issue_date", "issued_date"].includes(key)) {
+        return defaultDocumentDateKey(docId);
+      }
+      if (docId === "co" && ["certification_date", "certificate_date"].includes(key)) {
+        return "co_issue_date";
+      }
+      const aliased = DOCUMENT_FIELD_ALIASES[key] || key;
+      if (aliased === "issue_date") return defaultDocumentDateKey(docId);
+      return aliased;
+    }
+
+    function comparableDocumentField(key) {
+      const direct = DOCUMENT_FIELD_BY_KEY.get(key);
+      if (direct) return direct;
+      const itemMatch = String(key || "").match(/^item_(\d+)_(.+)$/);
+      if (!itemMatch) return null;
+      const suffixIndex = DOCUMENT_ITEM_SUFFIXES.findIndex(([suffix]) => suffix === itemMatch[2]);
+      if (suffixIndex < 0) return null;
+      return {
+        key,
+        label: `Mặt hàng ${itemMatch[1]} — ${DOCUMENT_ITEM_SUFFIXES[suffixIndex][1]}`,
+        section: "goods",
+        order: 41000 + (Number(itemMatch[1]) * 100) + suffixIndex
+      };
+    }
+
     async function callOpenAI(content, maxTokens = 5000) {
       if (!openAIApiKey) {
         throw new Error("Chưa có OpenAI API key. Vui lòng nhập và lưu OpenAI API key ở thanh phía trên.");
@@ -2538,6 +2850,23 @@
     }
 
     function documentExtractionPrompt(doc, file) {
+      const coInstructions = doc.id === "co" ? `
+
+HƯỚNG DẪN RIÊNG CHO C/O:
+- Tập trung vào các thông tin nghiệp vụ cần đối chiếu, không trích xuất số trang, vị trí ô, chữ ký, con dấu hoặc nội dung hướng dẫn in sẵn.
+- Ô 1 Exporter là người bán/người xuất khẩu: dùng seller và seller_address.
+- Ô 2 Consignee/Importer là người mua/người nhập khẩu: dùng buyer và buyer_address.
+- Ô 3 Means of transport and route: transport_mode, vessel_voyage, departure_date, port_of_loading, port_of_discharge.
+- Số tham chiếu C/O dùng co_number; nước cấp dùng issuing_country; mẫu C/O dùng co_form.
+- Ô 6 Marks and numbers dùng marks_numbers.
+- Ô 7 Number and kind of packages; description of goods: package_count, package_type và item_N_description.
+- Ô 8 Origin criterion dùng item_N_origin_criterion.
+- Ô 9 Gross weight or other quantity and value dùng item_N_gross_weight, item_N_quantity và item_N_amount.
+- Ô 10 Number and date of invoices dùng invoice_number và invoice_date.
+- Ô 11 Certification dùng co_issue_date cho ngày cấp C/O.
+- Với C/O nhiều mặt hàng, dùng cùng số N cho mô tả, HS code, tiêu chí xuất xứ, số lượng và trọng lượng của một dòng hàng.
+- Không bỏ qua dữ liệu chỉ vì C/O dùng thuật ngữ Exporter/Consignee thay vì Seller/Buyer.
+` : "";
       return `Bạn là hệ thống trích xuất dữ liệu chứng từ xuất nhập khẩu.
 
 NHIỆM VỤ DUY NHẤT: đọc chứng từ và trích xuất dữ liệu. Không so sánh với chứng từ khác, không suy đoán dữ liệu bị thiếu.
@@ -2550,14 +2879,28 @@ Thông tin ô tải:
 Yêu cầu:
 1. Tự nhận diện loại chứng từ thực tế; nếu khác loại người dùng chọn thì ghi cảnh báo.
 2. Giữ nguyên mọi số chứng từ, mã hàng, mã HS, số container, số tiền và số 0 ở đầu dưới dạng chuỗi.
-3. Trích xuất cả thông tin trong bảng, header, footer, dấu/ghi chú có thể đọc được.
+3. Chỉ trích xuất các thông tin nghiệp vụ quan trọng cần kiểm tra chéo giữa chứng từ. Không trích xuất số trang, tổng số trang, tên file, vị trí ô, chữ ký, con dấu, logo, tiêu đề lặp lại, nội dung hướng dẫn in sẵn hoặc thông tin trình bày.
 4. Với danh sách hàng hóa nhiều dòng, tạo key lần lượt như item_1_description, item_1_quantity, item_1_unit_price, item_2_description...
-5. Dùng key tiếng Anh dạng snake_case ổn định; label bằng tiếng Việt dễ hiểu.
+5. Dùng key tiếng Anh dạng snake_case ổn định; label bằng tiếng Việt dễ hiểu. Chuẩn hóa vai trò như sau:
+   - Exporter, Shipper, Seller, Supplier là cùng nhóm người bán/người xuất khẩu: dùng seller và seller_address.
+   - Importer, Consignee, Buyer, Customer là cùng nhóm người mua/người nhập khẩu: dùng buyer và buyer_address.
+   - Nếu chứng từ ghi Ship to, toàn bộ tên và địa chỉ Ship to là thông tin người mua: tách thành buyer và buyer_address; không tạo key ship_to riêng.
+   - Nếu có cả tên và địa chỉ, phải tách riêng; không gộp địa chỉ vào trường tên.
 6. Chỉ trả các trường thật sự tìm thấy. Không điền "không có", "N/A" hoặc tự tạo giá trị.
 7. normalized_value chỉ dùng để chuẩn hóa cách viết nhằm phục vụ đối chiếu; value phải giữ gần nguyên văn chứng từ.
 8. Nếu không chắc, vẫn ghi value đọc được và thêm cảnh báo cụ thể.
+9. Nếu chứng từ dùng nhãn chung "No.", "Reference No." hoặc "Date", hãy chọn key theo đúng loại chứng từ: invoice_number/invoice_date, packing_list_number/packing_list_date, contract_number/contract_date, hbl_number hoặc mbl_number hoặc bl_number/bl_date, co_number/co_issue_date, arrival_notice_number/arrival_notice_date.
+10. Chỉ ưu tiên các nhóm sau, theo thứ tự: các bên mua/bán; số tham chiếu chứng từ; ngày chứng từ; Incoterms và thanh toán; hàng hóa và HS; số lượng, số kiện, khối lượng, kích thước; thông tin vận chuyển quan trọng.
 
-Ưu tiên tìm các trường nếu có: document_number, invoice_number, invoice_date, contract_number, bl_number, co_number, issue_date, seller, buyer, exporter, importer, shipper, consignee, notify_party, manufacturer, origin_country, departure_country, destination_country, transport_mode, vessel_voyage, port_of_loading, port_of_discharge, place_of_delivery, container_number, seal_number, marks_numbers, item_description, hs_code, quantity, unit, unit_price, net_weight, gross_weight, package_count, package_type, subtotal, freight, insurance, total_amount, currency, incoterm, payment_terms.
+Các key được phép ưu tiên nếu có:
+- Bên liên quan: seller, seller_address, buyer, buyer_address, notify_party, notify_party_address.
+- Số chứng từ: invoice_number, contract_number, purchase_order_number, packing_list_number, hbl_number, mbl_number, bl_number, co_number, co_form, arrival_notice_number, document_number.
+- Ngày: invoice_date, contract_date, packing_list_date, bl_date, on_board_date, co_issue_date, arrival_notice_date, departure_date, arrival_date, etd, eta.
+- Thương mại/thanh toán: incoterm, payment_terms, currency, total_amount.
+- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price và các key item_N_* tương ứng.
+- Đóng gói/khối lượng: package_count, package_type, gross_weight, net_weight, dimensions, volume.
+- Vận chuyển: transport_mode, vessel_voyage, port_of_loading, port_of_discharge, place_of_delivery, container_number, seal_number, marks_numbers.
+${coInstructions}
 
 Chỉ trả JSON hợp lệ:
 {
@@ -2606,17 +2949,31 @@ Chỉ trả JSON hợp lệ:
       }
       if (!Array.isArray(fields)) throw new Error(`OpenAI không trả về danh sách trường hợp lệ cho ${file.name}.`);
 
+      const canonicalLabels = {
+        seller: "Người bán / Người xuất khẩu / Shipper",
+        seller_address: "Địa chỉ người bán / người xuất khẩu",
+        buyer: "Người mua / Người nhập khẩu / Ship to",
+        buyer_address: "Địa chỉ người mua / Ship to",
+        co_number: "Số C/O",
+        co_form: "Mẫu C/O",
+        origin_country: "Nước xuất xứ",
+        issuing_country: "Nước cấp C/O",
+        origin_criterion: "Tiêu chí xuất xứ",
+        certifying_authority: "Cơ quan cấp C/O"
+      };
       const cleanedFields = fields.map((field, index) => {
         const value = textOf(field?.value).trim();
-        const key = String(field?.key || `field_${index + 1}`)
+        const rawKey = String(field?.key || `field_${index + 1}`)
           .trim()
           .toLowerCase()
           .replace(/[^\p{L}\p{N}]+/gu, "_")
           .replace(/^_+|_+$/g, "");
+        const key = canonicalDocumentFieldKey(rawKey, doc.id);
         if (!value || !key) return null;
         return {
           key,
-          label: textOf(field?.label || key).trim(),
+          original_key: rawKey,
+          label: textOf(canonicalLabels[key] || field?.label || key).trim(),
           value,
           normalized_value: textOf(field?.normalized_value || value).trim(),
           source: textOf(field?.source).trim()
@@ -2642,6 +2999,46 @@ Chỉ trả JSON hợp lệ:
       if (["match", "matched", "khớp", "trùng", "yes", "true"].includes(status)) return "match";
       if (["mismatch", "different", "lệch", "không khớp", "no", "false"].includes(status)) return "mismatch";
       return "insufficient";
+    }
+
+    function selectPreferredDuplicateField(current, incoming) {
+      if (!current) return incoming;
+      const currentNormalized = String(current.normalized_value || current.value || "").trim().toLocaleLowerCase("vi");
+      const incomingNormalized = String(incoming.normalized_value || incoming.value || "").trim().toLocaleLowerCase("vi");
+      if (currentNormalized === incomingNormalized) {
+        return String(incoming.value || "").length > String(current.value || "").length ? incoming : current;
+      }
+
+      const shipToKeys = new Set(["ship_to", "ship_to_name", "ship_to_address"]);
+      if (shipToKeys.has(incoming.original_key) && !shipToKeys.has(current.original_key)) return incoming;
+      if (shipToKeys.has(current.original_key) && !shipToKeys.has(incoming.original_key)) return current;
+      if (incoming.original_key === incoming.key && current.original_key !== current.key) return incoming;
+      return current;
+    }
+
+    function prepareComparisonExtractions(extractions) {
+      return extractions.map(extraction => {
+        const fieldsByKey = new Map();
+        extraction.fields.forEach(field => {
+          const definition = comparableDocumentField(field.key);
+          if (!definition) return;
+          const prepared = {
+            ...field,
+            key: definition.key,
+            label: definition.label,
+            section: definition.section,
+            order: definition.order
+          };
+          fieldsByKey.set(
+            definition.key,
+            selectPreferredDuplicateField(fieldsByKey.get(definition.key), prepared)
+          );
+        });
+        return {
+          ...extraction,
+          fields: Array.from(fieldsByKey.values()).sort((a, b) => a.order - b.order)
+        };
+      });
     }
 
     function fallbackComparisonStatus(field, extractions) {
@@ -2674,9 +3071,15 @@ Chỉ trả JSON hợp lệ:
           fieldMeta.set(field.key, fieldMeta.get(field.key) || field);
         });
       });
+      fieldOrder.sort((left, right) => {
+        const leftOrder = comparableDocumentField(left)?.order ?? Number.MAX_SAFE_INTEGER;
+        const rightOrder = comparableDocumentField(right)?.order ?? Number.MAX_SAFE_INTEGER;
+        return leftOrder - rightOrder;
+      });
 
       const fields = fieldOrder.map(key => {
         const meta = fieldMeta.get(key);
+        const definition = comparableDocumentField(key);
         const deepSeekRow = comparisonRows.get(key) || {};
         const values = {};
         extractions.forEach(extraction => {
@@ -2689,7 +3092,8 @@ Chỉ trả JSON hợp lệ:
         const status = availableCount < 2 ? "insufficient" : (deepSeekRow.status ? requestedStatus : fallback);
         return {
           key,
-          label: textOf(deepSeekRow.label || meta.label || key),
+          label: textOf(definition?.label || meta.label || key),
+          section: definition?.section || meta.section || "goods",
           values,
           status,
           explanation: textOf(deepSeekRow.explanation || deepSeekRow.reason || "")
@@ -2722,6 +3126,9 @@ Chỉ trả JSON hợp lệ:
 Chỉ trả JSON hợp lệ, không markdown.
 Quy tắc:
 - Giữ nguyên đúng document id và field key đã nhận.
+- Chỉ đối chiếu các trường nghiệp vụ đã nhận; không tự thêm số trang, tên file, chữ ký, con dấu hoặc thông tin trình bày.
+- Exporter/Shipper/Seller/Supplier được hiểu là cùng nhóm người bán/người xuất khẩu.
+- Importer/Consignee/Buyer/Customer/Ship to được hiểu là cùng nhóm người mua/người nhập khẩu.
 - match: có ít nhất 2 chứng từ chứa trường đó và các giá trị tương đương về bản chất sau khi chuẩn hóa cách viết.
 - mismatch: có ít nhất 2 chứng từ chứa trường đó nhưng các giá trị mâu thuẫn.
 - insufficient: chỉ có 0 hoặc 1 chứng từ chứa trường đó, hoặc chưa đủ căn cứ.
@@ -2780,9 +3187,10 @@ ${JSON.stringify(compact)}`
         }
         progress.innerHTML = `<strong>Bước 2/2:</strong> DeepSeek đang đối chiếu ${extractions.length} cột dữ liệu…`;
         area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>DeepSeek đang kiểm tra các trường trùng khớp…</strong></div></div>';
-        const comparison = await compareExtractionsWithDeepSeek(extractions);
-        const data = mergeComparisonResult(comparison, extractions);
-        renderDocumentResult(data, extractions);
+        const comparableExtractions = prepareComparisonExtractions(extractions);
+        const comparison = await compareExtractionsWithDeepSeek(comparableExtractions);
+        const data = mergeComparisonResult(comparison, comparableExtractions);
+        renderDocumentResult(data, comparableExtractions);
         progress.innerHTML = `<strong>Hoàn tất:</strong> OpenAI Terra đã trích xuất ${extractions.length} chứng từ; DeepSeek đã đối chiếu ${data.fields.length} trường.`;
       } catch (error) {
         area.innerHTML = `<div class="error"><strong>Không thể đối chiếu chứng từ.</strong><br>${esc(friendlyError(error))}</div>`;
@@ -2798,12 +3206,18 @@ ${JSON.stringify(compact)}`
         return;
       }
       const docs = Array.isArray(data.documents) ? data.documents : DOC_TYPES.filter(doc => docFiles.has(doc.id));
-      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Mỗi cột là dữ liệu OpenAI Terra trích xuất từ một chứng từ; cột cuối là kết luận của DeepSeek.</p></div><span class="step">02</span></div><div class="card-body">';
+      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Chỉ hiển thị các trường nghiệp vụ quan trọng; mỗi cột là một chứng từ và cột cuối là kết luận đối chiếu.</p></div><span class="step">02</span></div><div class="card-body">';
       if (data.summary) html += `<div class="notice" style="margin-bottom:12px">${esc(data.summary)}</div>`;
       html += '<div class="table-scroll"><table><thead><tr><th>Trường thông tin</th>';
       html += docs.map(doc => `<th>${esc(doc.label || doc.vi || doc.en || doc.id)}<span class="comparison-note">${esc(doc.file_name || "")}</span></th>`).join("");
       html += "<th>Trùng khớp?</th></tr></thead><tbody>";
+      let activeSection = "";
       rows.forEach(row => {
+        if (row.section !== activeSection) {
+          activeSection = row.section;
+          const sectionLabel = DOCUMENT_COMPARISON_SECTIONS.find(section => section.id === activeSection)?.label || "Thông tin khác";
+          html += `<tr class="comparison-section-row"><td colspan="${docs.length + 2}">${esc(sectionLabel)}</td></tr>`;
+        }
         const values = row.values || {};
         html += `<tr><td><strong>${esc(row.label || row.key)}</strong></td>`;
         html += docs.map(doc => `<td><div style="white-space:pre-line">${esc(values[doc.id] || "—")}</div></td>`).join("");
