@@ -1077,17 +1077,17 @@
       </div>
 
       <div class="api-key-row">
-        <label for="geminiApiKeyInput">✨ Gemini API Key:</label>
+        <label for="openAIApiKeyInput">✨ OpenAI API Key:</label>
         <div class="key-input-wrap">
-          <input class="key-input" type="password" id="geminiApiKeyInput" placeholder="Dán Gemini API key vào đây" autocomplete="off" spellcheck="false">
-          <button class="key-toggle" id="toggleGeminiKeyBtn" type="button" aria-label="Hiện hoặc ẩn Gemini API key">Hiện</button>
+          <input class="key-input" type="password" id="openAIApiKeyInput" placeholder="Dán OpenAI API key vào đây: sk-..." autocomplete="off" spellcheck="false">
+          <button class="key-toggle" id="toggleOpenAIKeyBtn" type="button" aria-label="Hiện hoặc ẩn OpenAI API key">Hiện</button>
         </div>
-        <button class="btn btn-primary" id="saveGeminiKeyBtn" type="button">Lưu key</button>
-        <button class="btn btn-ghost" id="clearGeminiKeyBtn" type="button">Xóa key</button>
-        <span class="key-status" id="geminiKeyStatus">Chưa có key</span>
+        <button class="btn btn-primary" id="saveOpenAIKeyBtn" type="button">Lưu key</button>
+        <button class="btn btn-ghost" id="clearOpenAIKeyBtn" type="button">Xóa key</button>
+        <span class="key-status" id="openAIKeyStatus">Chưa có key</span>
         <div class="key-help">
-          Dùng riêng cho tab đối chiếu để đọc PDF, Word, Excel và hình ảnh bằng Gemini 3.6 Flash.
-          Lấy key tại <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+          Dùng riêng cho tab đối chiếu để đọc PDF, Word, Excel và hình ảnh bằng OpenAI GPT-5.6 Terra.
+          Lấy key tại <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI Platform</a>.
         </div>
       </div>
     </div>
@@ -1106,13 +1106,13 @@
         <div>
           <p class="eyebrow">Đối chiếu bộ chứng từ</p>
           <h2>Kiểm tra thông tin giữa các chứng từ</h2>
-          <p>Tải từng chứng từ vào đúng ô. Gemini trích xuất thông tin; DeepSeek đối chiếu các cột và kết luận trường nào trùng khớp.</p>
+          <p>Tải từng chứng từ vào đúng ô. OpenAI GPT-5.6 Terra trích xuất thông tin; DeepSeek đối chiếu các cột và kết luận trường nào trùng khớp.</p>
         </div>
-        <div class="hero-badge">Gemini đọc · DeepSeek đối chiếu</div>
+        <div class="hero-badge">OpenAI Terra đọc · DeepSeek đối chiếu</div>
       </div>
 
       <div class="notice" style="margin-bottom:16px">
-        Mỗi file được gửi trực tiếp đến Gemini để trích xuất thành dữ liệu có cấu trúc. Sau đó chỉ dữ liệu đã trích xuất được gửi đến DeepSeek để đối chiếu; bảng kết quả có một cột cho từng chứng từ và cột cuối “Trùng khớp?”.
+        Mỗi file được gửi trực tiếp đến OpenAI GPT-5.6 Terra để trích xuất thành dữ liệu có cấu trúc. Sau đó chỉ dữ liệu đã trích xuất được gửi đến DeepSeek để đối chiếu; bảng kết quả có một cột cho từng chứng từ và cột cuối “Trùng khớp?”.
       </div>
 
       <div class="card">
@@ -1590,9 +1590,9 @@
     const DEEPSEEK_API = "https://api.deepseek.com/chat/completions";
     const DEEPSEEK_MODEL = "deepseek-v4-flash";
     const KEY_STORAGE = "dc_deepseek_key";
-    const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-    const GEMINI_MODEL = "gemini-3.6-flash";
-    const GEMINI_KEY_STORAGE = "dc_gemini_key";
+    const OPENAI_API = "https://api.openai.com/v1/responses";
+    const OPENAI_MODEL = "gpt-5.6-terra";
+    const OPENAI_KEY_STORAGE = "dc_openai_key";
 
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -2074,14 +2074,14 @@
     let lastResult = null;
     let supplementalAnswers = {};
     let apiKey = "";
-    let geminiApiKey = "";
+    let openAIApiKey = "";
 
     try {
       apiKey = localStorage.getItem(KEY_STORAGE) || "";
-      geminiApiKey = localStorage.getItem(GEMINI_KEY_STORAGE) || "";
+      openAIApiKey = localStorage.getItem(OPENAI_KEY_STORAGE) || "";
     } catch (_) {
       apiKey = "";
-      geminiApiKey = "";
+      openAIApiKey = "";
     }
 
     const DOC_TYPES = [
@@ -2130,23 +2130,23 @@
       updateDocHint();
     }
 
-    function updateGeminiKeyUI(status = geminiApiKey ? "saved" : "empty", message = "") {
-      const keyStatus = $("#geminiKeyStatus");
-      $("#geminiApiKeyInput").value = geminiApiKey;
+    function updateOpenAIKeyUI(status = openAIApiKey ? "saved" : "empty", message = "") {
+      const keyStatus = $("#openAIKeyStatus");
+      $("#openAIApiKeyInput").value = openAIApiKey;
 
       if (status === "online") {
         keyStatus.className = "key-status ok";
         keyStatus.textContent = "✓ Key hợp lệ";
-        keyStatus.title = "Gemini đã kết nối";
+        keyStatus.title = "OpenAI GPT-5.6 Terra đã kết nối";
       } else if (status === "key-error") {
         keyStatus.className = "key-status bad";
         keyStatus.textContent = "Key lỗi";
-        keyStatus.title = message || "API key Gemini không hợp lệ";
+        keyStatus.title = message || "API key OpenAI không hợp lệ";
       } else if (status === "error") {
         keyStatus.className = "key-status bad";
         keyStatus.textContent = "Chưa thể kiểm tra";
-        keyStatus.title = message || "Không kết nối được Gemini";
-      } else if (geminiApiKey) {
+        keyStatus.title = message || "Không kết nối được OpenAI";
+      } else if (openAIApiKey) {
         keyStatus.className = "key-status ok";
         keyStatus.textContent = "✓ Đã lưu key";
         keyStatus.title = "Đã lưu key · Chưa kiểm tra";
@@ -2182,28 +2182,28 @@
       updateKeyUI("empty");
     }
 
-    function saveGeminiKey() {
-      const value = $("#geminiApiKeyInput").value.trim();
+    function saveOpenAIKey() {
+      const value = $("#openAIApiKeyInput").value.trim();
       if (!value) {
-        updateGeminiKeyUI("error", "Vui lòng nhập Gemini API key");
-        $("#geminiApiKeyInput").focus();
+        updateOpenAIKeyUI("error", "Vui lòng nhập OpenAI API key");
+        $("#openAIApiKeyInput").focus();
         return;
       }
-      geminiApiKey = value;
+      openAIApiKey = value;
       try {
-        localStorage.setItem(GEMINI_KEY_STORAGE, geminiApiKey);
+        localStorage.setItem(OPENAI_KEY_STORAGE, openAIApiKey);
       } catch (_) {
         // File vẫn hoạt động trong phiên hiện tại nếu trình duyệt chặn localStorage.
       }
-      updateGeminiKeyUI("saved");
-      pingGemini();
+      updateOpenAIKeyUI("saved");
+      pingOpenAI();
     }
 
-    function clearGeminiKey() {
-      geminiApiKey = "";
-      try { localStorage.removeItem(GEMINI_KEY_STORAGE); } catch (_) {}
-      $("#geminiApiKeyInput").value = "";
-      updateGeminiKeyUI("empty");
+    function clearOpenAIKey() {
+      openAIApiKey = "";
+      try { localStorage.removeItem(OPENAI_KEY_STORAGE); } catch (_) {}
+      $("#openAIApiKeyInput").value = "";
+      updateOpenAIKeyUI("empty");
     }
 
     async function pingDeepSeek() {
@@ -2262,60 +2262,114 @@
       return content;
     }
 
-    async function callGemini(parts, maxTokens = 5000) {
-      if (!geminiApiKey) {
-        throw new Error("Chưa có Gemini API key. Vui lòng nhập và lưu Gemini API key ở thanh phía trên.");
+    const DOCUMENT_EXTRACTION_SCHEMA = {
+      type: "object",
+      additionalProperties: false,
+      required: ["document", "fields", "warnings"],
+      properties: {
+        document: {
+          type: "object",
+          additionalProperties: false,
+          required: ["detected_type", "detected_type_vi"],
+          properties: {
+            detected_type: { type: "string" },
+            detected_type_vi: { type: "string" }
+          }
+        },
+        fields: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["key", "label", "value", "normalized_value", "source"],
+            properties: {
+              key: { type: "string" },
+              label: { type: "string" },
+              value: { type: "string" },
+              normalized_value: { type: "string" },
+              source: { type: "string" }
+            }
+          }
+        },
+        warnings: {
+          type: "array",
+          items: { type: "string" }
+        }
       }
-      const response = await fetch(`${GEMINI_API_BASE}/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
+    };
+
+    async function callOpenAI(content, maxTokens = 5000) {
+      if (!openAIApiKey) {
+        throw new Error("Chưa có OpenAI API key. Vui lòng nhập và lưu OpenAI API key ở thanh phía trên.");
+      }
+      const response = await fetch(OPENAI_API, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": geminiApiKey
+          "Authorization": "Bearer " + openAIApiKey
         },
         body: JSON.stringify({
-          contents: [{ role: "user", parts }],
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: maxTokens,
-            responseMimeType: "application/json"
-          }
+          model: OPENAI_MODEL,
+          input: [{ role: "user", content }],
+          reasoning: { effort: "low" },
+          max_output_tokens: maxTokens,
+          text: {
+            format: {
+              type: "json_schema",
+              name: "document_extraction",
+              strict: true,
+              schema: DOCUMENT_EXTRACTION_SCHEMA
+            }
+          },
+          store: false
         })
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        const error = new Error(data?.error?.message || `Gemini API trả về lỗi HTTP ${response.status}.`);
+        const error = new Error(data?.error?.message || `OpenAI API trả về lỗi HTTP ${response.status}.`);
         error.status = response.status;
         throw error;
       }
-      const content = (data?.candidates?.[0]?.content?.parts || [])
-        .map(part => part?.text || "")
+      const outputText = (data?.output || [])
+        .flatMap(item => Array.isArray(item?.content) ? item.content : [])
+        .filter(item => item?.type === "output_text")
+        .map(item => item?.text || "")
         .join("")
         .trim();
-      if (!content) {
-        const reason = data?.promptFeedback?.blockReason || data?.candidates?.[0]?.finishReason || "";
-        throw new Error(`Gemini không trả về dữ liệu trích xuất${reason ? ` (${reason})` : ""}.`);
+      if (!outputText) {
+        const refusal = (data?.output || [])
+          .flatMap(item => Array.isArray(item?.content) ? item.content : [])
+          .find(item => item?.type === "refusal")?.refusal;
+        throw new Error(refusal || "OpenAI không trả về dữ liệu trích xuất.");
       }
-      return content;
+      return outputText;
     }
 
-    async function pingGemini() {
-      if (!geminiApiKey) return;
-      const testedKey = geminiApiKey;
-      $("#geminiKeyStatus").className = "key-status";
-      $("#geminiKeyStatus").textContent = "Đang kiểm tra…";
+    async function pingOpenAI() {
+      if (!openAIApiKey) return;
+      const testedKey = openAIApiKey;
+      $("#openAIKeyStatus").className = "key-status";
+      $("#openAIKeyStatus").textContent = "Đang kiểm tra…";
       try {
-        const raw = await callGemini([{ text: 'Chỉ trả về JSON: {"status":"OK"}' }], 64);
-        parseAIJson(raw);
-        if (geminiApiKey !== testedKey) return;
-        updateGeminiKeyUI("online");
+        const response = await fetch(`https://api.openai.com/v1/models/${encodeURIComponent(OPENAI_MODEL)}`, {
+          headers: { "Authorization": "Bearer " + openAIApiKey }
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          const error = new Error(data?.error?.message || `OpenAI API trả về lỗi HTTP ${response.status}.`);
+          error.status = response.status;
+          throw error;
+        }
+        if (openAIApiKey !== testedKey) return;
+        updateOpenAIKeyUI("online");
       } catch (error) {
-        if (geminiApiKey !== testedKey) return;
-        if (error?.status === 400 || error?.status === 401 || error?.status === 403) {
-          updateGeminiKeyUI("key-error", "API key Gemini hoặc tên model không hợp lệ");
+        if (openAIApiKey !== testedKey) return;
+        if (error?.status === 401 || error?.status === 403) {
+          updateOpenAIKeyUI("key-error", "API key OpenAI không hợp lệ hoặc chưa có quyền dùng GPT-5.6 Terra");
         } else if (error?.status === 429) {
-          updateGeminiKeyUI("error", "Gemini đang giới hạn số yêu cầu");
+          updateOpenAIKeyUI("error", "OpenAI đang giới hạn yêu cầu hoặc tài khoản đã hết hạn mức");
         } else {
-          updateGeminiKeyUI("error", friendlyError(error));
+          updateOpenAIKeyUI("error", friendlyError(error));
         }
       }
     }
@@ -2333,8 +2387,8 @@
 
     $("#saveKeyBtn").addEventListener("click", saveKey);
     $("#clearKeyBtn").addEventListener("click", clearKey);
-    $("#saveGeminiKeyBtn").addEventListener("click", saveGeminiKey);
-    $("#clearGeminiKeyBtn").addEventListener("click", clearGeminiKey);
+    $("#saveOpenAIKeyBtn").addEventListener("click", saveOpenAIKey);
+    $("#clearOpenAIKeyBtn").addEventListener("click", clearOpenAIKey);
     $("#apiKeyInput").addEventListener("keydown", event => {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -2347,17 +2401,17 @@
       input.type = show ? "text" : "password";
       $("#toggleKeyBtn").textContent = show ? "Ẩn" : "Hiện";
     });
-    $("#geminiApiKeyInput").addEventListener("keydown", event => {
+    $("#openAIApiKeyInput").addEventListener("keydown", event => {
       if (event.key === "Enter") {
         event.preventDefault();
-        saveGeminiKey();
+        saveOpenAIKey();
       }
     });
-    $("#toggleGeminiKeyBtn").addEventListener("click", () => {
-      const input = $("#geminiApiKeyInput");
+    $("#toggleOpenAIKeyBtn").addEventListener("click", () => {
+      const input = $("#openAIApiKeyInput");
       const show = input.type === "password";
       input.type = show ? "text" : "password";
-      $("#toggleGeminiKeyBtn").textContent = show ? "Ẩn" : "Hiện";
+      $("#toggleOpenAIKeyBtn").textContent = show ? "Ẩn" : "Hiện";
     });
 
     $$(".tab-btn").forEach(button => {
@@ -2402,13 +2456,13 @@
     }
 
     function updateDocHint() {
-      $("#docHint").textContent = !geminiApiKey
-        ? "Cần nhập Gemini API key để đọc chứng từ."
+      $("#docHint").textContent = !openAIApiKey
+        ? "Cần nhập OpenAI API key để đọc chứng từ."
         : !apiKey
           ? "Cần nhập DeepSeek API key để đối chiếu."
         : docFiles.size < 2
           ? `Cần tối thiểu 2 chứng từ (đã chọn ${docFiles.size}).`
-          : `Đã chọn ${docFiles.size} chứng từ · Gemini sẽ đọc, DeepSeek sẽ đối chiếu.`;
+          : `Đã chọn ${docFiles.size} chứng từ · OpenAI Terra sẽ đọc, DeepSeek sẽ đối chiếu.`;
     }
 
     $("#clearDocsBtn").addEventListener("click", () => {
@@ -2420,7 +2474,7 @@
       $("#docProgress").innerHTML = "";
     });
 
-    function geminiMimeType(file) {
+    function openAIMimeType(file) {
       if (file.type) return file.type;
       const extension = file.name.split(".").pop().toLowerCase();
       return ({
@@ -2449,7 +2503,7 @@
       let text = "";
 
       if (["xlsx", "xls", "csv"].includes(extension)) {
-        if (!window.XLSX) throw new Error("Không tải được thư viện chuẩn bị Excel cho Gemini.");
+        if (!window.XLSX) throw new Error("Không tải được thư viện chuẩn bị Excel cho OpenAI.");
         const workbook = window.XLSX.read(await file.arrayBuffer(), {
           type: "array",
           cellDates: true,
@@ -2462,7 +2516,7 @@
           text += window.XLSX.utils.sheet_to_csv(sheet, { blankrows: true, FS: "\t" });
         });
       } else if (extension === "docx") {
-        if (!window.mammoth) throw new Error("Không tải được thư viện chuẩn bị Word cho Gemini.");
+        if (!window.mammoth) throw new Error("Không tải được thư viện chuẩn bị Word cho OpenAI.");
         const result = await window.mammoth.convertToHtml(
           { arrayBuffer: await file.arrayBuffer() },
           { includeDefaultStyleMap: true }
@@ -2475,7 +2529,7 @@
         text = await file.text();
       }
 
-      if (!text.trim()) throw new Error(`${file.name} không có nội dung có thể gửi đến Gemini.`);
+      if (!text.trim()) throw new Error(`${file.name} không có nội dung có thể gửi đến OpenAI.`);
       const maxChars = 300000;
       if (text.length > maxChars) {
         text = `${text.slice(0, maxChars)}\n\n[ĐÃ CẮT BỚT NỘI DUNG SAU ${maxChars.toLocaleString("vi-VN")} KÝ TỰ]`;
@@ -2524,34 +2578,22 @@ Chỉ trả JSON hợp lệ:
 }`;
     }
 
-    async function extractDocumentWithGemini(doc, file) {
+    async function extractDocumentWithOpenAI(doc, file) {
       const extension = file.name.split(".").pop().toLowerCase();
       const prompt = documentExtractionPrompt(doc, file);
-      let parts;
-
-      if (["pdf", "png", "jpg", "jpeg", "webp"].includes(extension)) {
-        if (file.size > 18 * 1024 * 1024) {
-          throw new Error(`${file.name} lớn hơn 18 MB. Hãy giảm dung lượng file trước khi dùng bản HTML độc lập.`);
-        }
-        parts = [
-          { text: prompt },
-          { inline_data: { mime_type: geminiMimeType(file), data: await fileToBase64(file) } }
-        ];
+      if (file.size > 18 * 1024 * 1024) {
+        throw new Error(`${file.name} lớn hơn 18 MB. Hãy giảm dung lượng file trước khi dùng bản HTML độc lập.`);
+      }
+      const mimeType = openAIMimeType(file);
+      const fileData = `data:${mimeType};base64,${await fileToBase64(file)}`;
+      const content = [{ type: "input_text", text: prompt }];
+      if (["png", "jpg", "jpeg", "webp"].includes(extension)) {
+        content.push({ type: "input_image", image_url: fileData, detail: "high" });
       } else {
-        const structuredText = await officeFileToStructuredText(file);
-        parts = [
-          {
-            text: `${prompt}
-
-Nội dung dưới đây được trình duyệt chuyển sang dạng có cấu trúc trước khi gửi Gemini. Vị trí trường không cố định; hãy hiểu theo ngữ nghĩa và bố cục bảng, không lấy theo một ô hoặc một dòng cố định.
-
-===== NỘI DUNG FILE ${file.name} =====
-${structuredText}`
-          }
-        ];
+        content.push({ type: "input_file", filename: file.name, file_data: fileData });
       }
 
-      const raw = await callGemini(parts, 6500);
+      const raw = await callOpenAI(content, 6500);
       const parsed = parseAIJson(raw);
       let fields = parsed?.fields;
       if (fields && !Array.isArray(fields) && typeof fields === "object") {
@@ -2562,7 +2604,7 @@ ${structuredText}`
           normalized_value: typeof value === "object" ? textOf(value?.normalized_value ?? value?.value ?? value) : value
         }));
       }
-      if (!Array.isArray(fields)) throw new Error(`Gemini không trả về danh sách trường hợp lệ cho ${file.name}.`);
+      if (!Array.isArray(fields)) throw new Error(`OpenAI không trả về danh sách trường hợp lệ cho ${file.name}.`);
 
       const cleanedFields = fields.map((field, index) => {
         const value = textOf(field?.value).trim();
@@ -2581,7 +2623,7 @@ ${structuredText}`
         };
       }).filter(Boolean);
 
-      if (!cleanedFields.length) throw new Error(`Gemini không tìm thấy trường thông tin nào trong ${file.name}.`);
+      if (!cleanedFields.length) throw new Error(`OpenAI không tìm thấy trường thông tin nào trong ${file.name}.`);
       return {
         document: {
           id: doc.id,
@@ -2676,7 +2718,7 @@ ${structuredText}`
         {
           role: "system",
           content: `Bạn là chuyên viên đối chiếu chứng từ xuất nhập khẩu.
-Gemini đã trích xuất riêng từng chứng từ. Bạn chỉ so sánh dữ liệu giữa các chứng từ, không đọc lại file và không sửa giá trị gốc.
+ OpenAI GPT-5.6 Terra đã trích xuất riêng từng chứng từ. Bạn chỉ so sánh dữ liệu giữa các chứng từ, không đọc lại file và không sửa giá trị gốc.
 Chỉ trả JSON hợp lệ, không markdown.
 Quy tắc:
 - Giữ nguyên đúng document id và field key đã nhận.
@@ -2701,7 +2743,7 @@ Quy tắc:
   "summary": ""
 }
 
-DỮ LIỆU GEMINI ĐÃ TRÍCH XUẤT:
+DỮ LIỆU OPENAI ĐÃ TRÍCH XUẤT:
 ${JSON.stringify(compact)}`
         }
       ], 6500, 0);
@@ -2711,9 +2753,9 @@ ${JSON.stringify(compact)}`
     $("#compareDocsBtn").addEventListener("click", async () => {
       const area = $("#docResultArea");
       const progress = $("#docProgress");
-      if (!geminiApiKey) {
-        area.innerHTML = '<div class="error">Vui lòng nhập và lưu Gemini API key để đọc chứng từ.</div>';
-        $("#geminiApiKeyInput").focus();
+      if (!openAIApiKey) {
+        area.innerHTML = '<div class="error">Vui lòng nhập và lưu OpenAI API key để đọc chứng từ.</div>';
+        $("#openAIApiKeyInput").focus();
         return;
       }
       if (!apiKey) {
@@ -2725,7 +2767,7 @@ ${JSON.stringify(compact)}`
         area.innerHTML = '<div class="error">Vui lòng chọn tối thiểu hai chứng từ.</div>';
         return;
       }
-      area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>Gemini đang trích xuất từng chứng từ…</strong></div></div>';
+      area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>OpenAI GPT-5.6 Terra đang trích xuất từng chứng từ…</strong></div></div>';
       progress.classList.remove("hidden");
       try {
         const selectedDocs = DOC_TYPES.filter(doc => docFiles.has(doc.id));
@@ -2733,15 +2775,15 @@ ${JSON.stringify(compact)}`
         for (let index = 0; index < selectedDocs.length; index += 1) {
           const doc = selectedDocs[index];
           const file = docFiles.get(doc.id);
-          progress.innerHTML = `<strong>Bước 1/2:</strong> Gemini đang đọc ${index + 1}/${selectedDocs.length} — ${esc(file.name)}`;
-          extractions.push(await extractDocumentWithGemini(doc, file));
+          progress.innerHTML = `<strong>Bước 1/2:</strong> OpenAI Terra đang đọc ${index + 1}/${selectedDocs.length} — ${esc(file.name)}`;
+          extractions.push(await extractDocumentWithOpenAI(doc, file));
         }
         progress.innerHTML = `<strong>Bước 2/2:</strong> DeepSeek đang đối chiếu ${extractions.length} cột dữ liệu…`;
         area.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><strong>DeepSeek đang kiểm tra các trường trùng khớp…</strong></div></div>';
         const comparison = await compareExtractionsWithDeepSeek(extractions);
         const data = mergeComparisonResult(comparison, extractions);
         renderDocumentResult(data, extractions);
-        progress.innerHTML = `<strong>Hoàn tất:</strong> Gemini đã trích xuất ${extractions.length} chứng từ; DeepSeek đã đối chiếu ${data.fields.length} trường.`;
+        progress.innerHTML = `<strong>Hoàn tất:</strong> OpenAI Terra đã trích xuất ${extractions.length} chứng từ; DeepSeek đã đối chiếu ${data.fields.length} trường.`;
       } catch (error) {
         area.innerHTML = `<div class="error"><strong>Không thể đối chiếu chứng từ.</strong><br>${esc(friendlyError(error))}</div>`;
         progress.innerHTML = `<strong>Đã dừng:</strong> ${esc(friendlyError(error))}`;
@@ -2756,7 +2798,7 @@ ${JSON.stringify(compact)}`
         return;
       }
       const docs = Array.isArray(data.documents) ? data.documents : DOC_TYPES.filter(doc => docFiles.has(doc.id));
-      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Mỗi cột là dữ liệu Gemini trích xuất từ một chứng từ; cột cuối là kết luận của DeepSeek.</p></div><span class="step">02</span></div><div class="card-body">';
+      let html = '<div class="card"><div class="card-head"><div><h3>Kết quả đối chiếu</h3><p>Mỗi cột là dữ liệu OpenAI Terra trích xuất từ một chứng từ; cột cuối là kết luận của DeepSeek.</p></div><span class="step">02</span></div><div class="card-body">';
       if (data.summary) html += `<div class="notice" style="margin-bottom:12px">${esc(data.summary)}</div>`;
       html += '<div class="table-scroll"><table><thead><tr><th>Trường thông tin</th>';
       html += docs.map(doc => `<th>${esc(doc.label || doc.vi || doc.en || doc.id)}<span class="comparison-note">${esc(doc.file_name || "")}</span></th>`).join("");
@@ -3390,7 +3432,7 @@ ${JSON.stringify(candidateContext(candidates), null, 2)}
     function friendlyError(error) {
       if (error?.name === "AbortError") return "Yêu cầu đã hết thời gian chờ.";
       if (/Failed to fetch|NetworkError|Load failed/i.test(error?.message || "")) {
-        return "Trình duyệt không gọi được DeepSeek API. Hãy kiểm tra kết nối Internet, API key và chính sách CORS của trình duyệt.";
+        return "Trình duyệt không gọi được API. Hãy kiểm tra kết nối Internet, API key OpenAI/DeepSeek và chính sách CORS của trình duyệt.";
       }
       return error?.message || "Đã xảy ra lỗi không xác định.";
     }
@@ -5310,12 +5352,12 @@ Cấu trúc:
     buildDocGrid();
     updateDocHint();
     updateKeyUI(apiKey ? "saved" : "empty");
-    updateGeminiKeyUI(geminiApiKey ? "saved" : "empty");
+    updateOpenAIKeyUI(openAIApiKey ? "saved" : "empty");
     addManualItem();
     renderUploadedListFiles();
     updatePreviewConfirmStatus();
     if (apiKey) pingDeepSeek();
-    if (geminiApiKey) pingGemini();
+    if (openAIApiKey) pingOpenAI();
 
     if (new URLSearchParams(location.search).get("demo") === "1") {
       lastResult = DEMO_RESULT;
