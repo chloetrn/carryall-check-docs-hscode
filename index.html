@@ -3721,54 +3721,142 @@ Chỉ trả JSON hợp lệ:
     }
 
     async function compareExtractionsWithDeepSeek(extractions) {
-      const compact = extractions.map(item => ({
-        document: item.document,
-        fields: item.fields.map(field => ({
-          key: field.key,
-          label: field.label,
-          value: field.value,
-          normalized_value: field.normalized_value
-        })),
-        warnings: item.warnings
-      }));
-      const raw = await callDeepSeek([
-        {
-          role: "system",
-          content: `Bạn là chuyên viên đối chiếu chứng từ xuất nhập khẩu.
- OpenAI GPT-5.6 Terra đã trích xuất riêng từng chứng từ. Bạn chỉ so sánh dữ liệu giữa các chứng từ, không đọc lại file và không sửa giá trị gốc.
-Chỉ trả JSON hợp lệ, không markdown.
-Quy tắc:
-- Giữ nguyên đúng document id và field key đã nhận.
-- Chỉ đối chiếu các trường nghiệp vụ đã nhận; không tự thêm số trang, tên file, chữ ký, con dấu hoặc thông tin trình bày.
-- Seller/Supplier/Vendor chỉ được so sánh trong trường Seller; Exporter/Shipper chỉ được so sánh trong trường Exporter.
-- Không gộp Seller và Exporter. Nếu cùng một chứng từ có cả hai vai trò, phải giữ thành hai dòng riêng.
-- Importer/Consignee/Buyer/Customer/Ship to được hiểu là cùng nhóm người mua/người nhập khẩu.
-- match: có ít nhất 2 chứng từ chứa trường đó và các giá trị tương đương về bản chất sau khi chuẩn hóa cách viết.
-- mismatch: có ít nhất 2 chứng từ chứa trường đó nhưng các giá trị mâu thuẫn.
-- insufficient: chỉ có 0 hoặc 1 chứng từ chứa trường đó, hoặc chưa đủ căn cứ.
-- Không đánh dấu mismatch chỉ vì khác định dạng ngày, dấu phân cách hàng nghìn, đơn vị có thể quy đổi hoặc khác thứ tự từ nhưng cùng nội dung.
-- explanation phải nêu ngắn gọn căn cứ, đặc biệt khi mismatch.`
-        },
-        {
-          role: "user",
-          content: `Đối chiếu dữ liệu sau và trả JSON:
-{
-  "fields": [
-    {
-      "key": "invoice_number",
-      "label": "Số hóa đơn",
-      "status": "match|mismatch|insufficient",
-      "explanation": ""
-    }
-  ],
-  "summary": ""
-}
+      // DeepSeek response_format=json_object không phải JSON Schema nghiêm ngặt.
+      // Khi đối chiếu nhiều chứng từ / nhiều trường, một response quá dài đôi lúc có thể
+      // bị thiếu dấu phẩy/dấu đóng mảng. Chia nhỏ theo field key để tránh làm hỏng toàn bộ phiên.
+      const allKeys = [];
+      const seenKeys = new Set();
+      extractions.forEach(item => {
+        item.fields.forEach(field => {
+          if (!seenKeys.has(field.key)) {
+            seenKeys.add(field.key);
+            allKeys.push(field.key);
+          }
+        });
+      });
 
-DỮ LIỆU OPENAI ĐÃ TRÍCH XUẤT:
+      const BATCH_SIZE = 32;
+      const batches = [];
+      for (let index = 0; index < allKeys.length; index += BATCH_SIZE) {
+        batches.push(allKeys.slice(index, index + BATCH_SIZE));
+      }
+
+      const mergedFields = [];
+      let fallbackBatchCount = 0;
+
+      const compareBatch = async (batchKeys, attempt = 1) => {
+        const batchKeySet = new Set(batchKeys);
+        const compact = extractions.map(item => ({
+          document: {
+            id: item.document.id,
+            label: item.document.label
+          },
+          fields: item.fields
+            .filter(field => batchKeySet.has(field.key))
+            .map(field => ({
+              key: field.key,
+              value: field.value,
+              normalized_value: field.normalized_value
+            }))
+        }));
+
+        const raw = await callDeepSeek([
+          {
+            role: "system",
+            content: `Bạn là chuyên viên đối chiếu chứng từ xuất nhập khẩu.
+OpenAI đã trích xuất dữ liệu riêng từng chứng từ. Bạn chỉ so sánh dữ liệu được cung cấp.
+CHỈ trả về một JSON object hợp lệ, không markdown, không giải thích ngoài JSON.
+Mỗi key trong danh sách yêu cầu phải xuất hiện đúng một lần.
+Không tự thêm field.
+Seller/Supplier/Vendor chỉ so sánh với Seller; Exporter/Shipper chỉ so sánh với Exporter.
+Importer/Consignee/Buyer/Customer/Ship to được hiểu là cùng nhóm người mua/người nhập khẩu.
+status:
+- match: ít nhất 2 chứng từ có giá trị tương đương về bản chất.
+- mismatch: ít nhất 2 chứng từ có giá trị thực sự mâu thuẫn.
+- insufficient: chỉ có 0 hoặc 1 chứng từ có giá trị.
+Không đánh mismatch chỉ vì khác định dạng ngày, dấu phân cách số, cách viết hoa/thường, thứ tự từ hoặc đơn vị có thể quy đổi.
+explanation viết thật ngắn, tối đa khoảng 20 từ.
+JSON phải kết thúc đầy đủ, không được bỏ dở mảng.`
+          },
+          {
+            role: "user",
+            content: `Trả đúng cấu trúc:
+{"fields":[{"key":"...","status":"match|mismatch|insufficient","explanation":"..."}]}
+
+CÁC KEY PHẢI ĐỐI CHIẾU:
+${JSON.stringify(batchKeys)}
+
+DỮ LIỆU:
 ${JSON.stringify(compact)}`
+          }
+        ], 3200, 0);
+
+        try {
+          const parsed = parseAIJson(raw);
+          return Array.isArray(parsed?.fields) ? parsed.fields : [];
+        } catch (error) {
+          // Một lần thử lại với yêu cầu JSON cực ngắn thường khắc phục response bị lỗi cú pháp.
+          if (attempt < 2) return compareBatch(batchKeys, attempt + 1);
+          throw error;
         }
-      ], 6500, 0);
-      return parseAIJson(raw);
+      };
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex += 1) {
+        const batchKeys = batches[batchIndex];
+        try {
+          const rows = await compareBatch(batchKeys);
+          const rowMap = new Map(
+            rows
+              .map(row => [String(row?.key || "").trim(), row])
+              .filter(([key]) => key)
+          );
+
+          batchKeys.forEach(key => {
+            const meta = extractions
+              .flatMap(item => item.fields)
+              .find(field => field.key === key);
+            const deepSeekRow = rowMap.get(key);
+            if (deepSeekRow) {
+              mergedFields.push({
+                key,
+                status: normalizeComparisonStatus(deepSeekRow.status),
+                explanation: textOf(deepSeekRow.explanation || deepSeekRow.reason || "")
+              });
+            } else if (meta) {
+              mergedFields.push({
+                key,
+                status: fallbackComparisonStatus(meta, extractions),
+                explanation: "Đối chiếu tự động theo giá trị đã chuẩn hóa."
+              });
+            }
+          });
+        } catch (_) {
+          // Không để một response JSON lỗi làm hỏng toàn bộ quá trình.
+          fallbackBatchCount += 1;
+          batchKeys.forEach(key => {
+            const meta = extractions
+              .flatMap(item => item.fields)
+              .find(field => field.key === key);
+            if (!meta) return;
+            mergedFields.push({
+              key,
+              status: fallbackComparisonStatus(meta, extractions),
+              explanation: "DeepSeek trả JSON lỗi; hệ thống đã dùng đối chiếu dự phòng theo dữ liệu chuẩn hóa."
+            });
+          });
+        }
+      }
+
+      const counts = mergedFields.reduce((acc, row) => {
+        const status = normalizeComparisonStatus(row.status);
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, { match: 0, mismatch: 0, insufficient: 0 });
+
+      return {
+        fields: mergedFields,
+        summary: `Đã đối chiếu ${mergedFields.length} trường: ${counts.match} khớp, ${counts.mismatch} không khớp, ${counts.insufficient} chưa đủ căn cứ.${fallbackBatchCount ? ` ${fallbackBatchCount} nhóm dữ liệu phải dùng cơ chế đối chiếu dự phòng do phản hồi JSON của DeepSeek không hợp lệ.` : ""}`
+      };
     }
 
     $("#compareDocsBtn").addEventListener("click", async () => {
