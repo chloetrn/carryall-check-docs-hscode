@@ -1005,6 +1005,265 @@
       line-height: 1.4;
     }
 
+    /* Tờ khai nháp */
+    .declaration-alert {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid #e8be71;
+      border-left: 5px solid #d68a13;
+      border-radius: 10px;
+      background: #fff9ed;
+      color: #694300;
+      font-size: 12.5px;
+    }
+    .declaration-alert strong { display: block; margin-bottom: 3px; font-size: 13px; }
+    .declaration-alert-icon {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #f5d79d;
+      font-weight: 900;
+    }
+    .draft-empty {
+      max-width: 760px;
+      margin: 42px auto;
+      padding: 36px 26px;
+      text-align: center;
+    }
+    .draft-empty-icon {
+      width: 56px;
+      height: 56px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+      border-radius: 15px;
+      background: var(--teal-tint);
+      color: var(--teal);
+      font-size: 25px;
+    }
+    .draft-empty h3 { margin: 0; color: var(--teal-dark); font-size: 19px; }
+    .draft-empty p { max-width: 600px; margin: 8px auto 18px; color: var(--muted); font-size: 12.5px; }
+    .declaration-launch {
+      position: static;
+      margin-top: 16px;
+      border-color: #b8d6d7;
+      background: var(--teal-tint);
+      box-shadow: none;
+    }
+    .draft-top-card { margin-bottom: 16px; overflow: hidden; }
+    .draft-top-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .draft-kind-group { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 10px; }
+    .draft-kind-btn {
+      min-height: 40px;
+      border: 1px solid var(--gray-3);
+      border-radius: 8px;
+      background: var(--white);
+      color: #405052;
+      padding: 8px 13px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .draft-kind-btn.active {
+      border-color: var(--teal);
+      background: var(--teal-tint);
+      color: var(--teal-dark);
+      box-shadow: inset 0 0 0 1px var(--teal);
+    }
+    .draft-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+    .draft-meta-item {
+      padding: 10px 11px;
+      border: 1px solid var(--gray-2);
+      border-radius: 8px;
+      background: var(--gray-0);
+    }
+    .draft-meta-item span { display: block; color: var(--muted); font-size: 9.5px; font-weight: 800; text-transform: uppercase; }
+    .draft-meta-item strong { display: block; margin-top: 3px; color: var(--teal-dark); font-size: 12px; }
+    .draft-legend {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding-top: 13px;
+      border-top: 1px solid var(--gray-2);
+    }
+    .draft-legend-item, .draft-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 9.5px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .draft-legend-item::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-extracted { background: #eef7fb; color: #216783; }
+    .status-confirmed { background: var(--green-tint); color: var(--green); }
+    .status-conflict { background: var(--amber-tint); color: var(--amber); }
+    .status-missing { background: var(--red-tint); color: var(--red); }
+    .status-computed { background: var(--blue-tint); color: var(--blue); }
+    .status-empty { background: var(--gray-1); color: var(--muted); }
+    .draft-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 17px;
+      align-items: start;
+    }
+    .draft-main { display: grid; gap: 14px; }
+    .draft-sidebar { display: grid; gap: 13px; position: sticky; top: 64px; }
+    .draft-sidebar-card { overflow: hidden; }
+    .draft-sidebar-card h4 { margin: 0; color: var(--teal-dark); font-size: 13px; }
+    .draft-sidebar-card .card-body { padding: 14px; }
+    .draft-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .draft-stat {
+      min-height: 66px;
+      padding: 9px;
+      border: 1px solid var(--gray-2);
+      border-radius: 8px;
+      background: var(--gray-0);
+    }
+    .draft-stat strong { display: block; color: var(--teal-dark); font-size: 20px; line-height: 1.2; }
+    .draft-stat span { color: var(--muted); font-size: 10px; }
+    .draft-source-list, .draft-missing-list { display: grid; gap: 7px; }
+    .draft-source-item {
+      padding: 8px 9px;
+      border: 1px solid var(--gray-2);
+      border-radius: 7px;
+      background: var(--gray-0);
+      font-size: 10.5px;
+      overflow-wrap: anywhere;
+    }
+    .draft-source-item strong { display: block; color: #334345; }
+    .draft-source-item span { color: var(--muted); }
+    .draft-section {
+      border: 1px solid var(--gray-2);
+      border-radius: 11px;
+      background: var(--white);
+      overflow: hidden;
+    }
+    .draft-section > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 17px;
+      cursor: pointer;
+      list-style: none;
+      background: var(--gray-0);
+    }
+    .draft-section > summary::-webkit-details-marker { display: none; }
+    .draft-section[open] > summary { border-bottom: 1px solid var(--gray-2); background: #f4fafa; }
+    .draft-section-title { display: flex; gap: 10px; align-items: flex-start; }
+    .draft-section-index {
+      min-width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--teal);
+      color: var(--white);
+      font-size: 10px;
+      font-weight: 850;
+    }
+    .draft-section h3 { margin: 0; color: var(--teal-dark); font-size: 14px; }
+    .draft-section-summary { margin: 2px 0 0; color: var(--muted); font-size: 10.5px; }
+    .draft-section-body { padding: 17px; }
+    .draft-field-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 13px; }
+    .draft-field { grid-column: span 4; min-width: 0; }
+    .draft-field.half { grid-column: span 6; }
+    .draft-field.full { grid-column: 1 / -1; }
+    .draft-field-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    .draft-field label { color: #314042; font-size: 11.5px; font-weight: 750; }
+    .draft-control {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--gray-3);
+      border-left-width: 4px;
+      border-radius: 7px;
+      background: var(--white);
+      color: var(--black);
+      padding: 8px 10px;
+      outline: 0;
+      font-size: 12px;
+    }
+    textarea.draft-control { min-height: 76px; resize: vertical; }
+    .draft-control:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(10,98,104,.1); }
+    .draft-field[data-status="extracted"] .draft-control { border-left-color: #65a8c1; background: #fbfdfe; }
+    .draft-field[data-status="confirmed"] .draft-control { border-color: #64ad81; border-left-color: var(--green); background: #f5fbf7; }
+    .draft-field[data-status="conflict"] .draft-control { border-color: #d8a94c; border-left-color: #c27a00; background: #fffaf0; }
+    .draft-field[data-status="missing"] .draft-control { border-color: #e8a0a7; border-left-color: var(--red); background: #fff8f8; }
+    .draft-field[data-status="computed"] .draft-control { border-left-color: var(--blue); background: #f6f9ff; }
+    .draft-field-note { display: block; margin-top: 4px; color: var(--muted); font-size: 9.8px; line-height: 1.45; }
+    .conflict-choices { margin-top: 6px; border: 1px solid #e1c687; border-radius: 7px; background: #fffaf0; overflow: hidden; }
+    .conflict-choices summary { padding: 7px 9px; cursor: pointer; color: #785000; font-size: 10.5px; font-weight: 800; }
+    .conflict-choice-list { display: grid; gap: 6px; padding: 8px; border-top: 1px solid #ead39e; }
+    .conflict-choice {
+      width: 100%;
+      border: 1px solid #e2cf9e;
+      border-radius: 6px;
+      background: var(--white);
+      color: #4e3a13;
+      padding: 7px 8px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 10.5px;
+    }
+    .conflict-choice:hover { border-color: var(--teal); color: var(--teal-dark); }
+    .conflict-choice span { display: block; margin-top: 2px; color: var(--muted); font-size: 9.5px; }
+    .draft-items-table .draft-control { min-width: 105px; border-left-width: 1px; }
+    .draft-items-table textarea.draft-control { min-width: 240px; }
+    .draft-items-table th { white-space: nowrap; }
+    .draft-items-table td { min-width: 115px; }
+    .draft-items-table td:nth-child(1), .draft-items-table td:last-child { min-width: 54px; text-align: center; }
+    .draft-item-status { display: block; margin-top: 4px; }
+    .draft-mini-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; }
+    .draft-toolbar {
+      position: sticky;
+      bottom: 0;
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 17px;
+      padding: 12px;
+      border: 1px solid #bfd6d7;
+      border-radius: 10px;
+      background: rgba(255,255,255,.97);
+      box-shadow: 0 -8px 24px rgba(16,52,54,.08);
+      backdrop-filter: blur(10px);
+    }
+    .draft-toolbar .action-hint { margin-right: auto; }
+    .draft-check-table td:last-child { white-space: nowrap; }
+
     footer { padding: 18px 0 28px; color: var(--muted); text-align: center; font-size: 11px; }
 
     @media (max-width: 900px) {
@@ -1013,6 +1272,9 @@
       .summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .doc-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .source-grid { grid-template-columns: 1fr; }
+      .draft-top-grid, .draft-layout { grid-template-columns: 1fr; }
+      .draft-sidebar { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .draft-field { grid-column: span 6; }
     }
     @media (max-width: 640px) {
       .wrap { width: min(100% - 24px, 1240px); }
@@ -1029,6 +1291,10 @@
       .card-head, .card-body { padding-left: 14px; padding-right: 14px; }
       .field, .field.half, .field.full { grid-column: 1 / -1; }
       .summary-grid, .detail-grid, .doc-grid { grid-template-columns: 1fr; }
+      .draft-sidebar { grid-template-columns: 1fr; }
+      .draft-field, .draft-field.half, .draft-field.full { grid-column: 1 / -1; }
+      .draft-meta { grid-template-columns: 1fr; }
+      .draft-toolbar { position: static; }
       .compact-summary-row { grid-template-columns: 1fr; gap: 3px; }
       .compact-missing, .analysis-collapse-bar { align-items: flex-start; flex-direction: column; }
       .item-card-head, .result-item-head { align-items: flex-start; flex-direction: column; }
@@ -1042,8 +1308,19 @@
     }
     @media print {
       body { background: #fff; }
-      .topbar, .tabs, .hero, #hsForm, #hsWorkflowForm, .actions, .export-actions, .batch-export, #panel-check, footer { display: none !important; }
-      #panel-hs, #hsResultArea, .panel { display: block !important; }
+      .topbar, .tabs, .hero, #hsForm, #hsWorkflowForm, .actions, .export-actions, .batch-export, #panel-check, #panel-draft, footer { display: none !important; }
+      #panel-hs, #hsResultArea { display: block !important; }
+      body.print-draft #panel-hs, body.print-draft #hsResultArea { display: none !important; }
+      body.print-draft #panel-draft, body.print-draft #draftWorkspace { display: block !important; }
+      body.print-draft .draft-sidebar, body.print-draft .draft-toolbar, body.print-draft .draft-kind-group,
+      body.print-draft .draft-legend, body.print-draft .conflict-choices, body.print-draft .draft-mini-actions,
+      body.print-draft .declaration-alert-icon { display: none !important; }
+      body.print-draft .draft-layout { display: block; }
+      body.print-draft .draft-section { break-inside: auto; margin-bottom: 10px; }
+      body.print-draft .draft-section > summary { border-bottom: 1px solid var(--gray-2); }
+      body.print-draft .draft-section-body { display: block !important; }
+      body.print-draft .draft-control { border: 0; border-bottom: 1px solid #aaa; border-radius: 0; padding: 4px 0; background: transparent !important; }
+      body.print-draft .draft-status { display: none !important; }
       main { padding: 0; }
       .wrap { width: 100%; }
       .card { box-shadow: none; break-inside: avoid; }
@@ -1107,6 +1384,7 @@
     <div class="wrap tab-list">
       <button class="tab-btn" type="button" data-tab="check">1. Kiểm tra chứng từ</button>
       <button class="tab-btn active" type="button" data-tab="hs">2. Phân tích mã HS</button>
+      <button class="tab-btn" type="button" data-tab="draft">3. Tờ khai nháp</button>
     </div>
   </nav>
 
@@ -1583,6 +1861,110 @@
 
         <div class="disclaimer hidden" id="batchLegalDisclaimer">
           <strong>Lưu ý pháp lý:</strong> Kết quả do hệ thống cung cấp chỉ mang tính chất tham khảo, được tổng hợp từ thông tin hàng hóa và các nguồn tìm thấy tại thời điểm tra cứu. Mã HS chính thức phụ thuộc vào hồ sơ thực tế, thành phần, cấu tạo, công dụng, kết quả kiểm định và quyết định của cơ quan hải quan. Người dùng nên kiểm tra với đơn vị khai báo hải quan hoặc thực hiện thủ tục xác định trước mã số đối với trường hợp phức tạp.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-draft">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Bước 3 · Hoàn thiện hồ sơ khai báo</p>
+          <h2>Tờ khai hải quan nháp</h2>
+          <p>Dùng lại bộ file và dữ liệu đã đối chiếu, điền vào các nhóm chỉ tiêu khai báo, bổ sung phần còn thiếu và xuất bản nháp để kiểm tra.</p>
+        </div>
+        <div class="hero-badge">Chưa đăng ký · Chưa truyền VNACCS</div>
+      </div>
+
+      <div class="declaration-alert">
+        <div class="declaration-alert-icon">!</div>
+        <div>
+          <strong>TỜ KHAI HÀNG HÓA – BẢN NHÁP, CHƯA TRUYỀN VNACCS</strong>
+          Dữ liệu được tổng hợp từ chứng từ và chỉ phục vụ kiểm tra trước khi khai báo. Người khai phải xác nhận mã loại hình, mã Hải quan, mã HS, trị giá, thuế suất, C/O, chính sách mặt hàng và các mã nghiệp vụ trước khi đăng ký chính thức.
+        </div>
+      </div>
+
+      <div class="card draft-empty" id="draftEmptyState">
+        <div class="draft-empty-icon">▤</div>
+        <h3>Chưa có dữ liệu để tạo tờ khai nháp</h3>
+        <p>Hãy tải và đối chiếu bộ chứng từ ở tab “Kiểm tra chứng từ”, sau đó nhấn “Tạo tờ khai nháp từ bộ chứng từ này”. Bạn không cần tải file lần thứ hai.</p>
+        <button class="btn btn-primary" id="goToCheckBtn" type="button">Đi đến kiểm tra chứng từ</button>
+      </div>
+
+      <div class="hidden" id="draftWorkspace" aria-hidden="true">
+        <section class="card draft-top-card">
+          <div class="card-body">
+            <div class="draft-top-grid">
+              <div>
+                <p class="eyebrow" style="margin-bottom:4px">Loại tờ khai</p>
+                <strong id="draftKindTitle" style="color:var(--teal-dark);font-size:17px">Tờ khai nhập khẩu</strong>
+                <p style="margin:4px 0 0;color:var(--muted);font-size:11.5px">Hệ thống gợi ý theo bộ chứng từ. Người khai phải chọn và xác nhận đúng loại trước khi xuất file.</p>
+                <div class="draft-kind-group" role="group" aria-label="Chọn loại tờ khai">
+                  <button class="draft-kind-btn active" type="button" data-draft-type="import">Tờ khai nhập khẩu</button>
+                  <button class="draft-kind-btn" type="button" data-draft-type="export">Tờ khai xuất khẩu</button>
+                </div>
+              </div>
+              <div class="draft-meta">
+                <div class="draft-meta-item"><span>Trạng thái</span><strong>Bản nháp</strong></div>
+                <div class="draft-meta-item"><span>Ngày tạo</span><strong id="draftCreatedAt">—</strong></div>
+                <div class="draft-meta-item"><span>Bộ chứng từ</span><strong id="draftDocumentCount">0 file</strong></div>
+                <div class="draft-meta-item"><span>Cập nhật gần nhất</span><strong id="draftUpdatedAt">—</strong></div>
+              </div>
+            </div>
+            <div class="draft-legend" aria-label="Chú thích trạng thái dữ liệu">
+              <span class="draft-legend-item status-extracted">Đã trích xuất</span>
+              <span class="draft-legend-item status-confirmed">Đã xác nhận</span>
+              <span class="draft-legend-item status-conflict">Có mâu thuẫn</span>
+              <span class="draft-legend-item status-missing">Cần bổ sung</span>
+              <span class="draft-legend-item status-computed">Hệ thống tính nháp</span>
+              <span class="draft-legend-item status-empty">Người khai phải chọn</span>
+            </div>
+          </div>
+        </section>
+
+        <div id="draftMessage" class="notice hidden" role="status" aria-live="polite" style="margin-bottom:14px"></div>
+
+        <div class="draft-layout">
+          <div class="draft-main" id="draftFormArea"></div>
+
+          <aside class="draft-sidebar">
+            <section class="card draft-sidebar-card">
+              <div class="card-body">
+                <h4>Tiến độ hoàn thiện</h4>
+                <div class="draft-stats" id="draftStats" style="margin-top:10px"></div>
+              </div>
+            </section>
+
+            <section class="card draft-sidebar-card">
+              <div class="card-body">
+                <h4>Thông tin bắt buộc còn thiếu</h4>
+                <div class="draft-missing-list" id="draftMissingList" style="margin-top:10px"></div>
+              </div>
+            </section>
+
+            <section class="card draft-sidebar-card">
+              <div class="card-body">
+                <h4>Câu hỏi cần trả lời tiếp</h4>
+                <p style="margin:4px 0 9px;color:var(--muted);font-size:10.5px">Ưu tiên tối đa ba câu có ảnh hưởng trực tiếp đến khả năng hoàn thiện bản nháp.</p>
+                <div class="draft-missing-list" id="draftQuestionList"></div>
+              </div>
+            </section>
+
+            <section class="card draft-sidebar-card">
+              <div class="card-body">
+                <h4>Chứng từ đang sử dụng</h4>
+                <div class="draft-source-list" id="draftSourceList" style="margin-top:10px"></div>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <div class="draft-toolbar">
+          <button class="btn btn-ghost" id="backToCheckBtn" type="button">Quay lại đối chiếu</button>
+          <button class="btn btn-secondary" id="refreshDraftBtn" type="button">Cập nhật từ dữ liệu đối chiếu</button>
+          <button class="btn btn-secondary" id="checkDraftBtn" type="button">Kiểm tra trường còn thiếu</button>
+          <span class="action-hint" id="draftToolbarHint">Chưa truyền VNACCS.</span>
+          <button class="btn btn-primary" id="exportDraftPdfBtn" type="button">Xuất tờ khai nháp PDF</button>
+          <button class="btn btn-secondary" id="exportDraftExcelBtn" type="button">Xuất dữ liệu Excel</button>
         </div>
       </div>
     </section>
@@ -2108,6 +2490,119 @@
       { id: "productlist", en: "Product List", vi: "Danh sách hàng hóa" }
     ];
     const docFiles = new Map();
+    let lastDocumentComparison = null;
+    let lastDocumentExtractions = [];
+    let documentAnalysisVersion = 0;
+    let documentWorkspaceStale = false;
+    let declarationWorkspace = null;
+
+    const DECLARATION_FIELD_SECTIONS = [
+      {
+        id: "registration",
+        title: "Thông tin đăng ký",
+        description: "Các mã nghiệp vụ do người khai lựa chọn và thông tin nhận dạng bản nháp.",
+        fields: [
+          { key: "draft_reference", label: "Mã tham chiếu bản nháp", computed: true, required: ["import", "export"] },
+          { key: "registration_date", label: "Ngày lập bản nháp", computed: true, required: ["import", "export"] },
+          { key: "declaration_type_code", label: "Mã loại hình", required: ["import", "export"], placeholder: "Ví dụ: A11, A12, E62…", choice: true },
+          { key: "customs_office_code", label: "Mã Chi cục Hải quan đăng ký", required: ["import", "export"], placeholder: "Người khai phải chọn", choice: true },
+          { key: "processing_department_code", label: "Mã bộ phận xử lý", placeholder: "Bổ sung nếu nghiệp vụ yêu cầu", choice: true },
+          { key: "declarant_reference", label: "Số tham chiếu của người khai", placeholder: "Mã hồ sơ nội bộ" }
+        ]
+      },
+      {
+        id: "parties",
+        title: "Người nhập khẩu và người xuất khẩu",
+        description: "Tên, địa chỉ và mã doanh nghiệp được chuyển từ Invoice, B/L, C/O và chứng từ liên quan.",
+        fields: [
+          { key: "importer_code", label: "Mã số thuế người nhập khẩu", required: ["import"], placeholder: "Người khai bổ sung" },
+          { key: "importer_name", label: "Tên người nhập khẩu", sources: ["buyer"], required: ["import", "export"], span: "half" },
+          { key: "importer_address", label: "Địa chỉ người nhập khẩu", sources: ["buyer_address"], required: ["import", "export"], type: "textarea", span: "half" },
+          { key: "exporter_code", label: "Mã người xuất khẩu", placeholder: "Nếu có" },
+          { key: "exporter_name", label: "Tên người xuất khẩu", sources: ["seller"], required: ["import", "export"], span: "half" },
+          { key: "exporter_address", label: "Địa chỉ người xuất khẩu", sources: ["seller_address"], required: ["import", "export"], type: "textarea", span: "half" },
+          { key: "notify_party", label: "Bên được thông báo", sources: ["notify_party"], span: "half" },
+          { key: "notify_party_address", label: "Địa chỉ bên được thông báo", sources: ["notify_party_address"], type: "textarea", span: "half" }
+        ]
+      },
+      {
+        id: "transport",
+        title: "Vận đơn và vận chuyển",
+        description: "Thông tin B/L, hành trình, số kiện và trọng lượng.",
+        fields: [
+          { key: "bl_number", label: "Số vận đơn", sources: ["hbl_number", "bl_number", "mbl_number"], required: ["import", "export"] },
+          { key: "bl_date", label: "Ngày vận đơn", sources: ["bl_date", "on_board_date"] },
+          { key: "transport_mode", label: "Phương thức vận chuyển", sources: ["transport_mode"], required: ["import", "export"], choice: true },
+          { key: "vessel_voyage", label: "Tên tàu / Số chuyến", sources: ["vessel_voyage"] },
+          { key: "package_count", label: "Tổng số kiện", sources: ["package_count"], required: ["import", "export"] },
+          { key: "package_type", label: "Loại bao bì / kiện", sources: ["package_type"] },
+          { key: "gross_weight", label: "Tổng trọng lượng cả bì", sources: ["gross_weight"], required: ["import", "export"] },
+          { key: "net_weight", label: "Tổng trọng lượng tịnh", sources: ["net_weight"] },
+          { key: "departure_date", label: "Ngày khởi hành / ETD", sources: ["departure_date", "etd", "on_board_date"] },
+          { key: "arrival_date", label: "Ngày đến / ETA", sources: ["arrival_date", "eta"] },
+          { key: "port_of_loading", label: "Cảng / địa điểm xếp hàng", sources: ["port_of_loading"], required: ["import", "export"], span: "half" },
+          { key: "port_of_discharge", label: "Cảng / địa điểm dỡ hàng", sources: ["port_of_discharge"], required: ["import", "export"], span: "half" },
+          { key: "place_of_delivery", label: "Địa điểm giao hàng", sources: ["place_of_delivery"], span: "half" },
+          { key: "storage_location_code", label: "Mã địa điểm lưu kho chờ thông quan", required: ["import"], placeholder: "Người khai phải chọn", choice: true, span: "half" },
+          { key: "marks_numbers", label: "Ký mã hiệu", sources: ["marks_numbers"], type: "textarea", span: "full" }
+        ]
+      },
+      {
+        id: "invoice",
+        title: "Hóa đơn, hợp đồng và trị giá",
+        description: "Thông tin thương mại được trích xuất; trị giá và các khoản điều chỉnh vẫn cần người khai kiểm tra.",
+        fields: [
+          { key: "invoice_number", label: "Số hóa đơn", sources: ["invoice_number"], required: ["import", "export"] },
+          { key: "invoice_date", label: "Ngày hóa đơn", sources: ["invoice_date"], required: ["import", "export"] },
+          { key: "contract_number", label: "Số hợp đồng", sources: ["contract_number"] },
+          { key: "contract_date", label: "Ngày hợp đồng", sources: ["contract_date"] },
+          { key: "purchase_order_number", label: "Số đơn đặt hàng (PO)", sources: ["purchase_order_number"] },
+          { key: "currency", label: "Mã đồng tiền", sources: ["currency"], required: ["import", "export"], choice: true },
+          { key: "incoterm", label: "Điều kiện giá hóa đơn / Incoterms", sources: ["incoterm"], required: ["import", "export"] },
+          { key: "payment_terms", label: "Phương thức / điều kiện thanh toán", sources: ["payment_terms"], required: ["import", "export"], choice: true },
+          { key: "invoice_total", label: "Tổng trị giá hóa đơn", sources: ["total_amount"], required: ["import", "export"] },
+          { key: "valuation_method", label: "Mã phương pháp xác định trị giá", required: ["import"], placeholder: "Người khai phải chọn", choice: true },
+          { key: "buyer_seller_relationship", label: "Quan hệ người mua – người bán", required: ["import"], placeholder: "Có / Không", choice: true },
+          { key: "freight_value", label: "Phí vận tải", placeholder: "Bổ sung nếu chưa nằm trong trị giá" },
+          { key: "insurance_value", label: "Phí bảo hiểm", placeholder: "Bổ sung nếu có" },
+          { key: "valuation_adjustments", label: "Khoản điều chỉnh trị giá khác", type: "textarea", span: "full" }
+        ]
+      },
+      {
+        id: "origin",
+        title: "C/O, giấy phép và chính sách mặt hàng",
+        description: "Thông tin xuất xứ có thể được trích xuất; giấy phép và chính sách chuyên ngành phải được kiểm tra riêng.",
+        fields: [
+          { key: "co_form", label: "Loại / mẫu C/O", sources: ["co_form"] },
+          { key: "co_number", label: "Số C/O", sources: ["co_number"] },
+          { key: "co_issue_date", label: "Ngày cấp C/O", sources: ["co_issue_date"] },
+          { key: "origin_country", label: "Nước xuất xứ", sources: ["origin_country"] },
+          { key: "origin_criterion", label: "Tiêu chí xuất xứ", sources: ["origin_criterion"] },
+          { key: "third_party_invoice", label: "Hóa đơn bên thứ ba", placeholder: "Có / Không", choice: true },
+          { key: "license_policy", label: "Giấy phép / kiểm tra chuyên ngành", type: "textarea", span: "half" },
+          { key: "attached_documents", label: "Chứng từ đính kèm khác", type: "textarea", span: "half" }
+        ]
+      }
+    ];
+
+    const DECLARATION_ITEM_FIELDS = [
+      { key: "item_code", label: "Mã hàng / Model", suffixes: ["item_code"] },
+      { key: "invoice_description", label: "Tên hàng trên Invoice", suffixes: ["description"], required: true, type: "textarea" },
+      { key: "customs_description", label: "Tên khai hải quan", suffixes: ["description"], required: true, type: "textarea", copied: true },
+      { key: "hs_code", label: "Mã HS dự kiến", suffixes: ["hs_code"], required: true },
+      { key: "origin_country", label: "Xuất xứ", suffixes: ["origin_country"], required: true },
+      { key: "origin_criterion", label: "Tiêu chí xuất xứ", suffixes: ["origin_criterion"] },
+      { key: "quantity_1", label: "Số lượng 1", suffixes: ["quantity"], required: true },
+      { key: "unit_1", label: "ĐVT 1", suffixes: ["unit"], required: true },
+      { key: "quantity_2", label: "Số lượng 2" },
+      { key: "unit_2", label: "ĐVT 2" },
+      { key: "unit_price", label: "Đơn giá", suffixes: ["unit_price"] },
+      { key: "amount", label: "Trị giá", suffixes: ["amount"] },
+      { key: "tariff_schedule", label: "Mã biểu thuế", choice: true },
+      { key: "tax_rate", label: "Thuế suất XNK" },
+      { key: "vat_rate", label: "Thuế suất VAT" },
+      { key: "license_line", label: "C/O / giấy phép dòng hàng" }
+    ];
 
     function updateKeyUI(status = apiKey ? "saved" : "empty", message = "") {
       const state = $("#serviceState");
@@ -2730,11 +3225,14 @@
       $("#toggleOpenAIKeyBtn").textContent = show ? "Ẩn" : "Hiện";
     });
 
+    function activateTab(tabName, scrollToTop = true) {
+      $$(".tab-btn").forEach(item => item.classList.toggle("active", item.dataset.tab === tabName));
+      $$(".panel").forEach(panel => panel.classList.toggle("active", panel.id === "panel-" + tabName));
+      if (scrollToTop) window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     $$(".tab-btn").forEach(button => {
-      button.addEventListener("click", () => {
-        $$(".tab-btn").forEach(item => item.classList.toggle("active", item === button));
-        $$(".panel").forEach(panel => panel.classList.toggle("active", panel.id === "panel-" + button.dataset.tab));
-      });
+      button.addEventListener("click", () => activateTab(button.dataset.tab));
     });
 
     function buildDocGrid() {
@@ -2755,6 +3253,7 @@
           const file = event.target.files[0];
           if (!file) return;
           docFiles.set(docId, file);
+          documentWorkspaceStale = true;
           slot.classList.add("has-file");
           $(".doc-clear", slot).classList.remove("hidden");
           $(".doc-file-name", slot).innerHTML = `${esc(file.name)} <span class="file-meta">(${formatBytes(file.size)})</span>`;
@@ -2762,6 +3261,7 @@
         });
         $(".doc-clear", slot).addEventListener("click", () => {
           docFiles.delete(docId);
+          documentWorkspaceStale = true;
           $("input", slot).value = "";
           slot.classList.remove("has-file");
           $(".doc-clear", slot).classList.add("hidden");
@@ -2783,6 +3283,9 @@
 
     $("#clearDocsBtn").addEventListener("click", () => {
       docFiles.clear();
+      lastDocumentComparison = null;
+      lastDocumentExtractions = [];
+      documentWorkspaceStale = true;
       buildDocGrid();
       updateDocHint();
       $("#docResultArea").innerHTML = "";
@@ -3279,6 +3782,10 @@ ${JSON.stringify(compact)}`
         const comparableExtractions = prepareComparisonExtractions(extractions);
         const comparison = await compareExtractionsWithDeepSeek(comparableExtractions);
         const data = mergeComparisonResult(comparison, comparableExtractions);
+        lastDocumentComparison = data;
+        lastDocumentExtractions = comparableExtractions;
+        documentAnalysisVersion += 1;
+        documentWorkspaceStale = false;
         renderDocumentResult(data, comparableExtractions);
         progress.innerHTML = `<strong>Hoàn tất:</strong> OpenAI Terra đã trích xuất ${extractions.length} chứng từ; DeepSeek đã đối chiếu ${data.fields.length} trường.`;
       } catch (error) {
@@ -3317,9 +3824,857 @@ ${JSON.stringify(compact)}`
       if (warnings.length) {
         html += `<div class="warning" style="margin-top:12px"><strong>Cần kiểm tra lại trên chứng từ gốc:</strong><ul>${warnings.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div>`;
       }
+      html += `<div class="actions declaration-launch">
+        <div>
+          <strong style="display:block;color:var(--teal-dark);font-size:12.5px">Đã sẵn sàng tạo tờ khai nháp</strong>
+          <span class="action-hint">Dùng lại ${docs.length} file và toàn bộ dữ liệu vừa đối chiếu; không cần tải lại.</span>
+        </div>
+        <button class="btn btn-primary" id="createDraftFromDocsBtn" type="button">Tạo tờ khai nháp từ bộ chứng từ này</button>
+      </div>`;
       html += "</div></div>";
       area.innerHTML = html;
+      $("#createDraftFromDocsBtn")?.addEventListener("click", () => createDeclarationDraftFromDocuments(false));
     }
+
+    function declarationNow() {
+      return new Date().toLocaleString("vi-VN", { hour12: false });
+    }
+
+    function declarationDate() {
+      return new Date().toLocaleDateString("vi-VN");
+    }
+
+    function declarationDocumentLabel(docId) {
+      const documentMeta = lastDocumentComparison?.documents?.find(item => item.id === docId);
+      const definition = DOC_TYPES.find(item => item.id === docId);
+      return documentMeta?.label || definition?.vi || docId;
+    }
+
+    function declarationSourceDetail(fieldKey, docId) {
+      const extraction = lastDocumentExtractions.find(item => item.document.id === docId);
+      const field = extraction?.fields?.find(item => item.key === fieldKey);
+      const fileName = extraction?.document?.file_name || docFiles.get(docId)?.name || "";
+      return [declarationDocumentLabel(docId), fileName, field?.source].filter(Boolean).join(" · ");
+    }
+
+    function declarationRequired(definition, type = declarationWorkspace?.type || "import") {
+      return Array.isArray(definition?.required)
+        ? definition.required.includes(type)
+        : Boolean(definition?.required);
+    }
+
+    function declarationPreferredDocuments(fieldKey) {
+      const preferred = [];
+      if (/^invoice_|total_amount|currency|incoterm|payment_terms/.test(fieldKey)) preferred.push("invoice");
+      if (/^packing_|package_|gross_weight|net_weight|dimensions|volume/.test(fieldKey)) preferred.push("packing");
+      if (/^(?:hbl|mbl|bl)_|vessel|port_|place_of_delivery|container|seal|marks|on_board/.test(fieldKey)) preferred.push("bl");
+      if (/^co_|origin_/.test(fieldKey)) preferred.push("co");
+      if (/^contract_/.test(fieldKey)) preferred.push("contract");
+      if (/arrival|eta/.test(fieldKey)) preferred.push("arrival");
+      return [...new Set([...preferred, ...(lastDocumentComparison?.documents || []).map(item => item.id)])];
+    }
+
+    function declarationRowForKeys(keys = []) {
+      const rows = lastDocumentComparison?.fields || [];
+      for (const key of keys) {
+        const row = rows.find(item => item.key === key);
+        if (row) return row;
+      }
+      return null;
+    }
+
+    function declarationChoicesForRow(row) {
+      if (!row) return [];
+      const choices = [];
+      Object.entries(row.values || {}).forEach(([docId, rawValue]) => {
+        const value = String(rawValue || "").trim();
+        if (!value || choices.some(item => item.value === value)) return;
+        choices.push({
+          value,
+          docId,
+          label: declarationSourceDetail(row.key, docId)
+        });
+      });
+      return choices;
+    }
+
+    function blankDeclarationField(definition, type, overrides = {}) {
+      const required = declarationRequired(definition, type);
+      return {
+        value: "",
+        status: required && !definition?.choice ? "missing" : "empty",
+        required,
+        selectionRequired: Boolean(required && definition?.choice),
+        source: "",
+        alternatives: [],
+        ...overrides
+      };
+    }
+
+    function declarationFieldFromSource(definition, type, explicitKeys = null) {
+      const keys = explicitKeys || definition.sources || [];
+      const required = declarationRequired(definition, type);
+      if (definition.computed) {
+        const value = definition.key === "registration_date"
+          ? declarationDate()
+          : `NHAP-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(Date.now()).slice(-5)}`;
+        return blankDeclarationField(definition, type, {
+          value,
+          status: "computed",
+          source: "Hệ thống tạo cho bản nháp"
+        });
+      }
+
+      const row = declarationRowForKeys(keys);
+      const choices = declarationChoicesForRow(row);
+      if (!row || !choices.length) return blankDeclarationField(definition, type);
+      if (row.status === "mismatch") {
+        return blankDeclarationField(definition, type, {
+          status: "conflict",
+          alternatives: choices,
+          source: row.explanation || "Các chứng từ thể hiện giá trị khác nhau."
+        });
+      }
+
+      const preferredDocs = declarationPreferredDocuments(row.key);
+      const selected = preferredDocs.map(docId => choices.find(item => item.docId === docId)).find(Boolean) || choices[0];
+      return blankDeclarationField(definition, type, {
+        value: selected.value,
+        status: "extracted",
+        source: selected.label,
+        alternatives: choices
+      });
+    }
+
+    function preserveConfirmedDeclarationField(nextField, previousField, definition, type) {
+      if (!previousField || (previousField.status !== "confirmed" && !definition?.computed)) return nextField;
+      return {
+        ...previousField,
+        required: declarationRequired(definition, type),
+        selectionRequired: Boolean(declarationRequired(definition, type) && definition?.choice)
+      };
+    }
+
+    function genericItemSourceKey(suffix) {
+      return ({
+        description: "goods_description",
+        item_code: "item_code",
+        hs_code: "hs_code",
+        origin_country: "origin_country",
+        origin_criterion: "origin_criterion",
+        quantity: "quantity",
+        unit: "unit",
+        unit_price: "unit_price"
+      })[suffix] || "";
+    }
+
+    function buildDeclarationItems(type, previousItems = []) {
+      const rows = lastDocumentComparison?.fields || [];
+      const itemIndexes = [...new Set(rows.map(row => String(row.key || "").match(/^item_(\d+)_/)?.[1]).filter(Boolean).map(Number))]
+        .sort((left, right) => left - right);
+      const hasGenericItem = rows.some(row => [
+        "goods_description", "item_code", "hs_code", "origin_country", "origin_criterion", "quantity", "unit", "unit_price"
+      ].includes(row.key));
+      if (!itemIndexes.length && hasGenericItem) itemIndexes.push(1);
+      if (!itemIndexes.length) itemIndexes.push(1);
+
+      return itemIndexes.map((sourceIndex, itemIndex) => {
+        const previous = previousItems[itemIndex];
+        const fields = {};
+        DECLARATION_ITEM_FIELDS.forEach(definition => {
+          const suffix = definition.suffixes?.[0] || "";
+          const keys = suffix
+            ? [`item_${sourceIndex}_${suffix}`, ...(sourceIndex === 1 && genericItemSourceKey(suffix) ? [genericItemSourceKey(suffix)] : [])]
+            : [];
+          let field = keys.length
+            ? declarationFieldFromSource({ ...definition, sources: keys }, type, keys)
+            : blankDeclarationField(definition, type);
+          if (definition.key === "customs_description") {
+            const invoiceField = fields.invoice_description;
+            field = {
+              ...(invoiceField || field),
+              value: invoiceField?.value || "",
+              required: true,
+              status: invoiceField?.value ? "extracted" : "missing",
+              source: invoiceField?.value
+                ? `${invoiceField.source || "Chứng từ"} · Cần chuẩn hóa tên khai hải quan`
+                : ""
+            };
+          }
+          fields[definition.key] = preserveConfirmedDeclarationField(field, previous?.fields?.[definition.key], definition, type);
+        });
+        return {
+          id: previous?.id || `draft-item-${Date.now()}-${itemIndex + 1}`,
+          sourceIndex,
+          fields
+        };
+      });
+    }
+
+    function splitDeclarationList(value) {
+      return String(value || "").split(/\r?\n|\s*;\s*/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function buildDeclarationContainers(type, previousContainers = []) {
+      const numberField = declarationFieldFromSource({ key: "container_number", sources: ["container_number"] }, type);
+      const sealField = declarationFieldFromSource({ key: "seal_number", sources: ["seal_number"] }, type);
+      const numbers = numberField.status === "conflict" ? [""] : splitDeclarationList(numberField.value);
+      const seals = sealField.status === "conflict" ? [""] : splitDeclarationList(sealField.value);
+      const count = Math.max(numbers.length, seals.length);
+      if (!count) return previousContainers.filter(container => Object.values(container.fields || {}).some(field => field.value));
+
+      return Array.from({ length: count }, (_, index) => {
+        const previous = previousContainers[index];
+        const fieldDefinitions = {
+          number: { key: "number", label: "Số container" },
+          seal: { key: "seal", label: "Số seal" },
+          type: { key: "type", label: "Loại container" },
+          packageCount: { key: "packageCount", label: "Số kiện" },
+          grossWeight: { key: "grossWeight", label: "Gross weight" }
+        };
+        const fields = {
+          number: { ...numberField, value: numbers[index] || "" },
+          seal: { ...sealField, value: seals[index] || "" },
+          type: blankDeclarationField(fieldDefinitions.type, type),
+          packageCount: index === 0
+            ? declarationFieldFromSource({ key: "packageCount", sources: ["package_count"] }, type)
+            : blankDeclarationField(fieldDefinitions.packageCount, type),
+          grossWeight: index === 0
+            ? declarationFieldFromSource({ key: "grossWeight", sources: ["gross_weight"] }, type)
+            : blankDeclarationField(fieldDefinitions.grossWeight, type)
+        };
+        Object.entries(fieldDefinitions).forEach(([key, definition]) => {
+          fields[key] = preserveConfirmedDeclarationField(fields[key], previous?.fields?.[key], definition, type);
+        });
+        return { id: previous?.id || `draft-container-${Date.now()}-${index + 1}`, fields };
+      });
+    }
+
+    function guessDeclarationType() {
+      const rows = lastDocumentComparison?.fields || [];
+      return docFiles.has("arrival") || rows.some(row => ["arrival_notice_number", "arrival_notice_date"].includes(row.key))
+        ? "import"
+        : (declarationWorkspace?.type || "import");
+    }
+
+    function createDeclarationDraftFromDocuments(preserveConfirmed = false) {
+      if (!lastDocumentComparison?.fields?.length) {
+        activateTab("check");
+        const area = $("#docResultArea");
+        area.innerHTML = '<div class="warning">Chưa có kết quả đối chiếu. Hãy đối chiếu ít nhất hai chứng từ trước khi tạo tờ khai nháp.</div>';
+        return;
+      }
+      if (!preserveConfirmed && documentWorkspaceStale) {
+        activateTab("check");
+        const progress = $("#docProgress");
+        progress.classList.remove("hidden");
+        progress.innerHTML = "<strong>Bộ file đã thay đổi:</strong> Hãy đối chiếu lại chứng từ trước khi tạo tờ khai nháp để tránh dùng dữ liệu cũ.";
+        return;
+      }
+
+      const previous = preserveConfirmed ? declarationWorkspace : null;
+      const type = previous?.type || guessDeclarationType();
+      const fields = {};
+      let protectedCount = 0;
+      DECLARATION_FIELD_SECTIONS.forEach(section => {
+        section.fields.forEach(definition => {
+          let field = declarationFieldFromSource(definition, type);
+          if (previous?.fields?.[definition.key]?.status === "confirmed") protectedCount += 1;
+          field = preserveConfirmedDeclarationField(field, previous?.fields?.[definition.key], definition, type);
+          fields[definition.key] = field;
+        });
+      });
+
+      declarationWorkspace = {
+        type,
+        createdAt: previous?.createdAt || declarationNow(),
+        updatedAt: declarationNow(),
+        sourceVersion: documentAnalysisVersion,
+        sourceSummary: lastDocumentComparison.summary || "",
+        sourceDocuments: (lastDocumentComparison.documents || []).map(document => ({ ...document })),
+        sourceWarnings: lastDocumentExtractions.flatMap(item => (item.warnings || []).map(warning => `${item.document.label}: ${warning}`)),
+        fields,
+        items: buildDeclarationItems(type, previous?.items || []),
+        containers: buildDeclarationContainers(type, previous?.containers || [])
+      };
+
+      renderDeclarationDraft();
+      activateTab("draft");
+      showDraftMessage(
+        preserveConfirmed
+          ? `Đã cập nhật dữ liệu mới từ tab đối chiếu và giữ nguyên ${protectedCount} trường bạn đã xác nhận.`
+          : "Đã tạo tờ khai nháp từ dữ liệu đối chiếu. Hãy kiểm tra các ô đã trích xuất, xử lý xung đột và bổ sung trường còn thiếu.",
+        preserveConfirmed ? "notice" : "success"
+      );
+    }
+
+    function showDraftMessage(message, kind = "notice") {
+      const box = $("#draftMessage");
+      box.className = `${kind} ${message ? "" : "hidden"}`.trim();
+      box.textContent = message || "";
+    }
+
+    function declarationStatusLabel(status, selectionRequired = false) {
+      if (status === "extracted") return "Đã trích xuất";
+      if (status === "confirmed") return "Đã xác nhận";
+      if (status === "conflict") return "Có mâu thuẫn";
+      if (status === "missing") return "Cần bổ sung";
+      if (status === "computed") return "Hệ thống tính nháp";
+      return selectionRequired ? "Người khai phải chọn" : "Chưa có dữ liệu";
+    }
+
+    function declarationFieldDefinition(key) {
+      for (const section of DECLARATION_FIELD_SECTIONS) {
+        const definition = section.fields.find(item => item.key === key);
+        if (definition) return definition;
+      }
+      return null;
+    }
+
+    function declarationStatusBadge(field) {
+      return `<span class="draft-status status-${esc(field.status || "empty")}">${esc(declarationStatusLabel(field.status, field.selectionRequired))}</span>`;
+    }
+
+    function declarationConflictHtml(field, scope, key, index = "") {
+      if (field.status !== "conflict" || !field.alternatives?.length) return "";
+      return `<details class="conflict-choices">
+        <summary>Xem ${field.alternatives.length} giá trị và chọn thông tin đúng</summary>
+        <div class="conflict-choice-list">
+          ${field.alternatives.map(choice => `<button class="conflict-choice" type="button"
+            data-draft-conflict-scope="${esc(scope)}" data-draft-conflict-key="${esc(key)}"
+            data-draft-conflict-index="${esc(index)}" data-draft-conflict-value="${esc(choice.value)}">
+            ${esc(choice.value)}<span>${esc(choice.label || choice.docId)}</span>
+          </button>`).join("")}
+        </div>
+      </details>`;
+    }
+
+    function declarationFieldControl(definition, field) {
+      const attributes = `class="draft-control" data-draft-field="${esc(definition.key)}" placeholder="${esc(definition.placeholder || "")}"`;
+      if (definition.type === "textarea") {
+        return `<textarea ${attributes}>${esc(field.value)}</textarea>`;
+      }
+      return `<input ${attributes} value="${esc(field.value)}">`;
+    }
+
+    function renderDeclarationField(definition, field) {
+      const requiredMissing = field.required && !String(field.value || "").trim();
+      return `<div class="draft-field ${esc(definition.span || "")}" data-draft-field-wrap="${esc(definition.key)}"
+        data-status="${esc(field.status)}" data-missing="${requiredMissing ? "true" : "false"}">
+        <div class="draft-field-head">
+          <label>${esc(definition.label)}${field.required ? ' <span class="required">*</span>' : ""}</label>
+          ${declarationStatusBadge(field)}
+        </div>
+        ${declarationFieldControl(definition, field)}
+        ${field.source ? `<span class="draft-field-note">${esc(field.source)}</span>` : ""}
+        ${declarationConflictHtml(field, "field", definition.key)}
+      </div>`;
+    }
+
+    function renderDeclarationRegularSections() {
+      return DECLARATION_FIELD_SECTIONS.map((section, sectionIndex) => {
+        const missing = section.fields.filter(definition => {
+          const field = declarationWorkspace.fields[definition.key];
+          return field?.required && !String(field.value || "").trim();
+        }).length;
+        return `<details class="draft-section" id="draft-section-${esc(section.id)}" ${sectionIndex < 4 ? "open" : ""}>
+          <summary>
+            <div class="draft-section-title">
+              <span class="draft-section-index">${String(sectionIndex + 1).padStart(2, "0")}</span>
+              <div><h3>${esc(section.title)}</h3><p class="draft-section-summary">${esc(section.description)}</p></div>
+            </div>
+            <span class="draft-status ${missing ? "status-missing" : "status-confirmed"}">${missing ? `${missing} trường cần bổ sung` : "Đã có dữ liệu chính"}</span>
+          </summary>
+          <div class="draft-section-body">
+            <div class="draft-field-grid">
+              ${section.fields.map(definition => renderDeclarationField(definition, declarationWorkspace.fields[definition.key])).join("")}
+            </div>
+          </div>
+        </details>`;
+      }).join("");
+    }
+
+    function declarationItemControl(field, definition, itemIndex) {
+      if (field.status === "conflict" && field.alternatives?.length) {
+        return `<select class="draft-control" data-draft-item-index="${itemIndex}" data-draft-item-key="${esc(definition.key)}">
+          <option value="">— Chọn giá trị đúng —</option>
+          ${field.alternatives.map(choice => `<option value="${esc(choice.value)}">${esc(choice.value)} — ${esc(choice.label || choice.docId)}</option>`).join("")}
+        </select>`;
+      }
+      const attributes = `class="draft-control" data-draft-item-index="${itemIndex}" data-draft-item-key="${esc(definition.key)}"`;
+      return definition.type === "textarea"
+        ? `<textarea ${attributes}>${esc(field.value)}</textarea>`
+        : `<input ${attributes} value="${esc(field.value)}">`;
+    }
+
+    function renderDeclarationItemsSection() {
+      const missing = declarationWorkspace.items.reduce((count, item) => count + DECLARATION_ITEM_FIELDS.filter(definition => {
+        const field = item.fields[definition.key];
+        return field?.required && !String(field.value || "").trim();
+      }).length, 0);
+      const rows = declarationWorkspace.items.map((item, itemIndex) => `<tr>
+        <td><strong>${itemIndex + 1}</strong></td>
+        ${DECLARATION_ITEM_FIELDS.map(definition => {
+          const field = item.fields[definition.key];
+          const requiredMissing = field.required && !String(field.value || "").trim();
+          return `<td data-item-cell="${itemIndex}-${esc(definition.key)}" data-status="${esc(field.status)}" data-missing="${requiredMissing ? "true" : "false"}">
+            ${declarationItemControl(field, definition, itemIndex)}
+            <span class="draft-item-status">${declarationStatusBadge(field)}</span>
+            ${field.source ? `<span class="draft-field-note">${esc(field.source)}</span>` : ""}
+          </td>`;
+        }).join("")}
+        <td><button class="mini-btn danger" type="button" data-remove-draft-item="${itemIndex}" aria-label="Xóa dòng hàng ${itemIndex + 1}">Xóa</button></td>
+      </tr>`).join("");
+
+      return `<details class="draft-section" id="draft-section-items" open>
+        <summary>
+          <div class="draft-section-title">
+            <span class="draft-section-index">06</span>
+            <div><h3>Danh sách hàng hóa</h3><p class="draft-section-summary">Mỗi dòng hàng có tên chứng từ, tên khai chuẩn hóa, HS, số lượng, trị giá, thuế và C/O tương ứng.</p></div>
+          </div>
+          <span class="draft-status ${missing ? "status-missing" : "status-confirmed"}">${missing ? `${missing} ô bắt buộc còn thiếu` : `${declarationWorkspace.items.length} dòng hàng`}</span>
+        </summary>
+        <div class="draft-section-body">
+          <div class="table-scroll">
+            <table class="draft-items-table" aria-label="Danh sách hàng hóa tờ khai nháp">
+              <thead><tr><th>STT</th>${DECLARATION_ITEM_FIELDS.map(definition => `<th>${esc(definition.label)}${definition.required ? " *" : ""}</th>`).join("")}<th>Thao tác</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div class="draft-mini-actions">
+            <button class="btn btn-secondary" id="addDraftItemBtn" type="button">Thêm dòng hàng</button>
+            <button class="btn btn-ghost" id="sendDraftItemToHSBtn" type="button">Đưa mặt hàng đầu tiên sang tab phân tích HS</button>
+          </div>
+        </div>
+      </details>`;
+    }
+
+    function declarationContainerControl(field, containerIndex, key) {
+      if (field.status === "conflict" && field.alternatives?.length) {
+        return `<select class="draft-control" data-draft-container-index="${containerIndex}" data-draft-container-key="${esc(key)}">
+          <option value="">— Chọn giá trị đúng —</option>
+          ${field.alternatives.map(choice => `<option value="${esc(choice.value)}">${esc(choice.value)} — ${esc(choice.label || choice.docId)}</option>`).join("")}
+        </select>`;
+      }
+      return `<input class="draft-control" data-draft-container-index="${containerIndex}" data-draft-container-key="${esc(key)}" value="${esc(field.value)}">`;
+    }
+
+    function renderDeclarationContainerSection() {
+      const columns = [
+        ["number", "Số container"], ["seal", "Số seal"], ["type", "Loại container"],
+        ["packageCount", "Số kiện"], ["grossWeight", "Gross weight"]
+      ];
+      const rows = declarationWorkspace.containers.map((container, index) => `<tr>
+        <td>${index + 1}</td>
+        ${columns.map(([key]) => `<td>${declarationContainerControl(container.fields[key], index, key)}<span class="draft-item-status">${declarationStatusBadge(container.fields[key])}</span></td>`).join("")}
+        <td><button class="mini-btn danger" type="button" data-remove-draft-container="${index}">Xóa</button></td>
+      </tr>`).join("");
+      return `<details class="draft-section" id="draft-section-containers">
+        <summary>
+          <div class="draft-section-title"><span class="draft-section-index">07</span><div><h3>Container và seal</h3><p class="draft-section-summary">Danh sách container dùng cho lô hàng; có thể để trống đối với lô không sử dụng container.</p></div></div>
+          <span class="draft-status status-${declarationWorkspace.containers.length ? "extracted" : "empty"}">${declarationWorkspace.containers.length} container</span>
+        </summary>
+        <div class="draft-section-body">
+          <div class="table-scroll"><table><thead><tr><th>STT</th>${columns.map(([, label]) => `<th>${esc(label)}</th>`).join("")}<th>Thao tác</th></tr></thead><tbody>${rows || `<tr><td colspan="${columns.length + 2}">Chưa có thông tin container.</td></tr>`}</tbody></table></div>
+          <div class="draft-mini-actions"><button class="btn btn-secondary" id="addDraftContainerBtn" type="button">Thêm container</button></div>
+        </div>
+      </details>`;
+    }
+
+    function renderDeclarationCrossCheckSection() {
+      const data = lastDocumentComparison || { documents: [], fields: [] };
+      const documents = data.documents || [];
+      const rows = (data.fields || []).map(row => `<tr>
+        <td><strong>${esc(row.label || row.key)}</strong></td>
+        ${documents.map(document => `<td>${esc(row.values?.[document.id] || "—")}</td>`).join("")}
+        <td><span class="draft-status status-${row.status === "match" ? "confirmed" : row.status === "mismatch" ? "conflict" : "empty"}">${row.status === "match" ? "Khớp" : row.status === "mismatch" ? "Không khớp" : "Một nguồn"}</span></td>
+      </tr>`).join("");
+      return `<details class="draft-section" id="draft-section-crosscheck">
+        <summary>
+          <div class="draft-section-title"><span class="draft-section-index">08</span><div><h3>Kiểm tra chênh lệch chứng từ</h3><p class="draft-section-summary">Giữ lại bảng nguồn để người khai kiểm tra giá trị đã dùng trong bản nháp.</p></div></div>
+          <span class="draft-status status-${(data.fields || []).some(row => row.status === "mismatch") ? "conflict" : "confirmed"}">${(data.fields || []).filter(row => row.status === "mismatch").length} chênh lệch</span>
+        </summary>
+        <div class="draft-section-body">
+          <div class="table-scroll draft-check-table"><table><thead><tr><th>Chỉ tiêu</th>${documents.map(document => `<th>${esc(document.label || document.id)}</th>`).join("")}<th>Kết quả</th></tr></thead><tbody>${rows}</tbody></table></div>
+          ${declarationWorkspace.sourceWarnings.length ? `<div class="warning" style="margin-top:12px"><strong>Cảnh báo khi đọc file:</strong><ul>${declarationWorkspace.sourceWarnings.map(item => `<li>${esc(item)}</li>`).join("")}</ul></div>` : ""}
+        </div>
+      </details>`;
+    }
+
+    function renderDeclarationDraft() {
+      if (!declarationWorkspace) return;
+      $("#draftEmptyState").classList.add("hidden");
+      $("#draftWorkspace").classList.remove("hidden");
+      $("#draftWorkspace").setAttribute("aria-hidden", "false");
+      $("#draftKindTitle").textContent = declarationWorkspace.type === "import" ? "Tờ khai nhập khẩu" : "Tờ khai xuất khẩu";
+      $$("[data-draft-type]").forEach(button => button.classList.toggle("active", button.dataset.draftType === declarationWorkspace.type));
+      $("#draftCreatedAt").textContent = declarationWorkspace.createdAt;
+      $("#draftUpdatedAt").textContent = declarationWorkspace.updatedAt;
+      $("#draftDocumentCount").textContent = `${declarationWorkspace.sourceDocuments.length} file`;
+      $("#draftFormArea").innerHTML = [
+        renderDeclarationRegularSections(),
+        renderDeclarationItemsSection(),
+        renderDeclarationContainerSection(),
+        renderDeclarationCrossCheckSection()
+      ].join("");
+      renderDeclarationSidebar();
+      bindDeclarationDraftControls();
+    }
+
+    function allDeclarationFieldEntries() {
+      const entries = [];
+      DECLARATION_FIELD_SECTIONS.forEach(section => section.fields.forEach(definition => {
+        entries.push({ label: definition.label, field: declarationWorkspace.fields[definition.key], section: section.title });
+      }));
+      declarationWorkspace.items.forEach((item, itemIndex) => DECLARATION_ITEM_FIELDS.forEach(definition => {
+        entries.push({ label: `Dòng hàng ${itemIndex + 1} — ${definition.label}`, field: item.fields[definition.key], section: "Danh sách hàng hóa" });
+      }));
+      declarationWorkspace.containers.forEach((container, index) => Object.entries(container.fields).forEach(([key, field]) => {
+        const label = ({ number: "Số container", seal: "Số seal", type: "Loại container", packageCount: "Số kiện", grossWeight: "Gross weight" })[key] || key;
+        entries.push({ label: `Container ${index + 1} — ${label}`, field, section: "Container" });
+      }));
+      return entries;
+    }
+
+    function renderDeclarationSidebar() {
+      if (!declarationWorkspace) return;
+      const entries = allDeclarationFieldEntries();
+      const missing = entries.filter(entry => entry.field?.required && !String(entry.field.value || "").trim());
+      const conflicts = entries.filter(entry => entry.field?.status === "conflict");
+      const confirmed = entries.filter(entry => entry.field?.status === "confirmed");
+      const extracted = entries.filter(entry => entry.field?.status === "extracted");
+      $("#draftStats").innerHTML = `
+        <div class="draft-stat"><strong>${confirmed.length}</strong><span>Đã xác nhận</span></div>
+        <div class="draft-stat"><strong>${extracted.length}</strong><span>Đã trích xuất</span></div>
+        <div class="draft-stat"><strong>${conflicts.length}</strong><span>Có mâu thuẫn</span></div>
+        <div class="draft-stat"><strong>${missing.length}</strong><span>Bắt buộc còn thiếu</span></div>`;
+      $("#draftMissingList").innerHTML = missing.length
+        ? missing.slice(0, 12).map(entry => `<div class="draft-source-item"><strong>${esc(entry.label)}</strong><span>${esc(entry.section)}</span></div>`).join("") +
+          (missing.length > 12 ? `<div class="draft-source-item"><strong>Và ${missing.length - 12} trường khác</strong><span>Bấm “Kiểm tra trường còn thiếu” để xem.</span></div>` : "")
+        : '<div class="success">Các trường bắt buộc hiện đã có giá trị. Vẫn cần kiểm tra nghiệp vụ trước khi khai chính thức.</div>';
+      const questionFor = entry => {
+        const label = entry.label.toLowerCase();
+        if (label.includes("mã loại hình")) return "Lô hàng này áp dụng mã loại hình nào (ví dụ A11, A12, E62…)?";
+        if (label.includes("chi cục hải quan")) return "Tờ khai sẽ được đăng ký tại Chi cục Hải quan nào?";
+        if (label.includes("mã số thuế")) return "Mã số thuế của doanh nghiệp nhập khẩu là gì?";
+        if (label.includes("mã hs")) return `Mã HS 8 số đã được kiểm tra cho ${entry.label.replace(/—\s*/g, "")} là gì?`;
+        if (label.includes("tên khai hải quan")) return "Tên khai hải quan chuẩn hóa của dòng hàng này cần thể hiện những đặc tính nào?";
+        if (label.includes("số lượng") || label.includes("đvt")) return `Vui lòng xác nhận ${entry.label.toLowerCase()} theo đơn vị VNACCS.`;
+        if (label.includes("phương pháp xác định trị giá")) return "Phương pháp xác định trị giá hải quan áp dụng cho lô hàng là gì?";
+        return `Vui lòng bổ sung hoặc xác nhận: ${entry.label}.`;
+      };
+      $("#draftQuestionList").innerHTML = missing.length
+        ? missing.slice(0, 3).map((entry, index) => `<button class="conflict-choice" type="button" data-focus-draft-missing="${index}">${esc(questionFor(entry))}<span>${esc(entry.section)}</span></button>`).join("")
+        : '<div class="draft-source-item"><strong>Không còn câu hỏi bắt buộc</strong><span>Tiếp tục rà soát các chỉ tiêu nghiệp vụ và chính sách mặt hàng.</span></div>';
+      $("#draftSourceList").innerHTML = declarationWorkspace.sourceDocuments.length
+        ? declarationWorkspace.sourceDocuments.map(document => `<div class="draft-source-item"><strong>${esc(document.label || document.id)}</strong><span>${esc(document.file_name || docFiles.get(document.id)?.name || "Không còn file trong phiên")}</span>${docFiles.has(document.id) ? `<button class="mini-btn" style="margin-top:6px" type="button" data-open-draft-doc="${esc(document.id)}">Mở chứng từ</button>` : ""}</div>`).join("")
+        : '<div class="draft-source-item"><strong>Không có file nguồn</strong></div>';
+      $$('[data-focus-draft-missing]', $("#draftQuestionList")).forEach(button => button.addEventListener("click", () => {
+        const target = $$('[data-missing="true"]', $("#draftFormArea"))[Number(button.dataset.focusDraftMissing)];
+        const section = target?.closest("details");
+        if (section) section.open = true;
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        $(".draft-control", target)?.focus();
+      }));
+      $$('[data-open-draft-doc]', $("#draftSourceList")).forEach(button => button.addEventListener("click", () => {
+        const file = docFiles.get(button.dataset.openDraftDoc);
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        window.open(url, "_blank", "noopener,noreferrer");
+        window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      }));
+      $("#draftToolbarHint").textContent = documentWorkspaceStale || declarationWorkspace.sourceVersion !== documentAnalysisVersion
+        ? "Bộ chứng từ đã thay đổi. Hãy đối chiếu lại rồi cập nhật bản nháp."
+        : `Còn ${missing.length} trường bắt buộc và ${conflicts.length} xung đột cần xử lý.`;
+      $("#draftUpdatedAt").textContent = declarationWorkspace.updatedAt;
+    }
+
+    function updateDeclarationFieldState(field, value) {
+      field.value = String(value || "").trim();
+      field.status = field.value ? "confirmed" : (field.required && !field.selectionRequired ? "missing" : "empty");
+      field.source = field.value ? "Người dùng đã kiểm tra hoặc chỉnh sửa" : "";
+      field.alternatives = field.value ? [] : (field.alternatives || []);
+      declarationWorkspace.updatedAt = declarationNow();
+    }
+
+    function updateDeclarationFieldWrapper(wrapper, field) {
+      if (!wrapper) return;
+      wrapper.dataset.status = field.status;
+      wrapper.dataset.missing = field.required && !field.value ? "true" : "false";
+      const badge = $(".draft-status", wrapper);
+      if (badge) {
+        badge.className = `draft-status status-${field.status}`;
+        badge.textContent = declarationStatusLabel(field.status, field.selectionRequired);
+      }
+      const note = $(".draft-field-note", wrapper);
+      if (note) note.textContent = field.source || "";
+      if (field.status === "confirmed") $(".conflict-choices", wrapper)?.remove();
+      renderDeclarationSidebar();
+    }
+
+    function bindDeclarationDraftControls() {
+      $$('[data-draft-field]', $("#draftFormArea")).forEach(control => {
+        const handler = event => {
+          const key = event.currentTarget.dataset.draftField;
+          const field = declarationWorkspace.fields[key];
+          updateDeclarationFieldState(field, event.currentTarget.value);
+          updateDeclarationFieldWrapper(event.currentTarget.closest(".draft-field"), field);
+        };
+        control.addEventListener("input", handler);
+        control.addEventListener("change", handler);
+      });
+
+      $$('[data-draft-conflict-scope="field"]', $("#draftFormArea")).forEach(button => {
+        button.addEventListener("click", () => {
+          const key = button.dataset.draftConflictKey;
+          const field = declarationWorkspace.fields[key];
+          updateDeclarationFieldState(field, button.dataset.draftConflictValue);
+          renderDeclarationDraft();
+          showDraftMessage(`Đã xác nhận trường “${declarationFieldDefinition(key)?.label || key}” từ giá trị bạn chọn.`, "success");
+        });
+      });
+
+      $$('[data-draft-item-index]', $("#draftFormArea")).forEach(control => {
+        const handler = event => {
+          const itemIndex = Number(event.currentTarget.dataset.draftItemIndex);
+          const key = event.currentTarget.dataset.draftItemKey;
+          const field = declarationWorkspace.items[itemIndex]?.fields?.[key];
+          if (!field) return;
+          updateDeclarationFieldState(field, event.currentTarget.value);
+          const cell = event.currentTarget.closest("td");
+          if (cell) {
+            cell.dataset.status = field.status;
+            cell.dataset.missing = field.required && !field.value ? "true" : "false";
+            const badge = $(".draft-status", cell);
+            if (badge) {
+              badge.className = `draft-status status-${field.status}`;
+              badge.textContent = declarationStatusLabel(field.status, field.selectionRequired);
+            }
+          }
+          renderDeclarationSidebar();
+        };
+        control.addEventListener("input", handler);
+        control.addEventListener("change", handler);
+      });
+
+      $$('[data-draft-container-index]', $("#draftFormArea")).forEach(control => {
+        const handler = event => {
+          const index = Number(event.currentTarget.dataset.draftContainerIndex);
+          const key = event.currentTarget.dataset.draftContainerKey;
+          const field = declarationWorkspace.containers[index]?.fields?.[key];
+          if (!field) return;
+          updateDeclarationFieldState(field, event.currentTarget.value);
+          const badge = $(".draft-status", event.currentTarget.closest("td"));
+          if (badge) {
+            badge.className = `draft-status status-${field.status}`;
+            badge.textContent = declarationStatusLabel(field.status, field.selectionRequired);
+          }
+          renderDeclarationSidebar();
+        };
+        control.addEventListener("input", handler);
+        control.addEventListener("change", handler);
+      });
+
+      $$('[data-remove-draft-item]', $("#draftFormArea")).forEach(button => button.addEventListener("click", () => {
+        if (declarationWorkspace.items.length <= 1) {
+          showDraftMessage("Tờ khai phải giữ ít nhất một dòng hàng. Bạn có thể xóa nội dung trong dòng thay vì xóa dòng cuối cùng.", "warning");
+          return;
+        }
+        declarationWorkspace.items.splice(Number(button.dataset.removeDraftItem), 1);
+        declarationWorkspace.updatedAt = declarationNow();
+        renderDeclarationDraft();
+      }));
+
+      $$('[data-remove-draft-container]', $("#draftFormArea")).forEach(button => button.addEventListener("click", () => {
+        declarationWorkspace.containers.splice(Number(button.dataset.removeDraftContainer), 1);
+        declarationWorkspace.updatedAt = declarationNow();
+        renderDeclarationDraft();
+      }));
+
+      $("#addDraftItemBtn")?.addEventListener("click", addBlankDeclarationItem);
+      $("#addDraftContainerBtn")?.addEventListener("click", addBlankDeclarationContainer);
+      $("#sendDraftItemToHSBtn")?.addEventListener("click", sendFirstDraftItemToHS);
+    }
+
+    function addBlankDeclarationItem() {
+      const fields = {};
+      DECLARATION_ITEM_FIELDS.forEach(definition => {
+        fields[definition.key] = blankDeclarationField(definition, declarationWorkspace.type);
+      });
+      declarationWorkspace.items.push({ id: `draft-item-${Date.now()}`, sourceIndex: declarationWorkspace.items.length + 1, fields });
+      declarationWorkspace.updatedAt = declarationNow();
+      renderDeclarationDraft();
+      $("#draft-section-items").open = true;
+    }
+
+    function addBlankDeclarationContainer() {
+      const fields = {};
+      ["number", "seal", "type", "packageCount", "grossWeight"].forEach(key => {
+        fields[key] = blankDeclarationField({ key }, declarationWorkspace.type);
+      });
+      declarationWorkspace.containers.push({ id: `draft-container-${Date.now()}`, fields });
+      declarationWorkspace.updatedAt = declarationNow();
+      renderDeclarationDraft();
+      $("#draft-section-containers").open = true;
+    }
+
+    function sendFirstDraftItemToHS() {
+      const item = declarationWorkspace.items[0];
+      if (!item) return;
+      const value = key => item.fields[key]?.value || "";
+      selectHSMethod("manual");
+      const card = addManualItem({
+        ten_hang_chung_tu: value("customs_description") || value("invoice_description"),
+        nhom_hang: "Khác",
+        ma_hs_cu: value("hs_code"),
+        xuat_xu: value("origin_country"),
+        quy_cach: [value("quantity_1"), value("unit_1")].filter(Boolean).join(" ")
+      });
+      activateTab("hs");
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function checkDeclarationMissingFields() {
+      if (!declarationWorkspace) return;
+      const missing = allDeclarationFieldEntries().filter(entry => entry.field?.required && !String(entry.field.value || "").trim());
+      if (!missing.length) {
+        showDraftMessage("Các trường bắt buộc hiện đã có giá trị. Hãy tiếp tục kiểm tra mã HS, trị giá, thuế suất, C/O và chính sách mặt hàng trước khi khai chính thức.", "success");
+        return;
+      }
+      const first = $('[data-missing="true"]', $("#draftFormArea"));
+      const section = first?.closest("details");
+      if (section) section.open = true;
+      first?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const preview = missing.slice(0, 3).map(entry => entry.label).join("; ");
+      showDraftMessage(`Còn ${missing.length} trường bắt buộc chưa có giá trị. Ưu tiên bổ sung: ${preview}${missing.length > 3 ? "…" : ""}`, "warning");
+    }
+
+    function exportDeclarationPdf() {
+      if (!declarationWorkspace) return;
+      const details = $$("#panel-draft details");
+      const openStates = details.map(item => item.open);
+      details.forEach(item => { item.open = true; });
+      document.body.classList.add("print-draft");
+      const restore = () => {
+        document.body.classList.remove("print-draft");
+        details.forEach((item, index) => { item.open = openStates[index]; });
+        window.removeEventListener("afterprint", restore);
+      };
+      window.addEventListener("afterprint", restore);
+      window.print();
+      window.setTimeout(() => {
+        if (document.body.classList.contains("print-draft")) restore();
+      }, 1500);
+    }
+
+    function declarationWorksheet(rows, widths = []) {
+      const sheet = XLSX.utils.aoa_to_sheet(rows);
+      if (widths.length) sheet["!cols"] = widths.map(width => ({ wch: width }));
+      return sheet;
+    }
+
+    function exportDeclarationExcel() {
+      if (!declarationWorkspace) return;
+      if (!window.XLSX) {
+        showDraftMessage("Không tải được thư viện tạo Excel. Hãy kiểm tra kết nối Internet rồi thử lại.", "error");
+        return;
+      }
+
+      const workbook = XLSX.utils.book_new();
+      const kindLabel = declarationWorkspace.type === "import" ? "NHẬP KHẨU" : "XUẤT KHẨU";
+      const generalRows = [
+        [`TỜ KHAI HÀNG HÓA ${kindLabel} — BẢN NHÁP, CHƯA TRUYỀN VNACCS`],
+        ["Ngày xuất file", declarationNow()],
+        ["Lưu ý", "Excel hỗ trợ kiểm tra và ánh xạ dữ liệu. Khả năng nhập nguyên tờ khai phụ thuộc mẫu và phiên bản ECUS; người dùng phải kiểm thử trước khi sử dụng."],
+        []
+      ];
+      DECLARATION_FIELD_SECTIONS.forEach(section => {
+        generalRows.push([section.title]);
+        generalRows.push(["Chỉ tiêu", "Giá trị", "Trạng thái", "Nguồn / ghi chú"]);
+        section.fields.forEach(definition => {
+          const field = declarationWorkspace.fields[definition.key];
+          generalRows.push([definition.label, field.value, declarationStatusLabel(field.status, field.selectionRequired), field.source]);
+        });
+        generalRows.push([]);
+      });
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(generalRows, [35, 55, 22, 60]), "Thong_tin_chung");
+
+      const itemHeaders = ["STT", ...DECLARATION_ITEM_FIELDS.map(definition => definition.label), "Trạng thái cần kiểm tra"];
+      const itemRows = [itemHeaders, ...declarationWorkspace.items.map((item, index) => [
+        index + 1,
+        ...DECLARATION_ITEM_FIELDS.map(definition => item.fields[definition.key]?.value || ""),
+        DECLARATION_ITEM_FIELDS.filter(definition => {
+          const field = item.fields[definition.key];
+          return field?.status === "conflict" || (field?.required && !field.value);
+        }).map(definition => definition.label).join("; ")
+      ])];
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(itemRows, [6, 18, 38, 45, 16, 16, 18, 14, 14, 12, 12, 14, 14, 14, 14, 14, 14, 30]), "Hang_hoa");
+
+      const ecusRows = [[
+        "STT", "Tên hàng khai hải quan", "Mã HS", "Xuất xứ", "Số lượng 1", "ĐVT 1", "Số lượng 2", "ĐVT 2", "Đơn giá", "Trị giá", "Mã biểu thuế", "Thuế suất XNK", "Thuế suất VAT"
+      ], ...declarationWorkspace.items.map((item, index) => {
+        const field = key => item.fields[key]?.value || "";
+        return [index + 1, field("customs_description"), field("hs_code"), field("origin_country"), field("quantity_1"), field("unit_1"), field("quantity_2"), field("unit_2"), field("unit_price"), field("amount"), field("tariff_schedule"), field("tax_rate"), field("vat_rate")];
+      })];
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(ecusRows, [6, 48, 14, 14, 14, 10, 14, 10, 14, 14, 14, 14, 14]), "DS_hang_ho_tro_ECUS");
+
+      const containerRows = [["STT", "Số container", "Số seal", "Loại container", "Số kiện", "Gross weight"], ...declarationWorkspace.containers.map((container, index) => [
+        index + 1,
+        container.fields.number?.value || "",
+        container.fields.seal?.value || "",
+        container.fields.type?.value || "",
+        container.fields.packageCount?.value || "",
+        container.fields.grossWeight?.value || ""
+      ])];
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(containerRows, [6, 20, 20, 18, 12, 18]), "Container");
+
+      const sourceRows = [["Loại chứng từ", "Tên file", "Loại nhận diện"], ...declarationWorkspace.sourceDocuments.map(document => [
+        document.label || document.id,
+        document.file_name || docFiles.get(document.id)?.name || "",
+        document.detected_type || document.assigned_type || ""
+      ])];
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(sourceRows, [28, 48, 32]), "Chung_tu_nguon");
+
+      const documents = lastDocumentComparison?.documents || [];
+      const checkRows = [["Chỉ tiêu", ...documents.map(document => document.label || document.id), "Kết quả", "Giải thích"], ...(lastDocumentComparison?.fields || []).map(row => [
+        row.label || row.key,
+        ...documents.map(document => row.values?.[document.id] || ""),
+        row.status === "match" ? "Khớp" : row.status === "mismatch" ? "Không khớp" : "Chưa đủ dữ liệu",
+        row.explanation || ""
+      ])];
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(checkRows, [34, ...documents.map(() => 34), 18, 50]), "Doi_chieu");
+
+      const issueRows = [["Loại", "Nội dung", "Nhóm"]];
+      allDeclarationFieldEntries().forEach(entry => {
+        if (entry.field?.required && !entry.field.value) issueRows.push(["Cần bổ sung", entry.label, entry.section]);
+        if (entry.field?.status === "conflict") issueRows.push(["Có mâu thuẫn", entry.label, entry.section]);
+      });
+      declarationWorkspace.sourceWarnings.forEach(warning => issueRows.push(["Cảnh báo đọc file", warning, "Chứng từ nguồn"]));
+      XLSX.utils.book_append_sheet(workbook, declarationWorksheet(issueRows, [22, 70, 28]), "Canh_bao");
+
+      const fileName = `To_khai_${declarationWorkspace.type === "import" ? "nhap_khau" : "xuat_khau"}_NHAP_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      showDraftMessage("Đã tạo file Excel gồm thông tin chung, danh sách hàng, container, chứng từ nguồn, bảng đối chiếu và cảnh báo.", "success");
+    }
+
+    $("#goToCheckBtn").addEventListener("click", () => activateTab("check"));
+    $("#backToCheckBtn").addEventListener("click", () => activateTab("check"));
+    $("#refreshDraftBtn").addEventListener("click", () => {
+      if (documentWorkspaceStale) {
+        showDraftMessage("Bộ file đã thay đổi sau lần đối chiếu gần nhất. Hãy quay lại tab kiểm tra và đối chiếu lại trước khi cập nhật bản nháp.", "warning");
+        return;
+      }
+      createDeclarationDraftFromDocuments(true);
+    });
+    $("#checkDraftBtn").addEventListener("click", checkDeclarationMissingFields);
+    $("#exportDraftPdfBtn").addEventListener("click", exportDeclarationPdf);
+    $("#exportDraftExcelBtn").addEventListener("click", exportDeclarationExcel);
+    $$("[data-draft-type]").forEach(button => button.addEventListener("click", () => {
+      if (!declarationWorkspace || declarationWorkspace.type === button.dataset.draftType) return;
+      declarationWorkspace.type = button.dataset.draftType;
+      createDeclarationDraftFromDocuments(true);
+      showDraftMessage(`Đã chuyển sang ${declarationWorkspace.type === "import" ? "tờ khai nhập khẩu" : "tờ khai xuất khẩu"}. Các trường bạn đã xác nhận được giữ nguyên; vui lòng kiểm tra lại trường bắt buộc theo loại tờ khai mới.`, "notice");
+    }));
 
     async function fileToDataUrl(file) {
       return new Promise((resolve, reject) => {
