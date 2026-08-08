@@ -2512,6 +2512,36 @@
         ]
       },
       {
+        id: "ecus_template",
+        title: "Các trường bổ sung theo file Excel ECUS mẫu",
+        description: "Các trường dưới đây có dữ liệu trong file Excel mẫu nhưng trước đây chưa có trường nhập riêng trên website. Ô chưa nhập được hiển thị màu đỏ.",
+        fields: [
+          { key: "ecus_stt", label: "STT", required: ["import", "export"], placeholder: "Nhập STT theo hồ sơ ECUS" },
+          { key: "organization_classification", label: "Phân loại cá nhân tổ chức", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: 4" },
+          { key: "storage_location_name", label: "Tên địa điểm lưu kho", required: ["import", "export"], placeholder: "Tên địa điểm tương ứng mã lưu kho", span: "half" },
+          { key: "transport_vehicle_code", label: "Mã phương tiện vận chuyển", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: 9999" },
+          { key: "loading_location_code", label: "Mã địa điểm xếp hàng", required: ["import", "export"], placeholder: "Ví dụ: VNSGN" },
+          { key: "loading_location_name", label: "Tên địa điểm xếp hàng", required: ["import", "export"], placeholder: "Ví dụ: HO CHI MINH", span: "half" },
+          { key: "discharge_location_code", label: "Mã địa điểm dỡ hàng", required: ["import", "export"], placeholder: "Ví dụ: JPYOK" },
+          { key: "discharge_location_name", label: "Tên địa điểm dỡ hàng", required: ["import", "export"], placeholder: "Ví dụ: YOKOHAMA - KANAGAWA", span: "half" },
+          { key: "taxpayer_code", label: "Người nộp thuế", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: 1" },
+          { key: "declared_customs_value", label: "Trị giá KB", required: ["import", "export"], placeholder: "Trị giá khai báo" },
+          { key: "declaration_status", label: "Trạng thái", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: N" },
+          { key: "import_export_declaration_type", label: "Loại tờ khai nhập xuất", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: N" },
+          { key: "ecus_declaration_mode", label: "Loại hình tờ khai", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: ECUSK5NET" },
+          { key: "export_country_code", label: "Mã nước xuất khẩu", required: ["import", "export"], placeholder: "Ví dụ: JP" },
+          { key: "weight_unit", label: "Đơn vị tính trọng lượng", required: ["import", "export"], placeholder: "Ví dụ: KGM" },
+          { key: "invoice_classification_code", label: "Mã phân loại hóa đơn", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: A" },
+          { key: "insurance_classification_code", label: "Mã phân loại phí bảo hiểm", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: A" },
+          { key: "insurance_currency_code", label: "Mã tiền phí bảo hiểm", required: ["import", "export"], placeholder: "Ví dụ: JPY" },
+          { key: "partner_address_1", label: "Địa chỉ người xuất/nhập khẩu1", required: ["import", "export"], placeholder: "Dòng địa chỉ 1", span: "half" },
+          { key: "ecus_note", label: "Ghi chú", required: ["import", "export"], type: "textarea", placeholder: "Nội dung ghi chú theo hồ sơ ECUS", span: "full" },
+          { key: "invoice_form_classification_code", label: "Mã phân loại hình thức hóa đơn", required: ["import", "export"], placeholder: "Ví dụ theo mẫu: A" },
+          { key: "partner_address_2", label: "Địa chỉ người xuất/nhập khẩu2", required: ["import", "export"], placeholder: "Dòng địa chỉ 2", span: "half" },
+          { key: "partner_address_3", label: "Địa chỉ người xuất/nhập khẩu3", required: ["import", "export"], placeholder: "Dòng địa chỉ 3", span: "half" }
+        ]
+      },
+      {
         id: "parties",
         title: "Người nhập khẩu và người xuất khẩu",
         description: "Tên, địa chỉ và mã doanh nghiệp được chuyển từ Invoice, B/L, C/O và chứng từ liên quan.",
@@ -2599,9 +2629,10 @@
       { key: "unit_2", label: "ĐVT 2" },
       { key: "unit_price", label: "Đơn giá", suffixes: ["unit_price"] },
       { key: "amount", label: "Trị giá", suffixes: ["amount"] },
-      { key: "tariff_schedule", label: "Mã biểu thuế", choice: true },
+      { key: "tariff_schedule", label: "Mã biểu thuế nhập khẩu", choice: true },
       { key: "tax_rate", label: "Thuế suất XNK" },
-      { key: "vat_rate", label: "Thuế suất VAT" },
+      { key: "vat_rate", label: "Mã biểu thuế VAT", required: true },
+      { key: "item_type", label: "Loại hàng", required: true, placeholder: "Ví dụ theo mẫu: 1" },
       { key: "license_line", label: "C/O / giấy phép dòng hàng" }
     ];
 
@@ -4226,7 +4257,7 @@ ${JSON.stringify(compact)}`
           const field = declarationWorkspace.fields[definition.key];
           return field?.required && !String(field.value || "").trim();
         }).length;
-        return `<details class="draft-section" id="draft-section-${esc(section.id)}" ${sectionIndex < 4 ? "open" : ""}>
+        return `<details class="draft-section" id="draft-section-${esc(section.id)}" ${sectionIndex < 4 || section.id === "ecus_template" ? "open" : ""}>
           <summary>
             <div class="draft-section-title">
               <span class="draft-section-index">${String(sectionIndex + 1).padStart(2, "0")}</span>
@@ -4741,24 +4772,25 @@ ${JSON.stringify(compact)}`
 
         clearEcusRange(generalSheet, 1, Math.max(1, XLSX.utils.decode_range(generalSheet["!ref"] || "A1:BX2").e.r), 76);
         const generalValues = [
-          [0, 1, 1, "number"],
+          [0, 1, field("ecus_stt"), "number"],
           [2, 1, field("registration_date"), "date"],
           [3, 1, field("customs_office_code")],
           [4, 1, field("declaration_type_code")],
           [5, 1, field("exporter_name")],
-          [7, 1, 4, "number"],
+          [7, 1, field("organization_classification"), "number"],
           [9, 1, ecusTransportCode(field("transport_mode")), "number"],
           [10, 1, field("bl_number")],
           [11, 1, field("package_count"), "number"],
           [12, 1, field("gross_weight"), "number"],
           [13, 1, field("storage_location_code")],
-          [15, 1, field("vessel_voyage") ? 9999 : null, "number"],
+          [14, 1, field("storage_location_name")],
+          [15, 1, field("transport_vehicle_code"), "number"],
           [16, 1, field("vessel_voyage")],
           [17, 1, field("arrival_date"), "date"],
-          [18, 1, loading.code],
-          [19, 1, loading.name],
-          [20, 1, discharge.code],
-          [21, 1, discharge.name],
+          [18, 1, field("loading_location_code")],
+          [19, 1, field("loading_location_name")],
+          [20, 1, field("discharge_location_code")],
+          [21, 1, field("discharge_location_name")],
           [22, 1, containerCount || null, "number"],
           [24, 1, field("invoice_number")],
           [25, 1, field("invoice_date"), "date"],
@@ -4768,34 +4800,33 @@ ${JSON.stringify(compact)}`
           [29, 1, field("currency")],
           [31, 1, field("insurance_value"), "number"],
           [32, 1, field("freight_value"), "number"],
-          [33, 1, 1, "number"],
-          [34, 1, field("invoice_total"), "number"],
+          [33, 1, field("taxpayer_code"), "number"],
+          [34, 1, field("declared_customs_value"), "number"],
           [47, 1, field("contract_number")],
           [48, 1, field("contract_date"), "date"],
-          [50, 1, "N"],
-          [52, 1, "N"],
+          [50, 1, field("declaration_status")],
+          [52, 1, field("import_export_declaration_type")],
           [53, 1, field("importer_name")],
-          [54, 1, "ECUSK5NET"],
+          [54, 1, field("ecus_declaration_mode")],
           [55, 1, field("importer_address")],
-          [56, 1, firstOrigin],
+          [56, 1, field("export_country_code")],
           [57, 1, field("package_type")],
-          [58, 1, "KGM"],
-          [60, 1, "A"],
+          [58, 1, field("weight_unit")],
+          [60, 1, field("invoice_classification_code")],
           [61, 1, field("freight_value") ? "A" : ""],
-          [62, 1, field("insurance_value") ? "A" : ""],
+          [62, 1, field("insurance_classification_code")],
           [63, 1, field("freight_value") ? field("currency") : ""],
-          [64, 1, field("insurance_value") ? field("currency") : ""],
-          [65, 1, exporterAddress[0]],
-          [66, 1, field("valuation_adjustments")],
-          [67, 1, "A"],
+          [64, 1, field("insurance_currency_code")],
+          [65, 1, field("partner_address_1")],
+          [66, 1, field("ecus_note")],
+          [67, 1, field("invoice_form_classification_code")],
           [71, 1, field("valuation_method") || 6, "number"],
-          [72, 1, exporterAddress[1]],
-          [73, 1, exporterAddress[2]],
+          [72, 1, field("partner_address_2")],
+          [73, 1, field("partner_address_3")],
           [74, 1, exporterAddress[3]],
           [75, 1, field("currency")]
         ];
         generalValues.forEach(([column, row, value, kind]) => setEcusCell(generalSheet, row, column, value, kind));
-        generalSheet["!ref"] = "A1:BX2";
 
         const itemRange = XLSX.utils.decode_range(itemSheet["!ref"] || "A1:Z2");
         const itemEndRow = Math.max(itemRange.e.r, declarationWorkspace.items.length);
@@ -4825,17 +4856,15 @@ ${JSON.stringify(compact)}`
             [19, amount, "number"],
             [20, itemField("tariff_schedule")],
             [21, /^[A-Za-z]/.test(vatValue) ? vatValue : ""],
-            [22, 1, "number"],
+            [22, itemField("item_type"), "number"],
             [24, itemField("quantity_2"), "number"],
             [25, itemField("unit_2")]
           ];
           rowValues.forEach(([column, value, kind]) => setEcusCell(itemSheet, row, column, value, kind));
         });
-        itemSheet["!ref"] = `A1:Z${Math.max(2, declarationWorkspace.items.length + 1)}`;
 
         const inspectionRange = XLSX.utils.decode_range(inspectionSheet["!ref"] || "A1:V1");
         if (inspectionRange.e.r >= 1) clearEcusRange(inspectionSheet, 1, inspectionRange.e.r, 22);
-        inspectionSheet["!ref"] = "A1:V1";
 
         workbook.Props = {
           ...(workbook.Props || {}),
