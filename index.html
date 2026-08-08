@@ -3798,7 +3798,48 @@ DỮ LIỆU OPENAI ĐÃ TRÍCH XUẤT:
 ${JSON.stringify(compact)}`
         }
       ], 6500, 0);
-      return parseAIJson(raw);
+      try {
+        return parseAIJson(raw);
+      } catch (firstParseError) {
+        const retryRaw = await callDeepSeek([
+          {
+            role: "system",
+            content: `Bạn là chuyên viên đối chiếu chứng từ xuất nhập khẩu.
+ OpenAI GPT-5.6 Terra đã trích xuất riêng từng chứng từ. Bạn chỉ so sánh dữ liệu giữa các chứng từ, không đọc lại file và không sửa giá trị gốc.
+Chỉ trả JSON hợp lệ, không markdown.
+Quy tắc:
+- Giữ nguyên đúng document id và field key đã nhận.
+- Chỉ đối chiếu các trường nghiệp vụ đã nhận; không tự thêm số trang, tên file, chữ ký, con dấu hoặc thông tin trình bày.
+- Seller/Supplier/Vendor chỉ được so sánh trong trường Seller; Exporter/Shipper chỉ được so sánh trong trường Exporter.
+- Không gộp Seller và Exporter. Nếu cùng một chứng từ có cả hai vai trò, phải giữ thành hai dòng riêng.
+- Importer/Consignee/Buyer/Customer/Ship to được hiểu là cùng nhóm người mua/người nhập khẩu.
+- match: có ít nhất 2 chứng từ chứa trường đó và các giá trị tương đương về bản chất sau khi chuẩn hóa cách viết.
+- mismatch: có ít nhất 2 chứng từ chứa trường đó nhưng các giá trị mâu thuẫn.
+- insufficient: chỉ có 0 hoặc 1 chứng từ chứa trường đó, hoặc chưa đủ căn cứ.
+- Không đánh dấu mismatch chỉ vì khác định dạng ngày, dấu phân cách hàng nghìn, đơn vị có thể quy đổi hoặc khác thứ tự từ nhưng cùng nội dung.
+- explanation phải nêu ngắn gọn căn cứ, đặc biệt khi mismatch.`
+          },
+          {
+            role: "user",
+            content: `Đối chiếu dữ liệu sau và trả JSON:
+{
+  "fields": [
+    {
+      "key": "invoice_number",
+      "label": "Số hóa đơn",
+      "status": "match|mismatch|insufficient",
+      "explanation": ""
+    }
+  ],
+  "summary": ""
+}
+
+DỮ LIỆU OPENAI ĐÃ TRÍCH XUẤT:
+${JSON.stringify(compact)}`
+          }
+        ], 6500, 0);
+        return parseAIJson(retryRaw);
+      }
     }
 
     $("#compareDocsBtn").addEventListener("click", async () => {
