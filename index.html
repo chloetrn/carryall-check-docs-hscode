@@ -3620,6 +3620,119 @@ Chỉ trả JSON hợp lệ:
 }`;
     }
 
+    function parseDocumentJsonSafely(raw) {
+      const clean = String(raw || "").replace(/```json|```/gi, "").trim();
+      if (!clean) return null;
+
+      const candidates = [clean];
+      const firstBrace = clean.indexOf("{");
+      const lastBrace = clean.lastIndexOf("}");
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        const objectText = clean.slice(firstBrace, lastBrace + 1);
+        if (objectText !== clean) candidates.push(objectText);
+      }
+
+      for (const candidate of candidates) {
+        try {
+          return JSON.parse(candidate);
+        } catch (_) {
+          // Continue with local repair. No API call is spent on repair attempts.
+        }
+
+        let repaired = candidate
+          .replace(/,\s*([}\]])/g, "$1")
+          .replace(/}\s*{/g, "},{")
+          .replace(/]\s*\[/g, "],[")
+          .replace(/([}\]])\s*("(?:[^"\\]|\\.)*"\s*:)/g, "$1,$2");
+
+        let normalized = "";
+        let inString = false;
+        let escaped = false;
+        for (let index = 0; index < repaired.length; index += 1) {
+          const char = repaired[index];
+          if (inString) {
+            if (escaped) {
+              normalized += char;
+              escaped = false;
+              continue;
+            }
+            if (char === "\\") {
+              normalized += char;
+              escaped = true;
+              continue;
+            }
+            if (char === '"') {
+              normalized += char;
+              inString = false;
+              continue;
+            }
+            if (char === "\n") {
+              normalized += "\\n";
+              continue;
+            }
+            if (char === "\r") {
+              normalized += "\\r";
+              continue;
+            }
+            if (char === "\t") {
+              normalized += "\\t";
+              continue;
+            }
+            normalized += char;
+            continue;
+          }
+          normalized += char;
+          if (char === '"') inString = true;
+        }
+        repaired = normalized;
+
+        const stack = [];
+        inString = false;
+        escaped = false;
+        for (let index = 0; index < repaired.length; index += 1) {
+          const char = repaired[index];
+          if (inString) {
+            if (escaped) {
+              escaped = false;
+            } else if (char === "\\") {
+              escaped = true;
+            } else if (char === '"') {
+              inString = false;
+            }
+            continue;
+          }
+          if (char === '"') {
+            inString = true;
+          } else if (char === "{") {
+            stack.push("}");
+          } else if (char === "[") {
+            stack.push("]");
+          } else if ((char === "}" || char === "]") && stack[stack.length - 1] === char) {
+            stack.pop();
+          }
+        }
+        if (inString) repaired += '"';
+        repaired += stack.reverse().join("");
+
+        try {
+          return JSON.parse(repaired);
+        } catch (_) {
+          // This candidate cannot be repaired safely enough; try another candidate/retry API.
+        }
+      }
+      return null;
+    }
+
+    async function extractDocumentJsonWithRetry(content, fileName) {
+      const tokenLimits = [6500, 9000, 12000];
+      for (let attempt = 0; attempt < tokenLimits.length; attempt += 1) {
+        const raw = await callOpenAI(content, tokenLimits[attempt]);
+        const parsed = parseDocumentJsonSafely(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+      }
+      throw new Error(`OpenAI chưa trả được JSON hoàn chỉnh cho ${fileName} sau khi hệ thống tự thử lại.`);
+    }
+
     async function extractDocumentWithOpenAI(doc, file) {
       const extension = file.name.split(".").pop().toLowerCase();
       const prompt = documentExtractionPrompt(doc, file);
@@ -3645,8 +3758,7 @@ Chỉ trả JSON hợp lệ:
         }
       }
 
-      const raw = await callOpenAI(content, 6500);
-      const parsed = parseAIJson(raw);
+      const parsed = await extractDocumentJsonWithRetry(content, file.name);
       let fields = parsed?.fields;
       if (fields && !Array.isArray(fields) && typeof fields === "object") {
         fields = Object.entries(fields).map(([key, value]) => ({
@@ -3829,7 +3941,7 @@ Chỉ trả JSON hợp lệ:
         })),
         warnings: item.warnings
       }));
-      const raw = await callDeepSeek([
+      const comparisonMessages = [
         {
           role: "system",
           content: `Bạn là chuyên viên đối chiếu chứng từ xuất nhập khẩu.
@@ -3865,8 +3977,17 @@ Quy tắc:
 DỮ LIỆU OPENAI ĐÃ TRÍCH XUẤT:
 ${JSON.stringify(compact)}`
         }
-      ], 6500, 0);
-      return parseAIJson(raw);
+      ];
+      const tokenLimits = [6500, 9000];
+      for (let attempt = 0; attempt < tokenLimits.length; attempt += 1) {
+        const raw = await callDeepSeek(comparisonMessages, tokenLimits[attempt], 0);
+        const parsed = parseDocumentJsonSafely(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+      }
+
+      // DeepSeek đã trả JSON hỏng nhiều lần: không làm cả quy trình thất bại.
+      // mergeComparisonResult phía sau sẽ dùng cơ chế đối chiếu dự phòng sẵn có của website.
+      return { fields: [], summary: "" };
     }
 
     $("#compareDocsBtn").addEventListener("click", async () => {
