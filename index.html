@@ -2591,6 +2591,10 @@
       }
     }
 
+    const PARTY_CLASSIFICATION_OPTIONS = [{"code":"1","name":"Cá nhân gửi cá nhân"},{"code":"2","name":"Tổ chức/ công ty gửi cá nhân"},{"code":"3","name":"Cá nhân gửi tổ chức/ công ty"},{"code":"4","name":"Tổ chức công ty gửi Tổ chức/ công ty"},{"code":"5","name":"Khác"}];
+    const TRANSPORT_METHOD_OPTIONS = [{"code":"1","name":"Đường không"},{"code":"2","name":"Đường biển (Container)"},{"code":"3","name":"Đường biển (Không container)"},{"code":"4","name":"Đường bộ (xe tải)"},{"code":"5","name":"Đường sắt"},{"code":"6","name":"Đường sông"},{"code":"9","name":"Loại khác"}];
+    const normalizeNumericLookupCode = value => String(value ?? "").replace(/\D/g, "");
+
     const DECLARATION_FIELD_SECTIONS = [
       {
         id: "registration",
@@ -2606,7 +2610,7 @@
           { key: "declaration_type_name", label: "Tên loại hình", webOnly: true, inputType: "declarationType", span: "half" },
           { key: "ecus_F", label: "Tên đối tác", ecusColumn: "F", required: true, sources: ["buyer"] },
           { key: "ecus_G", label: "Mã đại lý HQ", ecusColumn: "G" },
-          { key: "ecus_H", label: "Phân loại các nhân tổ chức", ecusColumn: "H", required: true, ecusKind: "number" },
+          { key: "ecus_H", label: "Phân loại cá nhân/ tổ chức", ecusColumn: "H", required: true, ecusKind: "number", inputType: "partyClassification" },
           { key: "ecus_I", label: "Mã bộ phận xử lý tk ", ecusColumn: "I" }
         ]
       },
@@ -2615,7 +2619,7 @@
         title: "Vận chuyển",
         description: "Các trường J–W của sheet KhaiToKhai.",
         fields: [
-          { key: "ecus_J", label: "Mã hiệu phương thức vận chuyển", ecusColumn: "J", required: true, sources: ["transport_mode"], transform: "transport_code", ecusKind: "number" },
+          { key: "ecus_J", label: "Mã hiệu phương thức vận chuyển", ecusColumn: "J", required: true, sources: ["transport_mode"], transform: "transport_code", ecusKind: "number", inputType: "transportMethod" },
           { key: "ecus_K", label: "Vận đơn", ecusColumn: "K", required: true, sources: ["hbl_number", "bl_number", "mbl_number"] },
           { key: "ecus_L", label: "Số lượng kiện", ecusColumn: "L", required: true, sources: ["package_count"], ecusKind: "number" },
           { key: "ecus_M", label: "Tổng trọng lượng hàng (Gross)", ecusColumn: "M", required: true, sources: ["gross_weight"], ecusKind: "number" },
@@ -4578,6 +4582,48 @@ ${JSON.stringify(compact)}`
           </div>
         </div>`;
       }
+      if (definition.inputType === "partyClassification") {
+        return `<div class="customs-office-picker">
+          <div class="customs-office-input-row">
+            <input class="draft-control" data-draft-field="${esc(definition.key)}"
+              value="${esc(field.value)}" inputmode="numeric" placeholder="Nhập hoặc chọn mã" aria-label="Phân loại cá nhân/ tổ chức">
+            <button class="customs-office-arrow" type="button" data-party-classification-toggle
+              aria-expanded="false" aria-label="Mở danh sách Phân loại cá nhân/ tổ chức">▾</button>
+          </div>
+          <div class="customs-office-menu hidden" data-party-classification-menu>
+            <table aria-label="Danh sách Phân loại cá nhân/ tổ chức">
+              <colgroup><col style="width:82px"><col></colgroup>
+              <thead><tr><th>Mã</th><th>Tên phân loại cá nhân/ tổ chức</th></tr></thead>
+              <tbody>
+                ${PARTY_CLASSIFICATION_OPTIONS.map(item => `<tr class="customs-office-row party-classification-row" data-party-classification-code="${esc(item.code)}">
+                  <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      }
+      if (definition.inputType === "transportMethod") {
+        return `<div class="customs-office-picker">
+          <div class="customs-office-input-row">
+            <input class="draft-control" data-draft-field="${esc(definition.key)}"
+              value="${esc(field.value)}" inputmode="numeric" placeholder="Nhập hoặc chọn mã" aria-label="Mã hiệu phương thức vận chuyển">
+            <button class="customs-office-arrow" type="button" data-transport-method-toggle
+              aria-expanded="false" aria-label="Mở danh sách Mã hiệu phương thức vận chuyển">▾</button>
+          </div>
+          <div class="customs-office-menu hidden" data-transport-method-menu>
+            <table aria-label="Danh sách Mã hiệu phương thức vận chuyển">
+              <colgroup><col style="width:82px"><col></colgroup>
+              <thead><tr><th>Mã</th><th>Loại phương thức vận chuyển</th></tr></thead>
+              <tbody>
+                ${TRANSPORT_METHOD_OPTIONS.map(item => `<tr class="customs-office-row transport-method-row" data-transport-method-code="${esc(item.code)}">
+                  <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      }
       const attributes = `class="draft-control" data-draft-field="${esc(definition.key)}" placeholder="${esc(definition.placeholder || "")}"`;
       if (definition.type === "textarea") {
         return `<textarea ${attributes}>${esc(field.value)}</textarea>`;
@@ -4847,6 +4893,9 @@ ${JSON.stringify(compact)}`
           } else if (key === "ecus_E") {
             value = normalizeDeclarationTypeCode(value);
             event.currentTarget.value = value;
+          } else if (key === "ecus_H" || key === "ecus_J") {
+            value = normalizeNumericLookupCode(value);
+            event.currentTarget.value = value;
           }
           updateDeclarationFieldState(field, value);
           updateDeclarationFieldWrapper(event.currentTarget.closest(".draft-field"), field);
@@ -4901,7 +4950,7 @@ ${JSON.stringify(compact)}`
       customsOfficeToggle?.addEventListener("click", () => toggleLookupMenu(customsOfficeMenu, customsOfficeToggle));
       customsOfficeDisplay?.addEventListener("click", () => toggleLookupMenu(customsOfficeMenu, customsOfficeToggle));
 
-      $$('.customs-office-row:not(.declaration-type-row)', $("#draftFormArea")).forEach(row => {
+      $$('[data-customs-office-code]', $("#draftFormArea")).forEach(row => {
         row.addEventListener("click", () => {
           const code = normalizeCustomsOfficeCode(row.dataset.customsOfficeCode);
           const match = customsOfficeForCode(code);
@@ -4954,6 +5003,40 @@ ${JSON.stringify(compact)}`
           updateDeclarationFieldWrapper(nameWrapper, nameField);
 
           closeLookupMenu(declarationTypeMenu, declarationTypeToggle);
+        });
+      });
+
+      const partyClassificationMenu = $('[data-party-classification-menu]', $("#draftFormArea"));
+      const partyClassificationToggle = $('[data-party-classification-toggle]', $("#draftFormArea"));
+      partyClassificationToggle?.addEventListener("click", () => toggleLookupMenu(partyClassificationMenu, partyClassificationToggle));
+      $$('[data-party-classification-code]', $("#draftFormArea")).forEach(row => {
+        row.addEventListener("click", () => {
+          const code = normalizeNumericLookupCode(row.dataset.partyClassificationCode);
+          const field = declarationWorkspace.fields.ecus_H;
+          if (!field || !code) return;
+          updateDeclarationFieldState(field, code);
+          const wrapper = $('[data-draft-field-wrap="ecus_H"]', $("#draftFormArea"));
+          const input = $('[data-draft-field="ecus_H"]', wrapper);
+          if (input) input.value = code;
+          updateDeclarationFieldWrapper(wrapper, field);
+          closeLookupMenu(partyClassificationMenu, partyClassificationToggle);
+        });
+      });
+
+      const transportMethodMenu = $('[data-transport-method-menu]', $("#draftFormArea"));
+      const transportMethodToggle = $('[data-transport-method-toggle]', $("#draftFormArea"));
+      transportMethodToggle?.addEventListener("click", () => toggleLookupMenu(transportMethodMenu, transportMethodToggle));
+      $$('[data-transport-method-code]', $("#draftFormArea")).forEach(row => {
+        row.addEventListener("click", () => {
+          const code = normalizeNumericLookupCode(row.dataset.transportMethodCode);
+          const field = declarationWorkspace.fields.ecus_J;
+          if (!field || !code) return;
+          updateDeclarationFieldState(field, code);
+          const wrapper = $('[data-draft-field-wrap="ecus_J"]', $("#draftFormArea"));
+          const input = $('[data-draft-field="ecus_J"]', wrapper);
+          if (input) input.value = code;
+          updateDeclarationFieldWrapper(wrapper, field);
+          closeLookupMenu(transportMethodMenu, transportMethodToggle);
         });
       });
 
