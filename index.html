@@ -2501,130 +2501,144 @@
     const DECLARATION_FIELD_SECTIONS = [
       {
         id: "registration",
-        title: "Thông tin đăng ký",
-        description: "Các mã nghiệp vụ do người khai lựa chọn và thông tin nhận dạng bản nháp.",
+        title: "Thông tin đầu tờ khai",
+        description: "Các trường A–I của sheet KhaiToKhai.",
         fields: [
-          { key: "draft_reference", label: "Mã tham chiếu bản nháp", computed: true, required: ["import", "export"] },
-          { key: "registration_date", label: "Ngày lập bản nháp", computed: true, required: ["import", "export"] },
-          { key: "declaration_type_code", label: "Mã loại hình", required: ["import", "export"], placeholder: "Ví dụ: A11, A12, E62…", choice: true },
-          { key: "customs_office_code", label: "Mã Chi cục Hải quan đăng ký", required: ["import", "export"], placeholder: "Người khai phải chọn", choice: true },
-          { key: "processing_department_code", label: "Mã bộ phận xử lý", placeholder: "Bổ sung nếu nghiệp vụ yêu cầu", choice: true },
-          { key: "declarant_reference", label: "Số tham chiếu của người khai", placeholder: "Mã hồ sơ nội bộ" },
-          { key: "ecus_stt", label: "STT theo file ECUS", required: ["export"], placeholder: "Nhập STT theo hồ sơ ECUS" },
-          { key: "organization_classification", label: "Phân loại cá nhân tổ chức", required: ["export"], placeholder: "Ví dụ theo mẫu: 4" },
-          { key: "taxpayer_code", label: "Người nộp thuế", required: ["export"], placeholder: "Ví dụ theo mẫu: 1" },
-          { key: "declaration_status", label: "Trạng thái", required: ["export"], placeholder: "Ví dụ theo mẫu: N" },
-          { key: "import_export_declaration_type", label: "Loại tờ khai nhập xuất", required: ["export"], placeholder: "Ví dụ theo mẫu: N" },
-          { key: "ecus_declaration_mode", label: "Loại hình tờ khai ECUS", required: ["export"], placeholder: "Ví dụ theo mẫu: ECUSK5NET" }
-        ]
-      },
-      {
-        id: "parties",
-        title: "Người nhập khẩu và người xuất khẩu",
-        description: "Tên, địa chỉ và mã doanh nghiệp được chuyển từ Invoice, B/L, C/O và chứng từ liên quan.",
-        fields: [
-          { key: "importer_code", label: "Mã số thuế người nhập khẩu", required: ["import"], placeholder: "Người khai bổ sung" },
-          { key: "importer_name", label: "Tên người nhập khẩu", sources: ["buyer"], required: ["import", "export"], span: "half" },
-          { key: "importer_address", label: "Địa chỉ người nhập khẩu", sources: ["buyer_address"], required: ["import", "export"], type: "textarea", span: "half" },
-          { key: "exporter_code", label: "Mã người xuất khẩu", placeholder: "Nếu có" },
-          { key: "exporter_name", label: "Tên người xuất khẩu", sources: ["seller", "exporter"], required: ["import", "export"], span: "half" },
-          { key: "exporter_address", label: "Địa chỉ người xuất khẩu", sources: ["seller_address", "exporter_address"], required: ["import", "export"], type: "textarea", span: "half" },
-          { key: "notify_party", label: "Bên được thông báo", sources: ["notify_party"], span: "half" },
-          { key: "notify_party_address", label: "Địa chỉ bên được thông báo", sources: ["notify_party_address"], type: "textarea", span: "half" },
-          { key: "export_country_code", label: "Mã nước xuất khẩu", required: ["export"], placeholder: "Ví dụ theo mẫu: JP" }
+          { key: "ecus_A", label: "STT", ecusColumn: "A", required: true, ecusKind: "number" },
+          { key: "ecus_B", label: "Số tờ khai", ecusColumn: "B" },
+          { key: "ecus_C", label: "Ngày đăng ký", ecusColumn: "C", ecusKind: "date" },
+          { key: "ecus_D", label: "Mã HQ", ecusColumn: "D", required: true },
+          { key: "ecus_E", label: "Mã LH", ecusColumn: "E", required: true },
+          { key: "ecus_F", label: "Tên đối tác", ecusColumn: "F", required: true, sources: ["buyer"] },
+          { key: "ecus_G", label: "Mã đại lý HQ", ecusColumn: "G" },
+          { key: "ecus_H", label: "Phân loại các nhân tổ chức", ecusColumn: "H", required: true, ecusKind: "number" },
+          { key: "ecus_I", label: "Mã bộ phận xử lý tk ", ecusColumn: "I" }
         ]
       },
       {
         id: "transport",
-        title: "Vận đơn và vận chuyển",
-        description: "Thông tin B/L, hành trình, số kiện và trọng lượng.",
+        title: "Vận chuyển",
+        description: "Các trường J–W của sheet KhaiToKhai.",
         fields: [
-          { key: "bl_number", label: "Số vận đơn", sources: ["hbl_number", "bl_number", "mbl_number"], required: ["import", "export"] },
-          { key: "bl_date", label: "Ngày vận đơn", sources: ["bl_date", "on_board_date"] },
-          { key: "transport_mode", label: "Phương thức vận chuyển", sources: ["transport_mode"], required: ["import", "export"], choice: true },
-          { key: "vessel_voyage", label: "Tên tàu / Số chuyến", sources: ["vessel_voyage"] },
-          { key: "package_count", label: "Tổng số kiện", sources: ["package_count"], required: ["import", "export"] },
-          { key: "package_type", label: "Loại bao bì / kiện", sources: ["package_type"] },
-          { key: "gross_weight", label: "Tổng trọng lượng cả bì", sources: ["gross_weight"], required: ["import", "export"] },
-          { key: "net_weight", label: "Tổng trọng lượng tịnh", sources: ["net_weight"] },
-          { key: "departure_date", label: "Ngày khởi hành / ETD", sources: ["departure_date", "etd", "on_board_date"] },
-          { key: "arrival_date", label: "Ngày đến / ETA", sources: ["arrival_date", "eta"] },
-          { key: "port_of_loading", label: "Cảng / địa điểm xếp hàng", sources: ["port_of_loading"], required: ["import", "export"], span: "half" },
-          { key: "port_of_discharge", label: "Cảng / địa điểm dỡ hàng", sources: ["port_of_discharge"], required: ["import", "export"], span: "half" },
-          { key: "place_of_delivery", label: "Địa điểm giao hàng", sources: ["place_of_delivery"], span: "half" },
-          { key: "storage_location_code", label: "Mã địa điểm lưu kho chờ thông quan", required: ["import"], placeholder: "Người khai phải chọn", choice: true, span: "half" },
-          { key: "storage_location_name", label: "Tên địa điểm lưu kho", required: ["export"], placeholder: "Nhập đúng tên địa điểm theo ECUS", span: "half" },
-          { key: "transport_vehicle_code", label: "Mã phương tiện vận chuyển", required: ["export"], placeholder: "Ví dụ theo mẫu: 9999" },
-          { key: "loading_location_code", label: "Mã địa điểm xếp hàng", required: ["export"], placeholder: "Ví dụ: VNSGN" },
-          { key: "loading_location_name", label: "Tên địa điểm xếp hàng", required: ["export"], placeholder: "Ví dụ: HO CHI MINH", span: "half" },
-          { key: "discharge_location_code", label: "Mã địa điểm dỡ hàng", required: ["export"], placeholder: "Ví dụ: JPYOK" },
-          { key: "discharge_location_name", label: "Tên địa điểm dỡ hàng", required: ["export"], placeholder: "Ví dụ: YOKOHAMA - KANAGAWA", span: "half" },
-          { key: "weight_unit", label: "Đơn vị tính trọng lượng", required: ["export"], placeholder: "Ví dụ theo mẫu: KGM" },
-          { key: "marks_numbers", label: "Ký mã hiệu", sources: ["marks_numbers"], type: "textarea", span: "full" }
+          { key: "ecus_J", label: "Mã hiệu phương thức vận chuyển", ecusColumn: "J", required: true, sources: ["transport_mode"], transform: "transport_code", ecusKind: "number" },
+          { key: "ecus_K", label: "Vận đơn", ecusColumn: "K", required: true, sources: ["hbl_number", "bl_number", "mbl_number"] },
+          { key: "ecus_L", label: "Số lượng kiện", ecusColumn: "L", required: true, sources: ["package_count"], ecusKind: "number" },
+          { key: "ecus_M", label: "Tổng trọng lượng hàng (Gross)", ecusColumn: "M", required: true, sources: ["gross_weight"], ecusKind: "number" },
+          { key: "ecus_N", label: "Mã địa điểm lưu kho", ecusColumn: "N", required: true },
+          { key: "ecus_O", label: "Tên địa điểm lưu kho", ecusColumn: "O", required: true },
+          { key: "ecus_P", label: "Mã phương tiện vận chuyển", ecusColumn: "P", required: true },
+          { key: "ecus_Q", label: "Tên phương tiện vận chuyển", ecusColumn: "Q", required: true, sources: ["vessel_voyage"] },
+          { key: "ecus_R", label: "Ngày đến", ecusColumn: "R", required: true, sources: ["arrival_date", "eta"], ecusKind: "date" },
+          { key: "ecus_S", label: "Mã địa điểm xếp hàng", ecusColumn: "S", required: true, sources: ["port_of_loading"], transform: "location_code" },
+          { key: "ecus_T", label: "Tên địa điểm xếp hàng", ecusColumn: "T", required: true, sources: ["port_of_loading"], transform: "location_name" },
+          { key: "ecus_U", label: "Mã địa điểm dỡ hàng", ecusColumn: "U", required: true, sources: ["port_of_discharge"], transform: "location_code" },
+          { key: "ecus_V", label: "Tên địa điểm dỡ hàng", ecusColumn: "V", required: true, sources: ["port_of_discharge"], transform: "location_name" },
+          { key: "ecus_W", label: "Số lượng cont", ecusColumn: "W", required: true, sources: ["container_number"], transform: "container_count", ecusKind: "number" }
         ]
       },
       {
         id: "invoice",
-        title: "Hóa đơn, hợp đồng và trị giá",
-        description: "Thông tin thương mại được trích xuất; trị giá và các khoản điều chỉnh vẫn cần người khai kiểm tra.",
+        title: "Hóa đơn và trị giá",
+        description: "Các trường X–AK của sheet KhaiToKhai.",
         fields: [
-          { key: "invoice_number", label: "Số hóa đơn", sources: ["invoice_number"], required: ["import", "export"] },
-          { key: "invoice_date", label: "Ngày hóa đơn", sources: ["invoice_date"], required: ["import", "export"] },
-          { key: "contract_number", label: "Số hợp đồng", sources: ["contract_number"] },
-          { key: "contract_date", label: "Ngày hợp đồng", sources: ["contract_date"] },
-          { key: "purchase_order_number", label: "Số đơn đặt hàng (PO)", sources: ["purchase_order_number"] },
-          { key: "currency", label: "Mã đồng tiền", sources: ["currency"], required: ["import", "export"], choice: true },
-          { key: "incoterm", label: "Điều kiện giá hóa đơn / Incoterms", sources: ["incoterm"], required: ["import", "export"] },
-          { key: "payment_terms", label: "Phương thức / điều kiện thanh toán", sources: ["payment_terms"], required: ["import", "export"], choice: true },
-          { key: "invoice_total", label: "Tổng trị giá hóa đơn", sources: ["total_amount"], required: ["import", "export"] },
-          { key: "valuation_method", label: "Mã phương pháp xác định trị giá", required: ["import"], placeholder: "Người khai phải chọn", choice: true },
-          { key: "buyer_seller_relationship", label: "Quan hệ người mua – người bán", required: ["import"], placeholder: "Có / Không", choice: true },
-          { key: "freight_value", label: "Phí vận tải", placeholder: "Bổ sung nếu chưa nằm trong trị giá" },
-          { key: "insurance_value", label: "Phí bảo hiểm", placeholder: "Bổ sung nếu có" },
-          { key: "declared_customs_value", label: "Trị giá KB", required: ["export"], placeholder: "Nhập trị giá khai báo theo ECUS" },
-          { key: "invoice_classification_code", label: "Mã phân loại hóa đơn", required: ["export"], placeholder: "Ví dụ theo mẫu: A" },
-          { key: "insurance_classification_code", label: "Mã phân loại phí bảo hiểm", required: ["export"], placeholder: "Ví dụ theo mẫu: A" },
-          { key: "insurance_currency_code", label: "Mã tiền phí bảo hiểm", required: ["export"], placeholder: "Ví dụ theo mẫu: JPY" },
-          { key: "invoice_form_classification_code", label: "Mã phân loại hình thức hóa đơn", required: ["export"], placeholder: "Ví dụ theo mẫu: A" },
-          { key: "valuation_adjustments", label: "Khoản điều chỉnh trị giá khác", type: "textarea", span: "full" }
+          { key: "ecus_X", label: "Số giấy phép", ecusColumn: "X" },
+          { key: "ecus_Y", label: "Số HĐTM", ecusColumn: "Y", required: true, sources: ["invoice_number"] },
+          { key: "ecus_Z", label: "Ngày HĐTM", ecusColumn: "Z", required: true, sources: ["invoice_date"], ecusKind: "date" },
+          { key: "ecus_AA", label: "Tổng trị giá HĐ", ecusColumn: "AA", required: true, sources: ["total_amount"], ecusKind: "number" },
+          { key: "ecus_AB", label: "Phương thức thanh toán", ecusColumn: "AB", required: true, sources: ["payment_terms"] },
+          { key: "ecus_AC", label: "Điều kiện giá hóa đơn", ecusColumn: "AC", required: true, sources: ["incoterm"] },
+          { key: "ecus_AD", label: "Ng.Tệ hóa đơn", ecusColumn: "AD", required: true, sources: ["currency"] },
+          { key: "ecus_AE", label: "Tỷ giá VNĐ", ecusColumn: "AE", ecusKind: "number" },
+          { key: "ecus_AF", label: "Phí BH", ecusColumn: "AF", required: true, ecusKind: "number" },
+          { key: "ecus_AG", label: "Phí VC", ecusColumn: "AG", ecusKind: "number" },
+          { key: "ecus_AH", label: "Người nộp thuế", ecusColumn: "AH", required: true, ecusKind: "number" },
+          { key: "ecus_AI", label: "Trị giá KB", ecusColumn: "AI", required: true, ecusKind: "number" },
+          { key: "ecus_AJ", label: "Tổng trị giá TT", ecusColumn: "AJ", ecusKind: "number" },
+          { key: "ecus_AK", label: "Tổng tiền thuế", ecusColumn: "AK", ecusKind: "number" }
         ]
       },
       {
-        id: "origin",
-        title: "C/O, giấy phép và chính sách mặt hàng",
-        description: "Thông tin xuất xứ có thể được trích xuất; giấy phép và chính sách chuyên ngành phải được kiểm tra riêng.",
+        id: "taxcontract",
+        title: "Thuế, bảo lãnh và hợp đồng",
+        description: "Các trường AL–AX của sheet KhaiToKhai.",
         fields: [
-          { key: "co_form", label: "Loại / mẫu C/O", sources: ["co_form"] },
-          { key: "co_number", label: "Số C/O", sources: ["co_number"] },
-          { key: "co_issue_date", label: "Ngày cấp C/O", sources: ["co_issue_date"] },
-          { key: "origin_country", label: "Nước xuất xứ", sources: ["origin_country"] },
-          { key: "origin_criterion", label: "Tiêu chí xuất xứ", sources: ["origin_criterion"] },
-          { key: "third_party_invoice", label: "Hóa đơn bên thứ ba", placeholder: "Có / Không", choice: true },
-          { key: "license_policy", label: "Giấy phép / kiểm tra chuyên ngành", type: "textarea", span: "half" },
-          { key: "attached_documents", label: "Chứng từ đính kèm khác", type: "textarea", span: "half" },
-          { key: "ecus_note", label: "Ghi chú ECUS", required: ["export"], type: "textarea", span: "full", placeholder: "Nhập nội dung ghi chú theo file ECUS" }
+          { key: "ecus_AL", label: "Mã lý do đề nghị BP", ecusColumn: "AL" },
+          { key: "ecus_AM", label: "Mã ngân hàng trả thuế", ecusColumn: "AM" },
+          { key: "ecus_AN", label: "Năm phát hành hạn mức", ecusColumn: "AN", ecusKind: "number" },
+          { key: "ecus_AO", label: "Ký hiệu CT hạn mức", ecusColumn: "AO" },
+          { key: "ecus_AP", label: "Số CT hạn mức", ecusColumn: "AP" },
+          { key: "ecus_AQ", label: "Mã xác định thời hạn nộp thuế", ecusColumn: "AQ" },
+          { key: "ecus_AR", label: "Mã ngân hàng bảo lãnh", ecusColumn: "AR" },
+          { key: "ecus_AS", label: "Năm phát hành bảo lãnh", ecusColumn: "AS", ecusKind: "number" },
+          { key: "ecus_AT", label: "Ký hiệu CT bảo lãnh", ecusColumn: "AT" },
+          { key: "ecus_AU", label: "Số hiệu CT bảo lãnh", ecusColumn: "AU" },
+          { key: "ecus_AV", label: "Số HĐ", ecusColumn: "AV", required: true, sources: ["contract_number"] },
+          { key: "ecus_AW", label: "Ngày HĐ", ecusColumn: "AW", required: true, sources: ["contract_date"], ecusKind: "date" },
+          { key: "ecus_AX", label: "Ngày HHHĐ", ecusColumn: "AX", ecusKind: "date" }
+        ]
+      },
+      {
+        id: "ecusmore",
+        title: "Thông tin ECUS bổ sung",
+        description: "Các trường AY–BX của sheet KhaiToKhai.",
+        fields: [
+          { key: "ecus_AY", label: "Trạng thái", ecusColumn: "AY", required: true },
+          { key: "ecus_AZ", label: "Phân luồng", ecusColumn: "AZ" },
+          { key: "ecus_BA", label: "Loại tờ khai nhập xuất", ecusColumn: "BA", required: true },
+          { key: "ecus_BB", label: "Tên đơn vị xuất/nhập khẩu", ecusColumn: "BB", required: true, sources: ["seller", "exporter"] },
+          { key: "ecus_BC", label: "Loại hình tờ khai", ecusColumn: "BC", required: true },
+          { key: "ecus_BD", label: "Địa chỉ doanh nghiệp xuất/nhập khẩu", ecusColumn: "BD", required: true, sources: ["seller_address", "exporter_address"], type: "textarea", span: "half" },
+          { key: "ecus_BE", label: "Mã nước xuất khẩu", ecusColumn: "BE", required: true, sources: ["port_of_discharge"], transform: "country_from_location" },
+          { key: "ecus_BF", label: "Loại kiện", ecusColumn: "BF", required: true, sources: ["package_type"] },
+          { key: "ecus_BG", label: "Đơn vị tính trọng lượng", ecusColumn: "BG", required: true },
+          { key: "ecus_BH", label: "Hóa đơn thương mại", ecusColumn: "BH" },
+          { key: "ecus_BI", label: "Mã phân loại hóa đơn", ecusColumn: "BI", required: true },
+          { key: "ecus_BJ", label: "Mã phân loại phí vận chuyển", ecusColumn: "BJ" },
+          { key: "ecus_BK", label: "Mã phân loại phí bảo hiểm", ecusColumn: "BK", required: true },
+          { key: "ecus_BL", label: "Mã tiền phí vận chuyển", ecusColumn: "BL" },
+          { key: "ecus_BM", label: "Mã tiền phí bảo hiểm", ecusColumn: "BM", required: true, sources: ["currency"] },
+          { key: "ecus_BN", label: "Địa chỉ người xuất/nhập khẩu1", ecusColumn: "BN", required: true, sources: ["buyer_address"], transform: "address_1", type: "textarea", span: "half" },
+          { key: "ecus_BO", label: "Ghi chú", ecusColumn: "BO", required: true, type: "textarea", span: "full" },
+          { key: "ecus_BP", label: "Mã phân loại hình thức hóa đơn", ecusColumn: "BP", required: true },
+          { key: "ecus_BQ", label: "Địa điểm đích cho vận chuyển báo thuế", ecusColumn: "BQ" },
+          { key: "ecus_BR", label: "Ngày dự kiến đến địa điểm đích", ecusColumn: "BR", ecusKind: "date" },
+          { key: "ecus_BS", label: "Ngày khởi hành vận chuyển", ecusColumn: "BS", ecusKind: "date" },
+          { key: "ecus_BT", label: "Mã phân loại tờ khai trị giá", ecusColumn: "BT", required: true, ecusKind: "number" },
+          { key: "ecus_BU", label: "Địa chỉ người xuất/nhập khẩu2", ecusColumn: "BU", required: true, sources: ["buyer_address"], transform: "address_2", type: "textarea", span: "half" },
+          { key: "ecus_BV", label: "Địa chỉ người xuất/nhập khẩu3", ecusColumn: "BV", required: true, sources: ["buyer_address"], transform: "address_3", type: "textarea", span: "half" },
+          { key: "ecus_BW", label: "Địa chỉ người xuất/nhập khẩu4", ecusColumn: "BW", sources: ["buyer_address"], transform: "address_4", type: "textarea", span: "half" },
+          { key: "ecus_BX", label: "Mã đồng tiền trị giá tính thuế", ecusColumn: "BX", sources: ["currency"] }
         ]
       }
     ];
 
     const DECLARATION_ITEM_FIELDS = [
-      { key: "item_code", label: "Mã hàng / Model", suffixes: ["item_code"] },
-      { key: "invoice_description", label: "Tên hàng trên Invoice", suffixes: ["description"], required: true, type: "textarea" },
-      { key: "customs_description", label: "Tên khai hải quan", suffixes: ["description"], required: true, type: "textarea", copied: true },
-      { key: "hs_code", label: "Mã HS dự kiến", suffixes: ["hs_code"], required: true },
-      { key: "origin_country", label: "Xuất xứ", suffixes: ["origin_country"], required: true },
-      { key: "origin_criterion", label: "Tiêu chí xuất xứ", suffixes: ["origin_criterion"] },
-      { key: "quantity_1", label: "Số lượng 1", suffixes: ["quantity"], required: true },
-      { key: "unit_1", label: "ĐVT 1", suffixes: ["unit"], required: true },
-      { key: "quantity_2", label: "Số lượng 2" },
-      { key: "unit_2", label: "ĐVT 2" },
-      { key: "unit_price", label: "Đơn giá", suffixes: ["unit_price"] },
-      { key: "amount", label: "Trị giá", suffixes: ["amount"] },
-      { key: "tariff_schedule", label: "Mã biểu thuế nhập khẩu", choice: true },
-      { key: "tax_rate", label: "Thuế suất XNK" },
-      { key: "vat_rate", label: "Mã biểu thuế VAT" },
-      { key: "item_type", label: "Loại hàng", required: ["export"], placeholder: "Ví dụ theo mẫu: 1" },
-      { key: "license_line", label: "C/O / giấy phép dòng hàng" }
+      { key: "item_A", label: "Tên hàng", ecusColumn: "A", required: true, suffixes: ["description"], type: "textarea" },
+      { key: "item_B", label: "Mã hàng", ecusColumn: "B", required: true, suffixes: ["item_code"] },
+      { key: "item_C", label: "Mã HS", ecusColumn: "C", required: true, suffixes: ["hs_code"] },
+      { key: "item_D", label: "Nước XX", ecusColumn: "D", required: true, suffixes: ["origin_country"] },
+      { key: "item_E", label: "Đơn vị tính", ecusColumn: "E", required: true, suffixes: ["unit"] },
+      { key: "item_F", label: "Lượng", ecusColumn: "F", required: true, suffixes: ["quantity"], ecusKind: "number" },
+      { key: "item_G", label: "Đơn giá HĐ", ecusColumn: "G", required: true, suffixes: ["unit_price"], ecusKind: "number" },
+      { key: "item_H", label: "Trị giá HĐ", ecusColumn: "H", required: true, suffixes: ["amount"], ecusKind: "number" },
+      { key: "item_I", label: "Trị giá tính thuế", ecusColumn: "I", ecusKind: "number" },
+      { key: "item_J", label: "STTHang", ecusColumn: "J", required: true, computedIndex: true, ecusKind: "number" },
+      { key: "item_K", label: "Mã miễn giảm không chịu thuế XNK", ecusColumn: "K" },
+      { key: "item_L", label: "Số tiền giảm thuế  XNK", ecusColumn: "L", ecusKind: "number" },
+      { key: "item_M", label: "Tiền thuế suất", ecusColumn: "M", ecusKind: "number" },
+      { key: "item_N", label: "Tiền thuế TV", ecusColumn: "N", ecusKind: "number" },
+      { key: "item_O", label: "Tiền thuế PB", ecusColumn: "O", ecusKind: "number" },
+      { key: "item_P", label: "Tiền Thuế TTĐB", ecusColumn: "P", ecusKind: "number" },
+      { key: "item_Q", label: "Tiền thuế MT", ecusColumn: "Q", ecusKind: "number" },
+      { key: "item_R", label: "Tiền thuế VAT", ecusColumn: "R", ecusKind: "number" },
+      { key: "item_S", label: "Đơn giá hợp đồng TM", ecusColumn: "S", required: true, copyFrom: "item_G", ecusKind: "number" },
+      { key: "item_T", label: "Trị giá hợp đồng TM", ecusColumn: "T", required: true, copyFrom: "item_H", ecusKind: "number" },
+      { key: "item_U", label: "Mã biểu thuế nhập khẩu", ecusColumn: "U", required: true },
+      { key: "item_V", label: "Mã biểu thuế VAT", ecusColumn: "V", required: true },
+      { key: "item_W", label: "Loại hàng", ecusColumn: "W", required: true, ecusKind: "number" },
+      { key: "item_X", label: "Mã miễn giảm", ecusColumn: "X" },
+      { key: "item_Y", label: "Đơn vị tính 2", ecusColumn: "Y", required: true, ecusKind: "number" },
+      { key: "item_Z", label: "Lượng 2", ecusColumn: "Z", required: true }
     ];
 
     function updateKeyUI(status = apiKey ? "saved" : "empty", message = "") {
@@ -3954,6 +3968,32 @@ ${JSON.stringify(compact)}`
       };
     }
 
+
+    function transformDeclarationEcusValue(definition, value) {
+      const text = String(value ?? "").trim();
+      if (!definition?.transform) return text;
+      if (!text) return "";
+      if (definition.transform === "transport_code") {
+        const code = ecusTransportCode(text);
+        return code === null ? "" : String(code);
+      }
+      if (definition.transform === "location_code") return ecusLocation(text).code || "";
+      if (definition.transform === "location_name") return ecusLocation(text).name || "";
+      if (definition.transform === "country_from_location") {
+        const code = ecusLocation(text).code || "";
+        return /^[A-Z]{2}/i.test(code) ? code.slice(0, 2).toUpperCase() : "";
+      }
+      if (definition.transform === "container_count") {
+        const parts = String(text).split(/\r?\n|\s*;\s*|\s*,\s*/).map(item => item.trim()).filter(Boolean);
+        return parts.length ? String(parts.length) : "";
+      }
+      if (/^address_[1-4]$/.test(definition.transform)) {
+        const index = Number(definition.transform.slice(-1)) - 1;
+        return ecusAddressParts(text)[index] || "";
+      }
+      return text;
+    }
+
     function declarationFieldFromSource(definition, type, explicitKeys = null) {
       const keys = explicitKeys || definition.sources || [];
       const required = declarationRequired(definition, type);
@@ -3981,8 +4021,10 @@ ${JSON.stringify(compact)}`
 
       const preferredDocs = declarationPreferredDocuments(row.key);
       const selected = preferredDocs.map(docId => choices.find(item => item.docId === docId)).find(Boolean) || choices[0];
+      const transformedValue = transformDeclarationEcusValue(definition, selected.value);
+      if (!transformedValue) return blankDeclarationField(definition, type);
       return blankDeclarationField(definition, type, {
-        value: selected.value,
+        value: transformedValue,
         status: "extracted",
         source: selected.label,
         alternatives: choices
@@ -4007,7 +4049,8 @@ ${JSON.stringify(compact)}`
         origin_criterion: "origin_criterion",
         quantity: "quantity",
         unit: "unit",
-        unit_price: "unit_price"
+        unit_price: "unit_price",
+        amount: "amount"
       })[suffix] || "";
     }
 
@@ -4031,6 +4074,10 @@ ${JSON.stringify(compact)}`
       });
     }
 
+    function declarationItemFieldLabel(key) {
+      return DECLARATION_ITEM_FIELDS.find(item => item.key === key)?.label || key;
+    }
+
     function buildDeclarationItems(type, previousItems = []) {
       const rows = lastDocumentComparison?.fields || [];
       const productListExtraction = productListDeclarationExtraction();
@@ -4039,7 +4086,7 @@ ${JSON.stringify(compact)}`
       const itemIndexes = [...new Set(sourceRows.map(row => String(row.key || "").match(/^item_(\d+)_/)?.[1]).filter(Boolean).map(Number))]
         .sort((left, right) => left - right);
       const hasGenericItem = sourceRows.some(row => [
-        "goods_description", "item_code", "hs_code", "origin_country", "origin_criterion", "quantity", "unit", "unit_price"
+        "goods_description", "item_code", "hs_code", "origin_country", "origin_criterion", "quantity", "unit", "unit_price", "amount"
       ].includes(row.key));
       if (!itemIndexes.length && hasGenericItem) itemIndexes.push(1);
       if (!itemIndexes.length) itemIndexes.push(1);
@@ -4052,22 +4099,26 @@ ${JSON.stringify(compact)}`
           const keys = suffix
             ? [`item_${sourceIndex}_${suffix}`, ...(sourceIndex === 1 && genericItemSourceKey(suffix) ? [genericItemSourceKey(suffix)] : [])]
             : [];
-          let field = keys.length
-            ? (productListOnly
-              ? declarationItemFieldFromSpecificDocument({ ...definition, sources: keys }, type, keys, "productlist")
-              : declarationFieldFromSource({ ...definition, sources: keys }, type, keys))
-            : blankDeclarationField(definition, type);
-          if (definition.key === "customs_description") {
-            const invoiceField = fields.invoice_description;
-            field = {
-              ...(invoiceField || field),
-              value: invoiceField?.value || "",
-              required: true,
-              status: invoiceField?.value ? "extracted" : "missing",
-              source: invoiceField?.value
-                ? `${invoiceField.source || "Chứng từ"} · Cần chuẩn hóa tên khai hải quan`
-                : ""
-            };
+          let field;
+          if (definition.computedIndex) {
+            field = blankDeclarationField(definition, type, {
+              value: String(itemIndex + 1),
+              status: "computed",
+              source: "Hệ thống đánh số dòng hàng"
+            });
+          } else if (definition.copyFrom && fields[definition.copyFrom]) {
+            const sourceField = fields[definition.copyFrom];
+            field = blankDeclarationField(definition, type, {
+              value: sourceField.value || "",
+              status: sourceField.value ? sourceField.status : (declarationRequired(definition, type) ? "missing" : "empty"),
+              source: sourceField.value ? `Sao chép từ ${declarationItemFieldLabel(definition.copyFrom)}` : ""
+            });
+          } else {
+            field = keys.length
+              ? (productListOnly
+                ? declarationItemFieldFromSpecificDocument({ ...definition, sources: keys }, type, keys, "productlist")
+                : declarationFieldFromSource({ ...definition, sources: keys }, type, keys))
+              : blankDeclarationField(definition, type);
           }
           fields[definition.key] = preserveConfirmedDeclarationField(field, previous?.fields?.[definition.key], definition, type);
         });
@@ -4301,7 +4352,7 @@ ${JSON.stringify(compact)}`
         <summary>
           <div class="draft-section-title">
             <span class="draft-section-index">06</span>
-            <div><h3>Danh sách hàng hóa</h3><p class="draft-section-summary">Mỗi dòng hàng có tên chứng từ, tên khai chuẩn hóa, HS, số lượng, trị giá, thuế và C/O tương ứng.</p></div>
+            <div><h3>Danh sách hàng hóa</h3><p class="draft-section-summary">Chỉ hiển thị đúng các trường A–Z của sheet KhaiHang trong file Excel mẫu.</p></div>
           </div>
           <span class="draft-status ${missing ? "status-missing" : "status-confirmed"}">${missing ? `${missing} ô bắt buộc còn thiếu` : `${declarationWorkspace.items.length} dòng hàng`}</span>
         </summary>
@@ -4384,9 +4435,7 @@ ${JSON.stringify(compact)}`
       $("#draftDocumentCount").textContent = `${declarationWorkspace.sourceDocuments.length} file`;
       $("#draftFormArea").innerHTML = [
         renderDeclarationRegularSections(),
-        renderDeclarationItemsSection(),
-        renderDeclarationContainerSection(),
-        renderDeclarationCrossCheckSection()
+        renderDeclarationItemsSection()
       ].join("");
       renderDeclarationSidebar();
       bindDeclarationDraftControls();
@@ -4399,10 +4448,6 @@ ${JSON.stringify(compact)}`
       }));
       declarationWorkspace.items.forEach((item, itemIndex) => DECLARATION_ITEM_FIELDS.forEach(definition => {
         entries.push({ label: `Dòng hàng ${itemIndex + 1} — ${definition.label}`, field: item.fields[definition.key], section: "Danh sách hàng hóa" });
-      }));
-      declarationWorkspace.containers.forEach((container, index) => Object.entries(container.fields).forEach(([key, field]) => {
-        const label = ({ number: "Số container", seal: "Số seal", type: "Loại container", packageCount: "Số kiện", grossWeight: "Gross weight" })[key] || key;
-        entries.push({ label: `Container ${index + 1} — ${label}`, field, section: "Container" });
       }));
       return entries;
     }
@@ -4735,162 +4780,13 @@ ${JSON.stringify(compact)}`
         showDraftMessage("Không tải được thư viện tạo Excel. Hãy kiểm tra kết nối Internet rồi thử lại.", "error");
         return;
       }
-      if (declarationWorkspace.type === "export") {
-        try {
-          const workbook = XLSX.read(ECUS_EXPORT_TEMPLATE_BASE64, {
-            type: "base64",
-            cellStyles: true,
-            cellDates: true,
-            cellFormula: true
-          });
-          const requiredSheets = ["KhaiToKhai", "KhaiHang", "HangKiemHoa", "KhaiToKhai1"];
-          const missingSheet = requiredSheets.find(name => !workbook.Sheets[name]);
-          if (missingSheet) throw new Error(`Mẫu ECUS thiếu sheet ${missingSheet}.`);
-
-          const generalSheet = workbook.Sheets.KhaiToKhai;
-          const itemSheet = workbook.Sheets.KhaiHang;
-          const inspectionSheet = workbook.Sheets.HangKiemHoa;
-          const field = key => declarationWorkspace.fields[key]?.value || "";
-          const partnerAddress = ecusAddressParts(field("importer_address"));
-          const containerCount = declarationWorkspace.containers.filter(container => ecusText(container.fields.number?.value)).length;
-
-          // Chỉ xóa dữ liệu mẫu cũ, giữ nguyên cấu trúc, style, sheet và vùng của file Excel mẫu.
-          const generalRange = XLSX.utils.decode_range(generalSheet["!ref"] || "A1:BX2");
-          clearEcusRange(generalSheet, 1, Math.max(1, generalRange.e.r), 76);
-
-          const generalValues = [
-            [0, 1, field("ecus_stt"), "number"],
-            [2, 1, field("registration_date"), "date"],
-            [3, 1, field("customs_office_code")],
-            [4, 1, field("declaration_type_code")],
-            [5, 1, field("importer_name")],
-            [7, 1, field("organization_classification"), "number"],
-            [8, 1, field("processing_department_code")],
-            [9, 1, ecusTransportCode(field("transport_mode")), "number"],
-            [10, 1, field("bl_number")],
-            [11, 1, field("package_count"), "number"],
-            [12, 1, field("gross_weight"), "number"],
-            [13, 1, field("storage_location_code")],
-            [14, 1, field("storage_location_name")],
-            [15, 1, field("transport_vehicle_code"), "number"],
-            [16, 1, field("vessel_voyage")],
-            [17, 1, field("arrival_date"), "date"],
-            [18, 1, field("loading_location_code")],
-            [19, 1, field("loading_location_name")],
-            [20, 1, field("discharge_location_code")],
-            [21, 1, field("discharge_location_name")],
-            [22, 1, containerCount || null, "number"],
-            [24, 1, field("invoice_number")],
-            [25, 1, field("invoice_date"), "date"],
-            [26, 1, field("invoice_total"), "number"],
-            [27, 1, field("payment_terms")],
-            [28, 1, field("incoterm")],
-            [29, 1, field("currency")],
-            [31, 1, field("insurance_value"), "number"],
-            [32, 1, field("freight_value"), "number"],
-            [33, 1, field("taxpayer_code"), "number"],
-            [34, 1, field("declared_customs_value"), "number"],
-            [47, 1, field("contract_number")],
-            [48, 1, field("contract_date"), "date"],
-            [50, 1, field("declaration_status")],
-            [52, 1, field("import_export_declaration_type")],
-            [53, 1, field("exporter_name")],
-            [54, 1, field("ecus_declaration_mode")],
-            [55, 1, field("exporter_address")],
-            [56, 1, field("export_country_code")],
-            [57, 1, field("package_type")],
-            [58, 1, field("weight_unit")],
-            [60, 1, field("invoice_classification_code")],
-            [62, 1, field("insurance_classification_code")],
-            [64, 1, field("insurance_currency_code")],
-            [65, 1, partnerAddress[0]],
-            [66, 1, field("ecus_note")],
-            [67, 1, field("invoice_form_classification_code")],
-            [68, 1, field("place_of_delivery")],
-            [69, 1, field("arrival_date"), "date"],
-            [70, 1, field("departure_date"), "date"],
-            [71, 1, field("valuation_method"), "number"],
-            [72, 1, partnerAddress[1]],
-            [73, 1, partnerAddress[2]],
-            [74, 1, partnerAddress[3]],
-            [75, 1, field("currency")]
-          ];
-          generalValues.forEach(([column, row, value, kind]) => setEcusCell(generalSheet, row, column, value, kind));
-
-          const itemRange = XLSX.utils.decode_range(itemSheet["!ref"] || "A1:Z43");
-          const itemEndRow = Math.max(itemRange.e.r, declarationWorkspace.items.length);
-          clearEcusRange(itemSheet, 1, itemEndRow, 26);
-
-          declarationWorkspace.items.forEach((item, index) => {
-            const row = index + 1;
-            if (row > itemRange.e.r) copyEcusRowStyle(itemSheet, 1, row, 26);
-            const itemField = key => item.fields[key]?.value || "";
-            const quantity = ecusNumber(itemField("quantity_1"));
-            const unitPrice = ecusNumber(itemField("unit_price"));
-            const statedAmount = ecusNumber(itemField("amount"));
-            const amount = statedAmount ?? (quantity !== null && unitPrice !== null ? quantity * unitPrice : null);
-            const rawHsCode = ecusText(itemField("hs_code")).replace(/\D/g, "");
-            const hsCode = rawHsCode ? rawHsCode.padStart(8, "0").slice(-8) : "";
-
-            const rowValues = [
-              [0, itemField("customs_description") || itemField("invoice_description")],
-              [1, itemField("item_code")],
-              [2, hsCode],
-              [3, itemField("origin_country")],
-              [4, itemField("unit_1")],
-              [5, quantity, "number"],
-              [6, unitPrice, "number"],
-              [7, amount, "number"],
-              [9, index + 1, "number"],
-              [18, unitPrice, "number"],
-              [19, amount, "number"],
-              [20, itemField("tariff_schedule")],
-              [21, itemField("vat_rate")],
-              [22, itemField("item_type"), "number"],
-              [24, itemField("quantity_2"), "number"],
-              [25, itemField("unit_2")]
-            ];
-            rowValues.forEach(([column, value, kind]) => setEcusCell(itemSheet, row, column, value, kind));
-          });
-
-          // Sheet kiểm hóa trong mẫu chỉ giữ cấu trúc/định dạng, không giữ dữ liệu ví dụ cũ.
-          const inspectionRange = XLSX.utils.decode_range(inspectionSheet["!ref"] || "A1:V3");
-          if (inspectionRange.e.r >= 1) clearEcusRange(inspectionSheet, 1, inspectionRange.e.r, 22);
-
-          workbook.Props = {
-            ...(workbook.Props || {}),
-            Title: "Tờ khai xuất khẩu ECUS - bản nháp",
-            Comments: "Tạo từ dữ liệu tờ khai nháp; giữ nguyên cấu trúc mẫu ECUS; chưa truyền VNACCS."
-          };
-
-          const fileName = `ToKhaiExport_ECUS_NHAP_${new Date().toISOString().slice(0, 10)}.xls`;
-          XLSX.writeFile(workbook, fileName, {
-            bookType: "biff8",
-            cellStyles: true,
-            cellDates: true,
-            bookSST: true
-          });
-
-          const missingCount = allDeclarationFieldEntries()
-            .filter(entry => entry.field?.required && !ecusText(entry.field.value))
-            .length;
-          showDraftMessage(
-            `Đã xuất file .xls theo đúng mẫu ToKhaiExport. ${missingCount ? `Còn ${missingCount} trường bắt buộc chưa có dữ liệu; các trường này đang được đánh dấu đỏ trên tờ khai nháp.` : "Hãy mở bằng ECUS và kiểm tra lại trước khi truyền VNACCS."}`,
-            missingCount ? "warning" : "success"
-          );
-        } catch (error) {
-          showDraftMessage(`Không thể tạo file Excel ECUS: ${friendlyError(error)}`, "error");
-        }
-        return;
-      }
-
-      if (declarationWorkspace.type !== "import") {
-        showDraftMessage("Mẫu ECUS hiện có là mẫu tờ khai nhập khẩu. Chưa thể xuất tờ khai xuất khẩu cho đến khi có file mẫu tương ứng.", "warning");
+      if (declarationWorkspace.type !== "export") {
+        showDraftMessage("File mẫu hiện tại là ToKhaiExport. Hãy chọn Tờ khai xuất khẩu trước khi xuất Excel nhập ECUS.", "warning");
         return;
       }
 
       try {
-        const workbook = XLSX.read(ECUS_IMPORT_TEMPLATE_BASE64, {
+        const workbook = XLSX.read(ECUS_EXPORT_TEMPLATE_BASE64, {
           type: "base64",
           cellStyles: true,
           cellDates: true,
@@ -4903,121 +4799,75 @@ ${JSON.stringify(compact)}`
         const generalSheet = workbook.Sheets.KhaiToKhai;
         const itemSheet = workbook.Sheets.KhaiHang;
         const inspectionSheet = workbook.Sheets.HangKiemHoa;
-        const field = key => declarationWorkspace.fields[key]?.value || "";
-        const exporterAddress = ecusAddressParts(field("exporter_address"));
-        const loading = ecusLocation(field("port_of_loading"));
-        const discharge = ecusLocation(field("port_of_discharge"));
-        const firstOrigin = declarationWorkspace.items.map(item => ecusText(item.fields.origin_country?.value)).find(Boolean) || field("origin_country");
-        const containerCount = declarationWorkspace.containers.filter(container => ecusText(container.fields.number?.value)).length;
 
-        clearEcusRange(generalSheet, 1, Math.max(1, XLSX.utils.decode_range(generalSheet["!ref"] || "A1:BX2").e.r), 76);
-        const generalValues = [
-          [0, 1, 1, "number"],
-          [2, 1, field("registration_date"), "date"],
-          [3, 1, field("customs_office_code")],
-          [4, 1, field("declaration_type_code")],
-          [5, 1, field("exporter_name")],
-          [7, 1, 4, "number"],
-          [9, 1, ecusTransportCode(field("transport_mode")), "number"],
-          [10, 1, field("bl_number")],
-          [11, 1, field("package_count"), "number"],
-          [12, 1, field("gross_weight"), "number"],
-          [13, 1, field("storage_location_code")],
-          [15, 1, field("vessel_voyage") ? 9999 : null, "number"],
-          [16, 1, field("vessel_voyage")],
-          [17, 1, field("arrival_date"), "date"],
-          [18, 1, loading.code],
-          [19, 1, loading.name],
-          [20, 1, discharge.code],
-          [21, 1, discharge.name],
-          [22, 1, containerCount || null, "number"],
-          [24, 1, field("invoice_number")],
-          [25, 1, field("invoice_date"), "date"],
-          [26, 1, field("invoice_total"), "number"],
-          [27, 1, field("payment_terms")],
-          [28, 1, field("incoterm")],
-          [29, 1, field("currency")],
-          [31, 1, field("insurance_value"), "number"],
-          [32, 1, field("freight_value"), "number"],
-          [33, 1, 1, "number"],
-          [34, 1, field("invoice_total"), "number"],
-          [47, 1, field("contract_number")],
-          [48, 1, field("contract_date"), "date"],
-          [50, 1, "N"],
-          [52, 1, "N"],
-          [53, 1, field("importer_name")],
-          [54, 1, "ECUSK5NET"],
-          [55, 1, field("importer_address")],
-          [56, 1, firstOrigin],
-          [57, 1, field("package_type")],
-          [58, 1, "KGM"],
-          [60, 1, "A"],
-          [61, 1, field("freight_value") ? "A" : ""],
-          [62, 1, field("insurance_value") ? "A" : ""],
-          [63, 1, field("freight_value") ? field("currency") : ""],
-          [64, 1, field("insurance_value") ? field("currency") : ""],
-          [65, 1, exporterAddress[0]],
-          [66, 1, field("valuation_adjustments")],
-          [67, 1, "A"],
-          [71, 1, field("valuation_method") || 6, "number"],
-          [72, 1, exporterAddress[1]],
-          [73, 1, exporterAddress[2]],
-          [74, 1, exporterAddress[3]],
-          [75, 1, field("currency")]
-        ];
-        generalValues.forEach(([column, row, value, kind]) => setEcusCell(generalSheet, row, column, value, kind));
-        generalSheet["!ref"] = "A1:BX2";
+        // Xóa duy nhất dữ liệu mẫu cũ. Không đổi format, sheet, hidden state hay vùng mẫu.
+        const generalRange = XLSX.utils.decode_range(generalSheet["!ref"] || "A1:BX2");
+        clearEcusRange(generalSheet, 1, Math.max(1, generalRange.e.r), 76);
 
-        const itemRange = XLSX.utils.decode_range(itemSheet["!ref"] || "A1:Z2");
-        const itemEndRow = Math.max(itemRange.e.r, declarationWorkspace.items.length);
-        clearEcusRange(itemSheet, 1, itemEndRow, 26);
-        declarationWorkspace.items.forEach((item, index) => {
-          const row = index + 1;
-          if (row > itemRange.e.r) copyEcusRowStyle(itemSheet, 1, row, 26);
-          const itemField = key => item.fields[key]?.value || "";
-          const quantity = ecusNumber(itemField("quantity_1"));
-          const unitPrice = ecusNumber(itemField("unit_price"));
-          const statedAmount = ecusNumber(itemField("amount"));
-          const amount = statedAmount ?? (quantity !== null && unitPrice !== null ? quantity * unitPrice : null);
-          const rawHsCode = ecusText(itemField("hs_code")).replace(/\D/g, "");
-          const hsCode = rawHsCode ? rawHsCode.padStart(8, "0").slice(-8) : "";
-          const vatValue = ecusText(itemField("vat_rate"));
-          const rowValues = [
-            [0, itemField("customs_description") || itemField("invoice_description")],
-            [1, itemField("item_code")],
-            [2, hsCode],
-            [3, itemField("origin_country")],
-            [4, itemField("unit_1")],
-            [5, quantity, "number"],
-            [6, unitPrice, "number"],
-            [7, amount, "number"],
-            [9, index + 1, "number"],
-            [18, unitPrice, "number"],
-            [19, amount, "number"],
-            [20, itemField("tariff_schedule")],
-            [21, /^[A-Za-z]/.test(vatValue) ? vatValue : ""],
-            [22, 1, "number"],
-            [24, itemField("quantity_2"), "number"],
-            [25, itemField("unit_2")]
-          ];
-          rowValues.forEach(([column, value, kind]) => setEcusCell(itemSheet, row, column, value, kind));
+        DECLARATION_FIELD_SECTIONS.forEach(section => {
+          section.fields.forEach(definition => {
+            const field = declarationWorkspace.fields[definition.key];
+            if (!definition.ecusColumn || !field?.value) return;
+            const column = XLSX.utils.decode_col(definition.ecusColumn);
+            setEcusCell(generalSheet, 1, column, field.value, definition.ecusKind || "text");
+          });
         });
-        itemSheet["!ref"] = `A1:Z${Math.max(2, declarationWorkspace.items.length + 1)}`;
 
-        const inspectionRange = XLSX.utils.decode_range(inspectionSheet["!ref"] || "A1:V1");
+        const itemRange = XLSX.utils.decode_range(itemSheet["!ref"] || "A1:Z43");
+        const existingLastRow = itemRange.e.r;
+        const clearLastRow = Math.max(existingLastRow, declarationWorkspace.items.length);
+        clearEcusRange(itemSheet, 1, clearLastRow, 26);
+
+        declarationWorkspace.items.forEach((item, itemIndex) => {
+          const row = itemIndex + 1;
+          if (row > existingLastRow) copyEcusRowStyle(itemSheet, 1, row, 26);
+
+          DECLARATION_ITEM_FIELDS.forEach(definition => {
+            const field = item.fields[definition.key];
+            if (!definition.ecusColumn || !field?.value) return;
+            const column = XLSX.utils.decode_col(definition.ecusColumn);
+            let value = field.value;
+
+            // HS code must remain 8 digits and preserve leading zero.
+            if (definition.ecusColumn === "C") {
+              const digits = ecusText(value).replace(/\D/g, "");
+              value = digits ? digits.padStart(8, "0").slice(-8) : "";
+            }
+            setEcusCell(itemSheet, row, column, value, definition.ecusKind || "text");
+          });
+        });
+
+        // Only expand the template range if there are more item rows than the original template.
+        if (declarationWorkspace.items.length > existingLastRow) {
+          itemSheet["!ref"] = `A1:Z${declarationWorkspace.items.length + 1}`;
+        }
+
+        // Remove old sample inspection rows but preserve sheet format/range.
+        const inspectionRange = XLSX.utils.decode_range(inspectionSheet["!ref"] || "A1:V3");
         if (inspectionRange.e.r >= 1) clearEcusRange(inspectionSheet, 1, inspectionRange.e.r, 22);
-        inspectionSheet["!ref"] = "A1:V1";
 
+        // KhaiToKhai1 is intentionally untouched because it belongs to the original ECUS template.
         workbook.Props = {
           ...(workbook.Props || {}),
-          Title: "Tờ khai nhập khẩu ECUS - bản nháp",
-          Comments: "Tạo từ dữ liệu đã đối chiếu; chưa truyền VNACCS."
+          Title: "Tờ khai xuất khẩu ECUS - bản nháp",
+          Comments: "Dùng nguyên format Copy of ToKhaiExport(6).xls; dữ liệu được điền từ tab Tờ khai nháp."
         };
-        const fileName = `ToKhaiImport_ECUS_NHAP_${new Date().toISOString().slice(0, 10)}.xls`;
-        XLSX.writeFile(workbook, fileName, { bookType: "biff8", cellStyles: true, cellDates: true, bookSST: true });
-        const missingCount = allDeclarationFieldEntries().filter(entry => entry.field?.required && !ecusText(entry.field.value)).length;
+
+        const fileName = `ToKhaiExport_ECUS_NHAP_${new Date().toISOString().slice(0, 10)}.xls`;
+        XLSX.writeFile(workbook, fileName, {
+          bookType: "biff8",
+          cellStyles: true,
+          cellDates: true,
+          bookSST: true
+        });
+
+        const missingCount = allDeclarationFieldEntries()
+          .filter(entry => entry.field?.required && !ecusText(entry.field.value))
+          .length;
         showDraftMessage(
-          `Đã xuất file .xls theo đúng mẫu ECUS gồm 4 sheet. ${missingCount ? `Còn ${missingCount} trường bắt buộc chưa có dữ liệu; hãy kiểm tra trong ECUS trước khi lưu hoặc truyền.` : "Hãy mở bằng ECUS và kiểm tra lại trước khi truyền VNACCS."}`,
+          missingCount
+            ? `Đã xuất theo đúng mẫu ToKhaiExport. Còn ${missingCount} trường mà hàng 2 của file mẫu yêu cầu có dữ liệu; các trường này đang hiển thị màu đỏ trên web.`
+            : "Đã xuất theo đúng mẫu ToKhaiExport. Các trường mà hàng 2 của file mẫu yêu cầu có dữ liệu hiện đã được điền.",
           missingCount ? "warning" : "success"
         );
       } catch (error) {
