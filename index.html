@@ -1005,6 +1005,65 @@
       line-height: 1.4;
     }
 
+
+    .customs-office-picker { position: relative; }
+    .customs-office-input-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px;
+      gap: 6px;
+      align-items: stretch;
+    }
+    .customs-office-display { cursor: pointer; background: #fbfdfd; }
+    .customs-office-arrow {
+      min-height: 40px;
+      border: 1px solid var(--gray-3);
+      border-radius: 7px;
+      background: var(--white);
+      color: var(--teal-dark);
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 850;
+      line-height: 1;
+    }
+    .customs-office-arrow:hover,
+    .customs-office-arrow[aria-expanded="true"] {
+      border-color: var(--teal);
+      background: var(--teal-tint);
+    }
+    .customs-office-menu {
+      position: absolute;
+      z-index: 45;
+      top: calc(100% + 6px);
+      left: 0;
+      width: min(620px, 92vw);
+      max-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--gray-3);
+      border-radius: 8px;
+      background: var(--white);
+      box-shadow: 0 12px 28px rgba(12, 52, 55, .16);
+    }
+    .customs-office-menu table { margin: 0; border: 0; }
+    .customs-office-menu th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 8px 10px;
+      background: var(--gray-1);
+      color: #314042;
+      border-bottom: 1px solid var(--gray-3);
+      font-size: 10.5px;
+    }
+    .customs-office-menu td { padding: 8px 10px; font-size: 11px; }
+    .customs-office-row { cursor: pointer; }
+    .customs-office-row:hover td { background: var(--teal-tint); color: var(--teal-dark); }
+    .customs-office-code {
+      width: 82px;
+      white-space: nowrap;
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-weight: 800;
+    }
+
     /* Tờ khai nháp */
     .declaration-alert {
       display: grid;
@@ -2498,16 +2557,20 @@
     let documentWorkspaceStale = false;
     let declarationWorkspace = null;
 
+    const CUSTOMS_OFFICE_OPTIONS = [{"code":"01B1","name":"Hải  quan cửa khẩu sân bay quốc tế Nội Bài"},{"code":"01B3","name":"Chi cục HQ CK Sân bay quốc tế Nội Bài(01B3)"},{"code":"01B5","name":"Hải quan cửa  khẩu sân bay quốc tế Nội Bài"},{"code":"01B6","name":"Hải quan cửa khẩu  sân bay quốc tế Nội Bài"},{"code":"01BT","name":"Hải quan Yên Bái"},{"code":"01DD","name":"Hải quan  Chuyển phát nhanh"},{"code":"01E1","name":"Hải quan Bắc Hà Nội"},{"code":"01IK","name":"Hải quan Gia Thụy"},{"code":"01M1","name":"Hải quan Hòa  Lạc"},{"code":"01NV","name":"Hải quan Khu công nghiệp Bắc Thăng Long"},{"code":"01PJ","name":"Hải quan Phú Thọ"},{"code":"01PL","name":"Hải quan Hòa Lạc"},{"code":"01PQ","name":"Hải quan Hòa Bình"},{"code":"01PR","name":"Hải quan Vĩnh Phúc"},{"code":"01SI","name":"Hải quan ga đường sắt quốc tế Yên Viên"},{"code":"01TE","name":"Chi cục HQ Gia Lâm"},{"code":"01ZZ","name":"Chi cục Hải quan khu vực I"},{"code":"02B1","name":"Hải quan cửa khẩu sân bay quốc tế Tân Sơn Nhất"},{"code":"02CI","name":"Hải quan cửa khẩu cảng Sài Gòn khu vực 1"},{"code":"02CV","name":"Hải quan cửa khẩu cảng Sài Gòn khu vực 2"},{"code":"02CX","name":"Chi cục HQ CK Tân Cảng"},{"code":"02DS","name":"Hải quan Chuyển phát nhanh"},{"code":"02F1","name":"Hải quan  khu chế xuất Linh Trung"},{"code":"02F2","name":"Hải quan khu chế xuất Linh Trung"},{"code":"02F3","name":"Hải quan Khu  công nghệ cao"},{"code":"02H1","name":"Hải quan cửa  khẩu cảng Sài Gòn khu vực 3"},{"code":"02H2","name":"Hải quan cửa khẩu  cảng Sài Gòn khu vực 3"},{"code":"02H3","name":"Hải quan cửa khẩu cảng Sài Gòn khu vực 3"},{"code":"02IK","name":"Hải quan cửa khẩu cảng Sài Gòn khu vực 4"},{"code":"02K1","name":"CC HQ CK Cảng Sài Gòn khu vực IV (ICD 2)"},{"code":"02K2","name":"CC HQ CK Cảng Sài Gòn khu vực IV ( ICD Tanamexco)"},{"code":"02K3","name":"CC HQ CK Cảng Sài Gòn khu vực IV ( ICD Transimex)"},{"code":"02K4","name":"CC HQ CK Cảng Sài Gòn khu vực IV (ICD Sotrans)"},{"code":"02PG","name":"Hải quan khu công nghệ cao"},{"code":"02PJ","name":"Hải quan khu chế xuất  Tân Thuận"},{"code":"02XE","name":"Hải quan khu chế xuất Tân Thuận"},{"code":"02ZZ","name":"Chi cục Hải quan khu vực II"},{"code":"03CC","name":"Hải quan cửa khẩu cảng Hải Phòng khu vực 1"},{"code":"03CD","name":"Hải quan Thái Bình"},{"code":"03CE","name":"Hải quan cửa khẩu cảng Hải Phòng khu vực 2"},{"code":"03EE","name":"Hải quan cửa khẩu cảng Đình Vũ"},{"code":"03NK","name":"Hải quan khu chế xuất  và khu công nghiệp Hải Phòng"},{"code":"03PA","name":"Hải quan khu chế xuất và khu công nghiệp Hải Phòng"},{"code":"03PJ","name":"Hải quan Hải Dương"},{"code":"03PL","name":"Hải quan Hưng Yên"},{"code":"03TG","name":"Hải quan cửa khẩu cảng Hải Phòng khu vực 3"},{"code":"03YY","name":"Đội thông quan - Chi cục Hải quan khu vực III"},{"code":"03ZZ","name":"Chi cục Hải quan khu vực III"},{"code":"06B1","name":"HQ cửa khẩu sân bay quốc tế Tân Sơn Nhất"},{"code":"06DS","name":"Hải quan Chuyển phát nhanh"},{"code":"06ZZ","name":"Chi cục Hải quan khu vực XV"},{"code":"10BB","name":"Hải quan cửa khẩu quốc tế Thanh Thủy"},{"code":"10BC","name":"Hải quan cửa khẩu Xín Mần"},{"code":"10BD","name":"Hải quan cửa khẩu  Săm Pun"},{"code":"10BF","name":"Hải quan cửa khẩu Săm Pun"},{"code":"10BI","name":"Hải quan Tuyên Quang"},{"code":"10ZZ","name":"Chi cục Hải quan khu vực VII"},{"code":"11B1","name":"Hải quan cửa khẩu  Tà Lùng"},{"code":"11B2","name":"Hải quan cửa khẩu Tà Lùng"},{"code":"11BE","name":"Hải quan cửa khẩu quốc tế Trà Lĩnh"},{"code":"11BF","name":"Hải quan cửa khẩu Sóc Giang"},{"code":"11BH","name":"Hải quan cửa khẩu Pò Peo"},{"code":"11G1","name":"Hải quan cửa  khẩu Lý Vạn"},{"code":"11G2","name":"Hải quan cửa khẩu Lý Vạn"},{"code":"11PK","name":"Hải quan Bắc Kạn"},{"code":"11ZZ","name":"Chi cục Hải quan khu vực VI"},{"code":"12B1","name":"Hải quan cửa khẩu  quốc tế Tây Trang"},{"code":"12B2","name":"Hải quan cửa khẩu quốc tế Tây Trang"},{"code":"12BE","name":"Hải quan cửa khẩu quốc tế Lóng Sập"},{"code":"12BI","name":"Hải quan  Sơn La"},{"code":"12F1","name":"Hải quan Sơn  La"},{"code":"12F2","name":"Hải quan Sơn La"},{"code":"12H1","name":"Hải quan cửa khẩu  cửa khẩu quốc tế Ma Lù Thàng"},{"code":"12H2","name":"Hải quan cửa khẩu cửa khẩu quốc tế Ma Lù Thàng"},{"code":"12ZZ","name":"Chi cục Hải quan khu vực VII"},{"code":"13BB","name":"Hải quan cửa khẩu quốc tế Lào Cai"},{"code":"13BC","name":"Hải quan cửa khẩu Mường Khương"},{"code":"13BD","name":"Hải quan cửa khẩu Bát Xát"},{"code":"13G1","name":"Hải quan cửa  khẩu ga đường sắt quốc tế Lào Cai"},{"code":"13G2","name":"Hải quan cửa khẩu ga đường sắt quốc tế Lào Cai"},{"code":"13ZZ","name":"Chi cục Hải quan khu vực VII"},{"code":"15BB","name":"Hải quan cửa khẩu quốc tế Hữu Nghị"},{"code":"15BC","name":"Hải quan cửa khẩu Chi Ma"},{"code":"15BD","name":"Hải quan cửa khẩu Cốc Nam"},{"code":"15BE","name":"Hải quan cửa khẩu Tân Thanh"},{"code":"15SI","name":"Hải quan cửa khẩu ga đường sắt quốc tế Đồng Đăng"},{"code":"15ZZ","name":"Chi cục Hải quan khu vực VI"},{"code":"18A1","name":"Chi cục HQ Bắc Ninh"},{"code":"18A2","name":"Chi cục HQ Bắc Ninh"},{"code":"18A3","name":"Hải quan Bắc Ninh"},{"code":"18B1","name":"Hải quan Thái  Nguyên"},{"code":"18B2","name":"Hải quan Thái Nguyên"},{"code":"18BC","name":"Hải quan Bắc Giang"},{"code":"18BE","name":"Hải quan Yên Phong"},{"code":"18ID","name":"Hải quan Tiên Sơn"},{"code":"18ZZ","name":"Chi cục Hải quan khu vực V"},{"code":"20B2","name":"Chi cục HQ CK Móng Cái"},{"code":"20BB","name":"Hải quan cửa khẩu quốc tế Móng Cái"},{"code":"20BC","name":"Hải quan cửa khẩu Hoành Mô"},{"code":"20BD","name":"Hải quan cửa khẩu Bắc Phong Sinh"},{"code":"20CE","name":"Hải quan cửa khẩu cảng Vạn Gia"},{"code":"20CF","name":"Hải quan cửa khẩu cảng Hòn Gai"},{"code":"20CG","name":"Hải quan cửa khẩu cảng Cẩm Phả"},{"code":"20ZZ","name":"Chi cục Hải quan khu vực VIII"},{"code":"27B1","name":"Hải quan cửa khẩu  quốc tế Na Mèo"},{"code":"27B2","name":"Hải quan cửa khẩu quốc tế Na Mèo"},{"code":"27F1","name":"Hải quan cửa khẩu cảng Thanh Hóa"},{"code":"27F2","name":"Hải quan cửa khẩu cảng Nghi Sơn"},{"code":"27PE","name":"Chi cục HQ Nam Định"},{"code":"27ZZ","name":"Chi cục Hải quan khu vực X"},{"code":"28NJ","name":"Hải quan Hà Nam"},{"code":"28PC","name":"Hải quan Ninh Bình"},{"code":"28PE","name":"Hải quan Nam Định"},{"code":"28ZZ","name":"Chi cục Hải quan khu vực IV"},{"code":"29BB","name":"Hải quan cửa khẩu quốc tế Nậm Cắn"},{"code":"29BH","name":"Hải quan cửa khẩu Thanh Thủy"},{"code":"29CC","name":"Hải quan cửa khẩu cảng Cửa Lò"},{"code":"29PF","name":"Hải quan Vinh"},{"code":"29ZZ","name":"Chi cục Hải quan khu vực XI"},{"code":"30BB","name":"Hải quan cửa khẩu  quốc tế Cầu Treo"},{"code":"30BE","name":"Chi cục HQ Hồng Lĩnh"},{"code":"30BI","name":"Hải quan cửa khẩu quốc tế Cầu Treo"},{"code":"30CC","name":"Hải quan cửa khẩu cảng Xuân Hải"},{"code":"30F1","name":"Hải quan cửa  khẩu cảng Vũng Áng"},{"code":"30F2","name":"Hải quan cửa khẩu cảng Vũng Áng"},{"code":"30ZZ","name":"Chi cục Hải quan khu vực XI"},{"code":"31BB","name":"Hải quan cửa khẩu quốc tế Cha Lo"},{"code":"31BF","name":"Hải quan cửa khẩu Cà Roòng"},{"code":"31CD","name":"Hải quan cửa khẩu cảng Hòn La"},{"code":"31ZZ","name":"Chi cục Hải quan khu vực IX"},{"code":"32BB","name":"Hải quan cửa khẩu quốc tế Lao Bảo"},{"code":"32BC","name":"Hải quan cửa khẩu quốc tế La Lay"},{"code":"32BD","name":"Chi cục HQ Khu thương mại Lao Bảo"},{"code":"32CD","name":"Hải quan cửa khẩu cảng Cửa Việt"},{"code":"32VG","name":"Đội Kiểm soát HQ Quảng Trị"},{"code":"32ZZ","name":"Chi cục Hải quan khu vực IX"},{"code":"33BA","name":"Hải quan cửa khẩu A Đớt"},{"code":"33CF","name":"Hải quan cửa khẩu cảng Chân Mây"},{"code":"33PD","name":"Hải quan Thủy An"},{"code":"33ZZ","name":"Chi cục Hải quan khu vực IX"},{"code":"34AB","name":"Hải quan cửa khẩu sân bay quốc tế Đà Nẵng"},{"code":"34CC","name":"Hải quan Khu công  nghiệp Đà Nẵng"},{"code":"34CE","name":"Hải quan cửa khẩu cảng Đà Nẵng"},{"code":"34NG","name":"Hải quan khu công nghiệp Đà Nẵng"},{"code":"34NH","name":"Chi cục HQ KCN Đà Nẵng"},{"code":"34ZZ","name":"Chi cục Hải quan khu vực XII"},{"code":"35CB","name":"Hải quan cửa khẩu cảng Dung Quất"},{"code":"35NC","name":"Hải quan các khu công nghiệp Quảng Ngãi"},{"code":"35ZZ","name":"Chi cục Hải quan khu vực XII"},{"code":"37CB","name":"Hải quan cửa khẩu cảng Quy Nhơn"},{"code":"37TC","name":"Hải quan Phú Yên"},{"code":"37ZZ","name":"Chi cục Hải quan khu vực XIII"},{"code":"38B1","name":"Hải quan cửa khẩu  quốc tế Lệ Thanh"},{"code":"38B2","name":"Hải quan cửa khẩu quốc tế Lệ Thanh"},{"code":"38BC","name":"Hải quan cửa khẩu  quốc tế Bờ Y"},{"code":"38ZZ","name":"Chi cục Hải quan khu vực XIV"},{"code":"40B1","name":"Hải quan cửa khẩu quốc tế Buprăng"},{"code":"40BC","name":"Hải quan Buôn Ma Thuột"},{"code":"40D1","name":"Hải quan Đà Lạt"},{"code":"40ZZ","name":"Chi cục Hải quan khu vực XIV"},{"code":"41AB","name":"Hải quan cửa khẩu sân bay quốc tế Cam Ranh"},{"code":"41BH","name":"Hải quan Ninh Thuận"},{"code":"41CB","name":"Hải quan cửa khẩu cảng Nha Trang"},{"code":"41CC","name":"Hải quan cửa khẩu cảng Cam Ranh"},{"code":"41PE","name":"Hải quan cửa khẩu cảng Vân Phong"},{"code":"41ZZ","name":"Chi cục Hải quan khu vực XIII"},{"code":"43CN","name":"Hải quan cửa khẩu cảng tổng hợp Bình Dương"},{"code":"43IH","name":"Hải quan Sóng Thần"},{"code":"43K1","name":"Hải quan khu công  nghiệp Mỹ Phước"},{"code":"43K3","name":"Chi cục HQ KCN Mỹ Phước"},{"code":"43K4","name":"Hải quan khu công nghiệp Mỹ Phước"},{"code":"43ND","name":"Hải quan khu công nghiệp Sóng thần Bình Dương"},{"code":"43NF","name":"Hải quan khu công nghiệp Viet Nam - Singapore"},{"code":"43NG","name":"Hải quan khu công nghiệp Việt Hương"},{"code":"43PB","name":"Hải quan khu  công nghiệp Việt Hương"},{"code":"43PC","name":"Hải quan Thủ Dầu Một"},{"code":"43ZZ","name":"Chi cục Hải quan khu vực XVI"},{"code":"45B1","name":"Hải quan cửa khẩu  quốc tế Mộc Bài"},{"code":"45B2","name":"Hải quan cửa khẩu quốc tế Mộc Bài"},{"code":"45BD","name":"Hải quan cửa khẩu Phước Tân"},{"code":"45BE","name":"Hải quan cửa khẩu Kà Tum"},{"code":"45C1","name":"Hải quan cửa khẩu  quốc tế Xa Mát"},{"code":"45C2","name":"Hải quan cửa khẩu quốc tế Xa Mát"},{"code":"45F1","name":"Hải quan khu  công nghiệp Trảng Bàng"},{"code":"45F2","name":"Hải quan khu công nghiệp Trảng Bàng"},{"code":"45ZZ","name":"Chi cục Hải quan khu vực XVI"},{"code":"47D1","name":"Hải quan  cửa khẩu cảng Đồng Nai"},{"code":"47D2","name":"Hải quan cửa  khẩu cảng Đồng Nai"},{"code":"47D3","name":"Hải quan cửa khẩu cảng Đồng Nai"},{"code":"47I1","name":"Hải quan Long Bình Tân"},{"code":"47I2","name":"Chi cục HQ Long Bình Tân"},{"code":"47NB","name":"Hải quan  Biên Hoà"},{"code":"47NF","name":"Hải quan Thống Nhất"},{"code":"47NG","name":"Hải quan cửa khẩu cảng Nhơn Trạch"},{"code":"47NM","name":"Hải quan cửa khẩu cảng Bình Thuận"},{"code":"47XE","name":"Hải quan khu chế xuất Long Bình"},{"code":"47ZZ","name":"Chi cục Hải quan khu vực XVIII"},{"code":"48BC","name":"Hải quan cửa khẩu Mỹ Quý Tây"},{"code":"48BD","name":"Hải quan cửa khẩu quốc tế Bình Hiệp"},{"code":"48BE","name":"Chi cục HQ Hưng Điền"},{"code":"48BG","name":"Hải quan Bến Tre"},{"code":"48BI","name":"Hải quan Đức Hòa"},{"code":"48CF","name":"Hải quan cửa khẩu cảng quốc tế Long An"},{"code":"48CG","name":"Hải quan cửa khẩu cảng Mỹ Tho"},{"code":"48F1","name":"Chi cục HQ Bến Lức(48F1)"},{"code":"48F2","name":"Chi cục HQ Bến Lức (48F2)"},{"code":"48ZZ","name":"Chi cục Hải quan khu vực XVI"},{"code":"49BB","name":"Hải quan cửa khẩu  quốc tế Thường Phước"},{"code":"49BG","name":"Hải quan cửa khẩu quốc tế Dinh Bà"},{"code":"49C1","name":"Hải quan cửa  khẩu cảng Đồng Tháp"},{"code":"49C2","name":"Hải quan cửa khẩu cảng Đồng Tháp"},{"code":"49ZZ","name":"Chi cục Hải quan khu vực XX"},{"code":"50BB","name":"Hải quan cửa khẩu quốc tế Tịnh Biên"},{"code":"50BC","name":"Hải quan cửa khẩu Vĩnh Hội Đông"},{"code":"50BD","name":"Hải quan cửa khẩu quốc tế Vĩnh Xương"},{"code":"50BJ","name":"Chi cục HQ Bắc Đai"},{"code":"50BK","name":"Hải quan cửa khẩu Khánh Bình"},{"code":"50CE","name":"Hải quan cửa khẩu cảng Mỹ Thới"},{"code":"50ZZ","name":"Chi cục Hải quan khu vực XX"},{"code":"51BE","name":"Hải quan cửa khẩu cảng Cát Lở"},{"code":"51C1","name":"Hải quan cửa khẩu cảng Phú Mỹ"},{"code":"51C2","name":"Hải quan cửa  khẩu cảng Phú Mỹ"},{"code":"51CB","name":"Hải quan cửa khẩu cảng Vũng tàu"},{"code":"51CH","name":"Hải quan cửa khẩu cảng Côn Đảo"},{"code":"51CI","name":"Hải quan cửa khẩu cảng Cái Mép"},{"code":"51ZZ","name":"Chi cục Hải quan khu vực XV"},{"code":"53BC","name":"Hải quan  cửa khẩu quốc tế Hà Tiên"},{"code":"53BE","name":"Hải quan Rạch Giá"},{"code":"53BK","name":"Hải quan cửa khẩu  quốc tế Hà Tiên"},{"code":"53CD","name":"Hải quan cửa khẩu quốc tế Hà Tiên"},{"code":"53CH","name":"Hải quan Phú Quốc"},{"code":"53ZZ","name":"Chi cục Hải quan khu vực XX"},{"code":"54CB","name":"Hải quan cửa khẩu cảng Cần Thơ"},{"code":"54CD","name":"Hải quan cửa khẩu Vĩnh Long"},{"code":"54CE","name":"Hải quan Hậu Giang"},{"code":"54CF","name":"Hải quan cửa khẩu cảng Trà Vinh"},{"code":"54PH","name":"Hải quan Tây Đô"},{"code":"54PK","name":"Hải quan Sóc Trăng"},{"code":"54ZZ","name":"Chi cục Hải quan khu vực XIX"},{"code":"59BD","name":"Hải quan cửa khẩu cảng Năm Căn"},{"code":"59BE","name":"Hải quan Bạc Liêu"},{"code":"59CB","name":"Chi cục HQ CK Cảng Năm Căn"},{"code":"59ZZ","name":"Chi cục Hải quan khu vực XIX"},{"code":"60BD","name":"Hải quan cửa khẩu quốc tế Nam Giang"},{"code":"60C1","name":"Hải quan khu  công nghiệp Quảng Nam"},{"code":"60C2","name":"Hải quan khu công nghiệp Quảng Nam"},{"code":"60CB","name":"Hải quan cửa khẩu cảng Kỳ Hà"},{"code":"60ZZ","name":"Chi cục Hải quan khu vực XII"},{"code":"61BA","name":"Hải quan cửa khẩu quốc tế Hoa Lư"},{"code":"61BB","name":"Hải quan cửa khẩu Hoàng Diệu"},{"code":"61BC","name":"Hải quan cửa khẩu Lộc Thịnh"},{"code":"61PA","name":"Hải quan Chơn Thành"},{"code":"61ZZ","name":"Chi cục Hải quan khu vực XVI"}];
+    const CUSTOMS_OFFICE_BY_CODE = new Map(CUSTOMS_OFFICE_OPTIONS.map(item => [item.code.toUpperCase(), item]));
+
     const DECLARATION_FIELD_SECTIONS = [
       {
         id: "registration",
         title: "Thông tin đầu tờ khai",
         description: "Các trường A–I của sheet KhaiToKhai.",
         fields: [
-          { key: "ecus_A", label: "STT", ecusColumn: "A", required: true, ecusKind: "number" },
+          { key: "ecus_A", label: "STT", ecusColumn: "A", ecusKind: "number" },
           { key: "ecus_B", label: "Số tờ khai", ecusColumn: "B" },
           { key: "ecus_C", label: "Ngày đăng ký", ecusColumn: "C", ecusKind: "date" },
-          { key: "ecus_D", label: "Mã HQ", ecusColumn: "D", required: true },
+          { key: "ecus_D", label: "Mã HQ", ecusColumn: "D", required: true, span: "half" },
+          { key: "customs_office_name", label: "Cơ quan Hải quan", webOnly: true, inputType: "customsOffice", span: "half" },
           { key: "ecus_E", label: "Mã LH", ecusColumn: "E", required: true },
           { key: "ecus_F", label: "Tên đối tác", ecusColumn: "F", required: true, sources: ["buyer"] },
           { key: "ecus_G", label: "Mã đại lý HQ", ecusColumn: "G" },
@@ -4218,6 +4281,7 @@ ${JSON.stringify(compact)}`
         containers: buildDeclarationContainers(type, previous?.containers || [])
       };
 
+      syncCustomsOfficeNameField();
       renderDeclarationDraft();
       activateTab("draft");
       showDraftMessage(
@@ -4243,6 +4307,28 @@ ${JSON.stringify(compact)}`
       if (status === "missing") return "Cần bổ sung";
       if (status === "computed") return "Hệ thống tính nháp";
       return selectionRequired ? "Người khai phải chọn" : "Chưa có dữ liệu";
+    }
+
+    function normalizeCustomsOfficeCode(value) {
+      return String(value || "").trim().toUpperCase();
+    }
+
+    function customsOfficeForCode(value) {
+      return CUSTOMS_OFFICE_BY_CODE.get(normalizeCustomsOfficeCode(value)) || null;
+    }
+
+    function syncCustomsOfficeNameField() {
+      if (!declarationWorkspace?.fields) return;
+      const codeField = declarationWorkspace.fields.ecus_D;
+      const nameField = declarationWorkspace.fields.customs_office_name;
+      if (!nameField) return;
+      const match = customsOfficeForCode(codeField?.value);
+      nameField.value = match?.name || "";
+      nameField.status = match ? "computed" : "empty";
+      nameField.source = "";
+      nameField.alternatives = [];
+      nameField.required = false;
+      nameField.selectionRequired = false;
     }
 
     function declarationFieldDefinition(key) {
@@ -4272,6 +4358,26 @@ ${JSON.stringify(compact)}`
     }
 
     function declarationFieldControl(definition, field) {
+      if (definition.inputType === "customsOffice") {
+        return `<div class="customs-office-picker">
+          <div class="customs-office-input-row">
+            <input class="draft-control customs-office-display" data-customs-office-display
+              value="${esc(field.value)}" placeholder="Chọn Cơ quan Hải quan" readonly aria-label="Cơ quan Hải quan">
+            <button class="customs-office-arrow" type="button" data-customs-office-toggle
+              aria-expanded="false" aria-label="Mở danh sách Cơ quan Hải quan">▾</button>
+          </div>
+          <div class="customs-office-menu hidden" data-customs-office-menu>
+            <table aria-label="Danh sách Cơ quan Hải quan">
+              <thead><tr><th>Tên HQ</th><th style="width:90px">Mã HQ</th></tr></thead>
+              <tbody>
+                ${CUSTOMS_OFFICE_OPTIONS.map(item => `<tr class="customs-office-row" data-customs-office-code="${esc(item.code)}">
+                  <td>${esc(item.name)}</td><td class="customs-office-code">${esc(item.code)}</td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+      }
       const attributes = `class="draft-control" data-draft-field="${esc(definition.key)}" placeholder="${esc(definition.placeholder || "")}"`;
       if (definition.type === "textarea") {
         return `<textarea ${attributes}>${esc(field.value)}</textarea>`;
@@ -4444,6 +4550,7 @@ ${JSON.stringify(compact)}`
     function allDeclarationFieldEntries() {
       const entries = [];
       DECLARATION_FIELD_SECTIONS.forEach(section => section.fields.forEach(definition => {
+        if (definition.webOnly) return;
         entries.push({ label: definition.label, field: declarationWorkspace.fields[definition.key], section: section.title });
       }));
       declarationWorkspace.items.forEach((item, itemIndex) => DECLARATION_ITEM_FIELDS.forEach(definition => {
@@ -4533,11 +4640,63 @@ ${JSON.stringify(compact)}`
         const handler = event => {
           const key = event.currentTarget.dataset.draftField;
           const field = declarationWorkspace.fields[key];
-          updateDeclarationFieldState(field, event.currentTarget.value);
+          let value = event.currentTarget.value;
+          if (key === "ecus_D") {
+            value = normalizeCustomsOfficeCode(value);
+            event.currentTarget.value = value;
+          }
+          updateDeclarationFieldState(field, value);
           updateDeclarationFieldWrapper(event.currentTarget.closest(".draft-field"), field);
+
+          if (key === "ecus_D") {
+            syncCustomsOfficeNameField();
+            const nameField = declarationWorkspace.fields.customs_office_name;
+            const nameWrapper = $('[data-draft-field-wrap="customs_office_name"]', $("#draftFormArea"));
+            const display = $('[data-customs-office-display]', nameWrapper);
+            if (display) display.value = nameField.value || "";
+            updateDeclarationFieldWrapper(nameWrapper, nameField);
+          }
         };
         control.addEventListener("input", handler);
         control.addEventListener("change", handler);
+      });
+
+      const customsOfficeMenu = $('[data-customs-office-menu]', $("#draftFormArea"));
+      const customsOfficeToggle = $('[data-customs-office-toggle]', $("#draftFormArea"));
+      const customsOfficeDisplay = $('[data-customs-office-display]', $("#draftFormArea"));
+      const toggleCustomsOfficeMenu = () => {
+        if (!customsOfficeMenu || !customsOfficeToggle) return;
+        const willOpen = customsOfficeMenu.classList.contains("hidden");
+        customsOfficeMenu.classList.toggle("hidden", !willOpen);
+        customsOfficeToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      };
+      customsOfficeToggle?.addEventListener("click", toggleCustomsOfficeMenu);
+      customsOfficeDisplay?.addEventListener("click", toggleCustomsOfficeMenu);
+
+      $$('.customs-office-row', $("#draftFormArea")).forEach(row => {
+        row.addEventListener("click", () => {
+          const code = normalizeCustomsOfficeCode(row.dataset.customsOfficeCode);
+          const match = customsOfficeForCode(code);
+          const codeField = declarationWorkspace.fields.ecus_D;
+          if (!codeField || !match) return;
+
+          updateDeclarationFieldState(codeField, code);
+          syncCustomsOfficeNameField();
+
+          const codeWrapper = $('[data-draft-field-wrap="ecus_D"]', $("#draftFormArea"));
+          const codeInput = $('[data-draft-field="ecus_D"]', codeWrapper);
+          if (codeInput) codeInput.value = code;
+          updateDeclarationFieldWrapper(codeWrapper, codeField);
+
+          const nameField = declarationWorkspace.fields.customs_office_name;
+          const nameWrapper = $('[data-draft-field-wrap="customs_office_name"]', $("#draftFormArea"));
+          const display = $('[data-customs-office-display]', nameWrapper);
+          if (display) display.value = match.name;
+          updateDeclarationFieldWrapper(nameWrapper, nameField);
+
+          customsOfficeMenu?.classList.add("hidden");
+          customsOfficeToggle?.setAttribute("aria-expanded", "false");
+        });
       });
 
       $$('[data-draft-conflict-scope="field"]', $("#draftFormArea")).forEach(button => {
