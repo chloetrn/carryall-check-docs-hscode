@@ -1061,8 +1061,46 @@
     .customs-office-menu td { padding: 8px 10px; font-size: 11px; }
     .customs-office-row { cursor: pointer; }
     .customs-office-row:hover td { background: var(--teal-tint); color: var(--teal-dark); }
-    .customs-office-menu.lookup-three-cols { width: min(840px, 94vw); }
-    .customs-office-note { min-width: 180px; color: var(--muted); }
+    .customs-office-menu.lookup-three-cols {
+      width: min(820px, calc(100vw - 48px));
+      max-width: min(820px, calc(100vw - 48px));
+    }
+    .customs-office-menu.lookup-three-cols table {
+      table-layout: auto;
+      min-width: 680px;
+    }
+    .customs-office-menu.lookup-three-cols th,
+    .customs-office-menu.lookup-three-cols td {
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    .customs-office-menu.lookup-three-cols th:first-child,
+    .customs-office-menu.lookup-three-cols td:first-child {
+      min-width: 105px;
+      white-space: nowrap;
+    }
+    .customs-office-menu.lookup-three-cols th:nth-child(2),
+    .customs-office-menu.lookup-three-cols td:nth-child(2) {
+      min-width: 230px;
+    }
+    .customs-office-menu.lookup-three-cols th:nth-child(3),
+    .customs-office-menu.lookup-three-cols td:nth-child(3) {
+      min-width: 220px;
+    }
+    .customs-office-note {
+      min-width: 220px;
+      color: var(--muted);
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    .lookup-no-result td {
+      padding: 12px 10px !important;
+      color: var(--muted);
+      text-align: center;
+      font-style: italic;
+      background: var(--gray-0);
+    }
     @media (min-width: 641px) {
       .draft-field.half.line-start { grid-column: 1 / span 6; }
     }
@@ -5456,6 +5494,112 @@ ${JSON.stringify(compact)}`
         else closeLookupMenu(menu, toggle);
       };
 
+      const normalizeLookupSearch = value => String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toUpperCase();
+
+      const lookupItemMatches = (item, query) => {
+        const q = normalizeLookupSearch(query);
+        if (!q) return true;
+        const code = normalizeLookupSearch(item?.code);
+        const name = normalizeLookupSearch(item?.name);
+        const note = normalizeLookupSearch(item?.note);
+        return code.includes(q) || name.includes(q) || note.includes(q);
+      };
+
+      const filterExistingLookupRows = (menu, query) => {
+        if (!menu) return;
+        const q = normalizeLookupSearch(query);
+        let visible = 0;
+        $$(".customs-office-row", menu).forEach(row => {
+          const match = !q || normalizeLookupSearch(row.textContent).includes(q);
+          row.classList.toggle("hidden", !match);
+          if (match) visible += 1;
+        });
+        const body = $("tbody", menu);
+        if (!body) return;
+        $(".lookup-no-result", body)?.remove();
+        if (q && visible === 0) {
+          const colCount = Math.max(1, $("thead tr", menu)?.children?.length || 1);
+          body.insertAdjacentHTML("beforeend",
+            `<tr class="lookup-no-result"><td colspan="${colCount}">Không tìm thấy mã phù hợp</td></tr>`);
+        }
+      };
+
+      const exactLookupItem = (options, value, normalizeCode = value => String(value ?? "").trim().toUpperCase()) => {
+        const code = normalizeCode(value);
+        if (!code) return null;
+        return (options || []).find(item => normalizeCode(item.code) === code) || null;
+      };
+
+      const clearInvalidLookupCode = ({ key, input, menu, toggle, syncRelated }) => {
+        const field = declarationWorkspace.fields[key];
+        if (!field) return;
+        input.value = "";
+        updateDeclarationFieldState(field, "");
+        updateDeclarationFieldWrapper(input.closest(".draft-field"), field);
+        if (typeof syncRelated === "function") syncRelated();
+        closeLookupMenu(menu, toggle);
+      };
+
+      const bindLookupTypeahead = ({
+        key,
+        menu,
+        toggle,
+        options,
+        normalizeCode = value => String(value ?? "").trim().toUpperCase(),
+        ensureRows = null,
+        filterRows = null,
+        syncRelated = null
+      }) => {
+        const input = $(`[data-draft-field="${key}"]`, $("#draftFormArea"));
+        if (!input || !menu || !toggle) return;
+
+        const showSuggestions = () => {
+          const query = normalizeCode(input.value);
+          if (!query) {
+            closeLookupMenu(menu, toggle);
+            if (!filterRows) filterExistingLookupRows(menu, "");
+            return;
+          }
+          if (typeof ensureRows === "function") ensureRows(query);
+          if (typeof filterRows === "function") filterRows(query);
+          else filterExistingLookupRows(menu, query);
+          openLookupMenu(menu, toggle);
+        };
+
+        input.addEventListener("input", showSuggestions);
+
+        input.addEventListener("blur", () => {
+          window.setTimeout(() => {
+            const current = normalizeCode(input.value);
+            if (!current) {
+              closeLookupMenu(menu, toggle);
+              if (!filterRows) filterExistingLookupRows(menu, "");
+              return;
+            }
+            const match = exactLookupItem(options(), current, normalizeCode);
+            if (!match) {
+              clearInvalidLookupCode({ key, input, menu, toggle, syncRelated });
+            } else {
+              // Keep the canonical code from the list and refresh linked name fields.
+              const field = declarationWorkspace.fields[key];
+              const canonical = normalizeCode(match.code);
+              input.value = canonical;
+              if (field && field.value !== canonical) {
+                updateDeclarationFieldState(field, canonical);
+                updateDeclarationFieldWrapper(input.closest(".draft-field"), field);
+              }
+              if (typeof syncRelated === "function") syncRelated();
+              closeLookupMenu(menu, toggle);
+            }
+            if (!filterRows) filterExistingLookupRows(menu, "");
+          }, 180);
+        });
+      };
+
       if (!declarationLookupOutsideBound) {
         document.addEventListener("click", event => {
           const root = $("#draftFormArea");
@@ -5538,17 +5682,25 @@ ${JSON.stringify(compact)}`
       const storageLocationDisplay = $('[data-storage-location-display]', $("#draftFormArea"));
       const storageLocationBody = $('[data-storage-location-body]', $("#draftFormArea"));
 
-      const ensureStorageLocationRows = () => {
-        if (!storageLocationBody || storageLocationBody.dataset.ready === "true") return;
-        storageLocationBody.innerHTML = storageLocationOptions().map(item => `<tr class="customs-office-row storage-location-row"
-          data-storage-location-code="${esc(item.code)}">
-          <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
-        </tr>`).join("");
-        storageLocationBody.dataset.ready = "true";
+      const ensureStorageLocationRows = (query = "") => {
+        if (!storageLocationBody) return;
+        const q = normalizeLookupSearch(query);
+        if (!q && storageLocationBody.dataset.mode === "all") return;
+        if (q && storageLocationBody.dataset.mode === "filter" && storageLocationBody.dataset.query === q) return;
+        const source = storageLocationOptions();
+        const rows = q ? source.filter(item => lookupItemMatches(item, q)).slice(0, 300) : source;
+        storageLocationBody.innerHTML = rows.length
+          ? rows.map(item => `<tr class="customs-office-row storage-location-row"
+              data-storage-location-code="${esc(item.code)}">
+              <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
+            </tr>`).join("")
+          : `<tr class="lookup-no-result"><td colspan="3">Không tìm thấy mã phù hợp</td></tr>`;
+        storageLocationBody.dataset.mode = q ? "filter" : "all";
+        storageLocationBody.dataset.query = q;
       };
 
       const toggleStorageLocationMenu = () => {
-        ensureStorageLocationRows();
+        ensureStorageLocationRows("");
         toggleLookupMenu(storageLocationMenu, storageLocationToggle);
       };
 
@@ -5587,14 +5739,22 @@ ${JSON.stringify(compact)}`
       const loadingPortToggle = $('[data-loading-port-toggle]', $("#draftFormArea"));
       const loadingPortDisplay = $('[data-loading-port-display]', $("#draftFormArea"));
       const loadingPortBody = $('[data-loading-port-body]', $("#draftFormArea"));
-      const ensureLoadingPortRows = () => {
-        if (!loadingPortBody || loadingPortBody.dataset.ready === "true") return;
-        loadingPortBody.innerHTML = loadingPortOptions().map(item => `<tr class="customs-office-row" data-loading-port-code="${esc(item.code)}">
-          <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
-        </tr>`).join("");
-        loadingPortBody.dataset.ready = "true";
+      const ensureLoadingPortRows = (query = "") => {
+        if (!loadingPortBody) return;
+        const q = normalizeLookupSearch(query);
+        if (!q && loadingPortBody.dataset.mode === "all") return;
+        if (q && loadingPortBody.dataset.mode === "filter" && loadingPortBody.dataset.query === q) return;
+        const source = loadingPortOptions();
+        const rows = q ? source.filter(item => lookupItemMatches(item, q)).slice(0, 300) : source;
+        loadingPortBody.innerHTML = rows.length
+          ? rows.map(item => `<tr class="customs-office-row" data-loading-port-code="${esc(item.code)}">
+              <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
+            </tr>`).join("")
+          : `<tr class="lookup-no-result"><td colspan="3">Không tìm thấy mã phù hợp</td></tr>`;
+        loadingPortBody.dataset.mode = q ? "filter" : "all";
+        loadingPortBody.dataset.query = q;
       };
-      const toggleLoadingPortMenu = () => { ensureLoadingPortRows(); toggleLookupMenu(loadingPortMenu, loadingPortToggle); };
+      const toggleLoadingPortMenu = () => { ensureLoadingPortRows(""); toggleLookupMenu(loadingPortMenu, loadingPortToggle); };
       loadingPortToggle?.addEventListener("click", toggleLoadingPortMenu);
       loadingPortDisplay?.addEventListener("click", toggleLoadingPortMenu);
       loadingPortBody?.addEventListener("click", event => {
@@ -5625,14 +5785,22 @@ ${JSON.stringify(compact)}`
       const dischargePortToggle = $('[data-discharge-port-toggle]', $("#draftFormArea"));
       const dischargePortDisplay = $('[data-discharge-port-display]', $("#draftFormArea"));
       const dischargePortBody = $('[data-discharge-port-body]', $("#draftFormArea"));
-      const ensureDischargePortRows = () => {
-        if (!dischargePortBody || dischargePortBody.dataset.ready === "true") return;
-        dischargePortBody.innerHTML = dischargePortOptions().map(item => `<tr class="customs-office-row" data-discharge-port-code="${esc(item.code)}">
-          <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
-        </tr>`).join("");
-        dischargePortBody.dataset.ready = "true";
+      const ensureDischargePortRows = (query = "") => {
+        if (!dischargePortBody) return;
+        const q = normalizeLookupSearch(query);
+        if (!q && dischargePortBody.dataset.mode === "all") return;
+        if (q && dischargePortBody.dataset.mode === "filter" && dischargePortBody.dataset.query === q) return;
+        const source = dischargePortOptions();
+        const rows = q ? source.filter(item => lookupItemMatches(item, q)).slice(0, 300) : source;
+        dischargePortBody.innerHTML = rows.length
+          ? rows.map(item => `<tr class="customs-office-row" data-discharge-port-code="${esc(item.code)}">
+              <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
+            </tr>`).join("")
+          : `<tr class="lookup-no-result"><td colspan="3">Không tìm thấy mã phù hợp</td></tr>`;
+        dischargePortBody.dataset.mode = q ? "filter" : "all";
+        dischargePortBody.dataset.query = q;
       };
-      const toggleDischargePortMenu = () => { ensureDischargePortRows(); toggleLookupMenu(dischargePortMenu, dischargePortToggle); };
+      const toggleDischargePortMenu = () => { ensureDischargePortRows(""); toggleLookupMenu(dischargePortMenu, dischargePortToggle); };
       dischargePortToggle?.addEventListener("click", toggleDischargePortMenu);
       dischargePortDisplay?.addEventListener("click", toggleDischargePortMenu);
       dischargePortBody?.addEventListener("click", event => {
@@ -5922,6 +6090,178 @@ ${JSON.stringify(compact)}`
           updateDeclarationFieldWrapper(wrapper, field);
           closeLookupMenu(transportMethodMenu, transportMethodToggle);
         });
+      });
+
+
+      const refreshCustomsOfficeLinkedField = () => {
+        syncCustomsOfficeNameField();
+        const nameField = declarationWorkspace.fields.customs_office_name;
+        const wrapper = $('[data-draft-field-wrap="customs_office_name"]', $("#draftFormArea"));
+        const display = $('[data-customs-office-display]', wrapper);
+        if (display) display.value = nameField?.value || "";
+        if (nameField) updateDeclarationFieldWrapper(wrapper, nameField);
+      };
+      const refreshDeclarationTypeLinkedField = () => {
+        syncDeclarationTypeNameField();
+        const nameField = declarationWorkspace.fields.declaration_type_name;
+        const wrapper = $('[data-draft-field-wrap="declaration_type_name"]', $("#draftFormArea"));
+        const display = $('[data-declaration-type-display]', wrapper);
+        if (display) display.value = nameField?.value || "";
+        if (nameField) updateDeclarationFieldWrapper(wrapper, nameField);
+      };
+      const refreshStorageLinkedField = () => {
+        syncStorageLocationNameField();
+        const nameField = declarationWorkspace.fields.ecus_O;
+        const wrapper = $('[data-draft-field-wrap="ecus_O"]', $("#draftFormArea"));
+        const display = $('[data-storage-location-display]', wrapper);
+        if (display) display.value = nameField?.value || "";
+        if (nameField) updateDeclarationFieldWrapper(wrapper, nameField);
+      };
+      const refreshLoadingLinkedField = () => {
+        syncLoadingPortNameField();
+        const nameField = declarationWorkspace.fields.ecus_T;
+        const wrapper = $('[data-draft-field-wrap="ecus_T"]', $("#draftFormArea"));
+        const display = $('[data-loading-port-display]', wrapper);
+        if (display) display.value = nameField?.value || "";
+        if (nameField) updateDeclarationFieldWrapper(wrapper, nameField);
+      };
+      const refreshDischargeLinkedField = () => {
+        syncDischargePortNameField();
+        const nameField = declarationWorkspace.fields.ecus_V;
+        const wrapper = $('[data-draft-field-wrap="ecus_V"]', $("#draftFormArea"));
+        const display = $('[data-discharge-port-display]', wrapper);
+        if (display) display.value = nameField?.value || "";
+        if (nameField) updateDeclarationFieldWrapper(wrapper, nameField);
+      };
+      const refreshExportCountryLinkedField = () => {
+        syncExportCountryNameField();
+        const nameField = declarationWorkspace.fields.export_country_name;
+        const wrapper = $('[data-draft-field-wrap="export_country_name"]', $("#draftFormArea"));
+        const display = $('[data-export-country-display]', wrapper);
+        if (display) display.value = nameField?.value || "";
+        if (nameField) updateDeclarationFieldWrapper(wrapper, nameField);
+      };
+
+      // Code fields that also populate a corresponding name field.
+      bindLookupTypeahead({
+        key: "ecus_D",
+        menu: customsOfficeMenu,
+        toggle: customsOfficeToggle,
+        options: () => CUSTOMS_OFFICE_OPTIONS,
+        normalizeCode: normalizeCustomsOfficeCode,
+        syncRelated: refreshCustomsOfficeLinkedField
+      });
+      bindLookupTypeahead({
+        key: "ecus_E",
+        menu: declarationTypeMenu,
+        toggle: declarationTypeToggle,
+        options: declarationTypeOptions,
+        normalizeCode: normalizeDeclarationTypeCode,
+        syncRelated: refreshDeclarationTypeLinkedField
+      });
+      bindLookupTypeahead({
+        key: "ecus_N",
+        menu: storageLocationMenu,
+        toggle: storageLocationToggle,
+        options: storageLocationOptions,
+        normalizeCode: normalizeStorageLocationCode,
+        ensureRows: ensureStorageLocationRows,
+        filterRows: query => ensureStorageLocationRows(query),
+        syncRelated: refreshStorageLinkedField
+      });
+      bindLookupTypeahead({
+        key: "ecus_S",
+        menu: loadingPortMenu,
+        toggle: loadingPortToggle,
+        options: loadingPortOptions,
+        normalizeCode: normalizePortLookupCode,
+        ensureRows: ensureLoadingPortRows,
+        filterRows: query => ensureLoadingPortRows(query),
+        syncRelated: refreshLoadingLinkedField
+      });
+      bindLookupTypeahead({
+        key: "ecus_U",
+        menu: dischargePortMenu,
+        toggle: dischargePortToggle,
+        options: dischargePortOptions,
+        normalizeCode: normalizePortLookupCode,
+        ensureRows: ensureDischargePortRows,
+        filterRows: query => ensureDischargePortRows(query),
+        syncRelated: refreshDischargeLinkedField
+      });
+      bindLookupTypeahead({
+        key: "ecus_BE",
+        menu: exportCountryMenu,
+        toggle: exportCountryToggle,
+        options: exportCountryOptions,
+        normalizeCode: normalizeExportCountryCode,
+        ensureRows: ensureExportCountryRows,
+        syncRelated: refreshExportCountryLinkedField
+      });
+
+      // Other editable code fields that have a lookup list.
+      bindLookupTypeahead({
+        key: "ecus_H",
+        menu: partyClassificationMenu,
+        toggle: partyClassificationToggle,
+        options: () => PARTY_CLASSIFICATION_OPTIONS,
+        normalizeCode: normalizeNumericLookupCode
+      });
+      bindLookupTypeahead({
+        key: "ecus_J",
+        menu: transportMethodMenu,
+        toggle: transportMethodToggle,
+        options: () => TRANSPORT_METHOD_OPTIONS,
+        normalizeCode: normalizeNumericLookupCode
+      });
+      bindLookupTypeahead({
+        key: "ecus_AB",
+        menu: paymentMethodMenu,
+        toggle: paymentMethodToggle,
+        options: paymentMethodOptions,
+        ensureRows: ensurePaymentMethodRows
+      });
+      bindLookupTypeahead({
+        key: "ecus_AH",
+        menu: taxpayerMenu,
+        toggle: taxpayerToggle,
+        options: () => TAXPAYER_OPTIONS,
+        normalizeCode: normalizeNumericLookupCode
+      });
+      bindLookupTypeahead({
+        key: "ecus_AC",
+        menu: incotermMenu,
+        toggle: incotermToggle,
+        options: incotermOptions,
+        ensureRows: ensureIncotermRows
+      });
+      bindLookupTypeahead({
+        key: "ecus_BG",
+        menu: weightUnitMenu,
+        toggle: weightUnitToggle,
+        options: weightUnitOptions,
+        ensureRows: ensureWeightUnitRows
+      });
+      bindLookupTypeahead({
+        key: "ecus_BI",
+        menu: invoiceClassificationMenu,
+        toggle: invoiceClassificationToggle,
+        options: invoiceClassificationOptions,
+        ensureRows: ensureInvoiceClassificationRows
+      });
+      bindLookupTypeahead({
+        key: "ecus_BP",
+        menu: invoiceFormClassificationMenu,
+        toggle: invoiceFormClassificationToggle,
+        options: invoiceFormClassificationOptions,
+        ensureRows: ensureInvoiceFormClassificationRows
+      });
+      bindLookupTypeahead({
+        key: "ecus_BT",
+        menu: valuationClassificationMenu,
+        toggle: valuationClassificationToggle,
+        options: valuationClassificationOptions,
+        ensureRows: ensureValuationClassificationRows
       });
 
       $$('[data-draft-conflict-scope="field"]', $("#draftFormArea")).forEach(button => {
