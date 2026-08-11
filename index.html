@@ -4358,10 +4358,115 @@ ${JSON.stringify(compact)}`
     }
 
 
+
+    function normalizeCatalogLookupText(value) {
+      return String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/Đ/g, "D")
+        .replace(/&/g, " AND ")
+        .replace(/[^A-Z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function catalogLookupTokens(value) {
+      const stopWords = new Set([
+        "CANG", "PORT", "PORTS", "OF", "THE", "AT", "TAI",
+        "LOADING", "DISCHARGE", "XEP", "HANG", "DO", "DIA", "DIEM",
+        "TERMINAL", "HARBOUR", "HARBOR"
+      ]);
+      return normalizeCatalogLookupText(value)
+        .split(" ")
+        .filter(token => token && !stopWords.has(token));
+    }
+
+    function lookupCatalogMatch(options, rawValue) {
+      const list = Array.isArray(options) ? options : [];
+      const query = normalizeCatalogLookupText(rawValue);
+      if (!query || !list.length) return null;
+
+      // 1) Exact code, including a code embedded in the extracted text.
+      const compactQuery = query.replace(/\s+/g, "");
+      const exactCode = list.find(item => {
+        const code = normalizeCatalogLookupText(item.code).replace(/\s+/g, "");
+        return code && (compactQuery === code || new RegExp(`(^|[^A-Z0-9])${code}([^A-Z0-9]|$)`).test(String(rawValue || "").toUpperCase()));
+      });
+      if (exactCode) return exactCode;
+
+      // 2) Exact/contained canonical name. This handles:
+      //    "YOKOHAMA" -> "YOKOHAMA - KANAGAWA"
+      //    "Cảng Cát Lái" -> "CANG CAT LAI (HCM)"
+      const directMatches = list
+        .map(item => ({ item, name: normalizeCatalogLookupText(item.name), note: normalizeCatalogLookupText(item.note) }))
+        .filter(entry => {
+          if (!entry.name) return false;
+          if (entry.name === query) return true;
+          if (query.length >= 4 && entry.name.includes(query)) return true;
+          if (entry.name.length >= 4 && query.includes(entry.name)) return true;
+          return false;
+        });
+      if (directMatches.length === 1) return directMatches[0].item;
+      if (directMatches.length > 1) {
+        directMatches.sort((a, b) => Math.abs(a.name.length - query.length) - Math.abs(b.name.length - query.length));
+        if (directMatches[0].name === query || directMatches[0].name.length !== directMatches[1].name.length) {
+          return directMatches[0].item;
+        }
+      }
+
+      // 3) Token similarity for extracted phrases such as
+      //    "Port of loading: Cang Cat Lai".
+      const queryTokens = catalogLookupTokens(rawValue);
+      if (!queryTokens.length) return null;
+      const scored = list.map(item => {
+        const targetTokens = catalogLookupTokens(item.name);
+        if (!targetTokens.length) return { item, score: 0 };
+        const targetSet = new Set(targetTokens);
+        const overlap = queryTokens.filter(token => targetSet.has(token)).length;
+        const coverage = overlap / queryTokens.length;
+        const reverseCoverage = overlap / targetTokens.length;
+        const score = coverage * 0.72 + reverseCoverage * 0.28;
+        return { item, score };
+      }).sort((a, b) => b.score - a.score);
+
+      const best = scored[0];
+      const second = scored[1];
+      if (!best || best.score < 0.72) return null;
+      if (second && best.score < 0.96 && best.score - second.score < 0.08) return null;
+      return best.item;
+    }
+
+    function canonicalLookupCode(options, rawValue) {
+      const match = lookupCatalogMatch(options, rawValue);
+      return match?.code ? String(match.code).trim().toUpperCase() : "";
+    }
+
     function transformDeclarationEcusValue(definition, value) {
       const text = String(value ?? "").trim();
-      if (!definition?.transform) return text;
       if (!text) return "";
+
+      // Normalize extracted ports to the exact ECUS lookup format.
+      if (definition?.key === "ecus_S" || definition?.key === "ecus_T") {
+        const match = lookupCatalogMatch(loadingPortOptions(), text);
+        if (match) return definition.key === "ecus_S" ? match.code : match.name;
+      }
+      if (definition?.key === "ecus_U" || definition?.key === "ecus_V") {
+        const match = lookupCatalogMatch(dischargePortOptions(), text);
+        if (match) return definition.key === "ecus_U" ? match.code : match.name;
+      }
+
+      // Incoterm extracted from documents must be stored as the catalog code only.
+      if (definition?.key === "ecus_AC") {
+        const match = lookupCatalogMatch(incotermOptions(), text);
+        if (match?.code) return String(match.code).trim().toUpperCase();
+        const codeCandidate = normalizeCatalogLookupText(text).split(" ")[0] || "";
+        return incotermOptions().some(item => String(item.code).trim().toUpperCase() === codeCandidate)
+          ? codeCandidate
+          : text.toUpperCase();
+      }
+
+      if (!definition?.transform) return text;
       if (definition.transform === "transport_code") {
         const code = ecusTransportCode(text);
         return code === null ? "" : String(code);
@@ -4907,8 +5012,8 @@ ${JSON.stringify(compact)}`
         return `<div class="customs-office-picker">
           <div class="customs-office-input-row">
             <input class="draft-control customs-office-display" data-storage-location-display
-              value="${esc(field.value)}" placeholder="Chọn Tên địa điểm lưu kho" readonly
-              aria-label="Tên địa điểm lưu kho hàng chờ thông quan dự kiến">
+              value="${esc(field.value)}" placeholder="Nhập hoặc chọn Tên địa điểm lưu kho"
+              autocomplete="off" aria-label="Tên địa điểm lưu kho hàng chờ thông quan dự kiến">
             <button class="customs-office-arrow" type="button" data-storage-location-toggle
               aria-expanded="false" aria-label="Mở danh sách địa điểm lưu kho">▾</button>
           </div>
@@ -4925,7 +5030,8 @@ ${JSON.stringify(compact)}`
         return `<div class="customs-office-picker">
           <div class="customs-office-input-row">
             <input class="draft-control customs-office-display" data-loading-port-display
-              value="${esc(field.value)}" placeholder="Chọn Tên địa điểm xếp hàng" readonly aria-label="Tên địa điểm xếp hàng">
+              value="${esc(field.value)}" placeholder="Nhập hoặc chọn Tên địa điểm xếp hàng"
+              autocomplete="off" aria-label="Tên địa điểm xếp hàng">
             <button class="customs-office-arrow" type="button" data-loading-port-toggle aria-expanded="false" aria-label="Mở danh sách cảng xếp">▾</button>
           </div>
           <div class="customs-office-menu lookup-three-cols hidden" data-loading-port-menu>
@@ -4941,7 +5047,8 @@ ${JSON.stringify(compact)}`
         return `<div class="customs-office-picker">
           <div class="customs-office-input-row">
             <input class="draft-control customs-office-display" data-discharge-port-display
-              value="${esc(field.value)}" placeholder="Chọn Tên địa điểm dỡ hàng" readonly aria-label="Tên địa điểm dỡ hàng">
+              value="${esc(field.value)}" placeholder="Nhập hoặc chọn Tên địa điểm dỡ hàng"
+              autocomplete="off" aria-label="Tên địa điểm dỡ hàng">
             <button class="customs-office-arrow" type="button" data-discharge-port-toggle aria-expanded="false" aria-label="Mở danh sách cảng dỡ">▾</button>
           </div>
           <div class="customs-office-menu lookup-three-cols hidden" data-discharge-port-menu>
@@ -6093,6 +6200,115 @@ ${JSON.stringify(compact)}`
       });
 
 
+
+      const commitLocationLookupPair = ({
+        codeKey,
+        nameKey,
+        match,
+        sourceLabel,
+        codeSelector,
+        nameSelector
+      }) => {
+        const codeField = declarationWorkspace.fields[codeKey];
+        const nameField = declarationWorkspace.fields[nameKey];
+        if (!codeField || !nameField || !match) return;
+
+        updateDeclarationFieldState(codeField, String(match.code || "").trim().toUpperCase());
+        updateDeclarationFieldState(nameField, String(match.name || "").trim());
+        codeField.source = sourceLabel;
+        nameField.source = sourceLabel;
+
+        const codeWrapper = $(`[data-draft-field-wrap="${codeKey}"]`, $("#draftFormArea"));
+        const codeInput = codeSelector ? $(codeSelector, codeWrapper) : $(`[data-draft-field="${codeKey}"]`, codeWrapper);
+        if (codeInput) codeInput.value = codeField.value;
+        updateDeclarationFieldWrapper(codeWrapper, codeField);
+
+        const nameWrapper = $(`[data-draft-field-wrap="${nameKey}"]`, $("#draftFormArea"));
+        const nameInput = $(nameSelector, nameWrapper);
+        if (nameInput) nameInput.value = nameField.value;
+        updateDeclarationFieldWrapper(nameWrapper, nameField);
+      };
+
+      const clearLocationLookupPair = ({ codeKey, nameKey, codeSelector, nameSelector }) => {
+        const codeField = declarationWorkspace.fields[codeKey];
+        const nameField = declarationWorkspace.fields[nameKey];
+        if (!codeField || !nameField) return;
+
+        updateDeclarationFieldState(codeField, "");
+        updateDeclarationFieldState(nameField, "");
+
+        const codeWrapper = $(`[data-draft-field-wrap="${codeKey}"]`, $("#draftFormArea"));
+        const codeInput = codeSelector ? $(codeSelector, codeWrapper) : $(`[data-draft-field="${codeKey}"]`, codeWrapper);
+        if (codeInput) codeInput.value = "";
+        updateDeclarationFieldWrapper(codeWrapper, codeField);
+
+        const nameWrapper = $(`[data-draft-field-wrap="${nameKey}"]`, $("#draftFormArea"));
+        const nameInput = $(nameSelector, nameWrapper);
+        if (nameInput) nameInput.value = "";
+        updateDeclarationFieldWrapper(nameWrapper, nameField);
+      };
+
+      const bindLocationNameTypeahead = ({
+        display,
+        menu,
+        toggle,
+        body,
+        options,
+        ensureRows,
+        codeKey,
+        nameKey,
+        sourceLabel,
+        nameSelector
+      }) => {
+        if (!display || !menu || !toggle) return;
+
+        const showMatches = () => {
+          const query = String(display.value || "").trim();
+          if (!query) {
+            closeLookupMenu(menu, toggle);
+            return;
+          }
+          if (typeof ensureRows === "function") ensureRows(query);
+          else filterExistingLookupRows(menu, query);
+          openLookupMenu(menu, toggle);
+        };
+
+        display.addEventListener("input", showMatches);
+
+        display.addEventListener("blur", () => {
+          window.setTimeout(() => {
+            const typed = String(display.value || "").trim();
+            if (!typed) {
+              clearLocationLookupPair({
+                codeKey, nameKey,
+                codeSelector: `[data-draft-field="${codeKey}"]`,
+                nameSelector
+              });
+              closeLookupMenu(menu, toggle);
+              return;
+            }
+
+            const match = lookupCatalogMatch(options(), typed);
+            if (match) {
+              commitLocationLookupPair({
+                codeKey, nameKey, match, sourceLabel,
+                codeSelector: `[data-draft-field="${codeKey}"]`,
+                nameSelector
+              });
+            } else {
+              // A free-text name that does not exist in the official lookup cannot
+              // safely produce a valid ECUS location code, so clear the pair.
+              clearLocationLookupPair({
+                codeKey, nameKey,
+                codeSelector: `[data-draft-field="${codeKey}"]`,
+                nameSelector
+              });
+            }
+            closeLookupMenu(menu, toggle);
+          }, 180);
+        });
+      };
+
       const refreshCustomsOfficeLinkedField = () => {
         syncCustomsOfficeNameField();
         const nameField = declarationWorkspace.fields.customs_office_name;
@@ -6262,6 +6478,46 @@ ${JSON.stringify(compact)}`
         toggle: valuationClassificationToggle,
         options: valuationClassificationOptions,
         ensureRows: ensureValuationClassificationRows
+      });
+
+
+      // Name fields are also searchable. Typing a name immediately filters
+      // the same catalog and, once matched, writes both the canonical name and code.
+      bindLocationNameTypeahead({
+        display: storageLocationDisplay,
+        menu: storageLocationMenu,
+        toggle: storageLocationToggle,
+        body: storageLocationBody,
+        options: storageLocationOptions,
+        ensureRows: ensureStorageLocationRows,
+        codeKey: "ecus_N",
+        nameKey: "ecus_O",
+        sourceLabel: "Theo danh mục mã địa điểm lưu kho",
+        nameSelector: "[data-storage-location-display]"
+      });
+      bindLocationNameTypeahead({
+        display: loadingPortDisplay,
+        menu: loadingPortMenu,
+        toggle: loadingPortToggle,
+        body: loadingPortBody,
+        options: loadingPortOptions,
+        ensureRows: ensureLoadingPortRows,
+        codeKey: "ecus_S",
+        nameKey: "ecus_T",
+        sourceLabel: "Theo danh mục mã cảng xếp",
+        nameSelector: "[data-loading-port-display]"
+      });
+      bindLocationNameTypeahead({
+        display: dischargePortDisplay,
+        menu: dischargePortMenu,
+        toggle: dischargePortToggle,
+        body: dischargePortBody,
+        options: dischargePortOptions,
+        ensureRows: ensureDischargePortRows,
+        codeKey: "ecus_U",
+        nameKey: "ecus_V",
+        sourceLabel: "Theo danh mục mã cảng dỡ",
+        nameSelector: "[data-discharge-port-display]"
       });
 
       $$('[data-draft-conflict-scope="field"]', $("#draftFormArea")).forEach(button => {
