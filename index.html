@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="description" content="DocCheck - Phân tích và gợi ý mã HS theo thông tin hàng hóa, 6 Quy tắc tổng quát và nguồn chính thức.">
   <title>DocCheck — Phân tích &amp; gợi ý mã HS</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -1103,6 +1106,14 @@
     }
     @media (min-width: 641px) {
       .draft-field.half.line-start { grid-column: 1 / span 6; }
+    .draft-field.address-group-start,
+    .draft-field.address-group-peer { position: relative; margin-top: 22px; }
+    .draft-field.address-group-start::before {
+      content: "Địa chỉ người xuất/nhập khẩu";
+      position: absolute; left: 0; top: -21px;
+      color: var(--teal-dark); font-size: 11px; font-weight: 850; letter-spacing: .01em;
+    }
+
     }
     .customs-office-code {
       width: 82px;
@@ -1350,7 +1361,8 @@
     .draft-items-table td { min-width: 115px; }
     .draft-items-table td:nth-child(1),
     .draft-items-table td:nth-child(2) { min-width: 54px; text-align: center; }
-    .draft-item-action-cell { position: sticky; left: 0; z-index: 2; background: var(--white); }
+    .draft-item-action-cell { position: sticky; left: 0; z-index: 5; background: var(--white); min-width: 58px !important; width: 58px; border-right: 1px solid var(--line); }
+    .draft-items-table th:first-child { min-width:58px; width:58px; }
     .draft-items-table th:first-child { position: sticky; left: 0; z-index: 4; background: var(--gray-1); }
     .draft-delete-item-btn {
       width: 34px;
@@ -1445,6 +1457,7 @@
       .source-link { color: #000; }
     }
   </style>
+  <!-- DocCheck verified build: 2026-08-12 ECUS lookup/layout fix -->
 </head>
 <body>
   <header class="topbar">
@@ -2684,6 +2697,13 @@
     let LOADING_PORT_BY_CODE_CACHE = null;
     let DISCHARGE_PORT_BY_CODE_CACHE = null;
 
+
+    // Verified direct lookup arrays generated from the exact Excel files supplied by the user.
+    const VERIFIED_CURRENCY_OPTIONS = [{"code":"AUD","name":"Đô la Úc","note":""},{"code":"CAD","name":"Đô la Canada","note":""},{"code":"CHF","name":"Franc Thuỵ Sĩ","note":""},{"code":"CNY","name":"Nhân dân tệ","note":""},{"code":"DKK","name":"Curon Đan Mạch","note":""},{"code":"EUR","name":"Euro","note":""},{"code":"GBP","name":"Bảng Anh","note":""},{"code":"HKD","name":"Đô-la Hồng Kông","note":""},{"code":"IDR","name":"Ripiah Indonesia","note":""},{"code":"INR","name":"Rupee Ấn Độ","note":""},{"code":"JPY","name":"Yên Nhật","note":""},{"code":"KHR","name":"Riel Campuchia","note":""},{"code":"KRW","name":"Won Hàn Quốc","note":""},{"code":"LAK","name":"Kíp Lào","note":""},{"code":"MOP","name":"Pataca Macao","note":""},{"code":"MYR","name":"Ringit Malaysia","note":""},{"code":"NOK","name":"Curon Nauy","note":""},{"code":"NZD","name":"Đô la New Zealand","note":""},{"code":"RUB","name":"Rúp Nga","note":""},{"code":"SEK","name":"Curon Thuỵ Điển","note":""},{"code":"SGD","name":"Đô-la Singapore","note":""},{"code":"THB","name":"Bạt Thái Lan","note":""},{"code":"TRY","name":"Lira Thổ Nhĩ Kỳ","note":""},{"code":"TWD","name":"Đô la Đài Loan","note":""},{"code":"USD","name":"Đô la Mỹ","note":""},{"code":"VND","name":"Đồng Việt Nam","note":""}];
+    const VERIFIED_PACKAGE_TYPE_OPTIONS = [{"code":"BG","name":"BAG","note":""},{"code":"BL","name":"BALE,COMPRESSED","note":""},{"code":"BN","name":"BALE,NON-COMPRE","note":""},{"code":"BR","name":"BAR","note":""},{"code":"BA","name":"BARREL","note":""},{"code":"BK","name":"BASKET","note":""},{"code":"BX","name":"BOX","note":""},{"code":"VG","name":"BULK,GAS(AT 103","note":""},{"code":"VQ","name":"BULK,LIGUEFIED","note":""},{"code":"VL","name":"BULK,LIQUID","note":""},{"code":"VY","name":"BULK,SOLID,FINE","note":""},{"code":"VR","name":"BULK,SOLID,GRAN","note":""},{"code":"VO","name":"BULK,SOLID,LARG","note":""},{"code":"BE","name":"BUNDLE","note":""},{"code":"CG","name":"CAGE","note":""},{"code":"CX","name":"CAN,CYLINDRICAL","note":""},{"code":"CA","name":"CAN,RECTANGULAR","note":""},{"code":"UNH","name":"CANH","note":""},{"code":"CO","name":"CARBOY,NON-PROT","note":""},{"code":"CP","name":"CARBOY,PROTECTE","note":""},{"code":"CT","name":"CARTON","note":""},{"code":"CS","name":"CASE","note":""},{"code":"CK","name":"CASK","note":""},{"code":"UNY","name":"CAY","note":""},{"code":"CH","name":"CHEST","note":""},{"code":"CL","name":"COIL","note":""},{"code":"UNC","name":"CON","note":""},{"code":"CN","name":"CONTAINER","note":""},{"code":"CR","name":"CRATE","note":""},{"code":"UNU","name":"CU","note":""},{"code":"FTQ","name":"CUBIC FEET","note":""},{"code":"MTQ","name":"CUBIC METRES","note":""},{"code":"YDQ","name":"CUBIC YARDS","note":""},{"code":"UNN","name":"CUON","note":""},{"code":"CY","name":"CYLINDER","note":""},{"code":"DJ","name":"DEMIJOHN,NON PR","note":""},{"code":"DP","name":"DEMIJOHN,PROTEC","note":""},{"code":"DPT","name":"DISPLA CEMENT TONNAGE","note":""},{"code":"DZN","name":"DOZEN","note":""},{"code":"DR","name":"DRUM","note":""},{"code":"FOT","name":"FEET","note":""},{"code":"FB","name":"FIBRE DRUM","note":""},{"code":"FL","name":"FLASK","note":""},{"code":"FT","name":"FLEXIBLE CONTAI","note":""},{"code":"OZI","name":"FLUID OUNCE","note":""},{"code":"FR","name":"FRAME","note":""},{"code":"GRM","name":"GRAMMES","note":""},{"code":"GDW","name":"GRAMMES BY DRY WEIGHT","note":""},{"code":"GMC","name":"GRAMMES BY METAL CONTENT","note":""},{"code":"GIC","name":"GRAMMES INCLUDING CONTAINERS","note":""},{"code":"GII","name":"GRAMMES INCLUDING INNER PACKINGS","note":""},{"code":"GRO","name":"GROSS","note":""},{"code":"GT","name":"GROSS TONNAGE FOR VESSELS","note":""},{"code":"HG","name":"HOGESHEAD","note":""},{"code":"TH","name":"IN THOUSANDS","note":""},{"code":"IN","name":"INGOT","note":""},{"code":"JR","name":"JAR","note":""},{"code":"JG","name":"JUG","note":""},{"code":"KG","name":"KEG","note":""},{"code":"KGM","name":"KILO-GRAMMES","note":""},{"code":"KDW","name":"KILO-GRAMMES BY DRY WEIGHT","note":""},{"code":"KMC","name":"KILO-GRAMMES BY METAL CONTENT","note":""},{"code":"KIC","name":"KILO-GRAMMES INCLUDING CONTAINERS","note":""},{"code":"KII","name":"KILO-GRAMMES INCLUDING INNER PACKINGS","note":""},{"code":"KL","name":"KILO-LITRES","note":""},{"code":"KWH","name":"KILOWATT HOUR","note":""},{"code":"LC","name":"LACTOSE CONTAINED","note":""},{"code":"LTR","name":"LITRES","note":""},{"code":"LG","name":"LOG","note":""},{"code":"LZ","name":"LOGS,IN BUNDLE/","note":""},{"code":"LTN","name":"LONG TON","note":""},{"code":"MT","name":"MAT","note":""},{"code":"MTR","name":"METRES","note":""},{"code":"TNE","name":"METRIC-TONS","note":""},{"code":"MDW","name":"METRIC-TONS BY DRY WEIGHT","note":""},{"code":"MMC","name":"METRIC-TONS BY METAL CONTENT","note":""},{"code":"MIC","name":"METRIC-TONS INCLUDING CONTAINERS","note":""},{"code":"MII","name":"METRIC-TONS INCLUDING INNER PACKINGS","note":""},{"code":"MLT","name":"MILLI-LITRES","note":""},{"code":"NT","name":"NET","note":""},{"code":"ZZ","name":"OTHER","note":""},{"code":"ONZ","name":"OUNCE","note":""},{"code":"ODW","name":"OUNCE BY DRY WEIGHT","note":""},{"code":"OMC","name":"OUNCE BY METAL CONTENT","note":""},{"code":"OIC","name":"OUNCE INCLUDING CONTAINERS","note":""},{"code":"OII","name":"OUNCE INCLUDING INNER PACKINGS","note":""},{"code":"PK","name":"PACKAGE","note":""},{"code":"PA","name":"PACKET","note":""},{"code":"PL","name":"PAIL","note":""},{"code":"PR","name":"PAIR","note":""},{"code":"PP","name":"PALLET & PACKAG","note":""},{"code":"PC","name":"PARCEL","note":""},{"code":"PE","name":"PEN","note":""},{"code":"PS","name":"PIECE","note":""},{"code":"PCE","name":"PIECES","note":""},{"code":"PTI","name":"PINTS","note":""},{"code":"PI","name":"PIPE","note":""},{"code":"PZ","name":"PLANKS,IN BUNDL","note":""},{"code":"PG","name":"PLATE","note":""},{"code":"PY","name":"PLATES,IN BUNDL","note":""},{"code":"LBR","name":"POUNDS","note":""},{"code":"LDW","name":"POUNDS BY DRY WEIGHT","note":""},{"code":"LMC","name":"POUNDS BY METAL CONTENT","note":""},{"code":"LIC","name":"POUNDS INCLUDING CONTAINERS","note":""},{"code":"LII","name":"POUNDS INCLUDING INNER PACKINGS","note":""},{"code":"UNQ","name":"QUA","note":""},{"code":"QT","name":"QUARTS","note":""},{"code":"RL","name":"REEL","note":""},{"code":"RO","name":"ROLL","note":""},{"code":"ROL","name":"ROLL","note":""},{"code":"SA","name":"SACK","note":""},{"code":"SF","name":"SET","note":""},{"code":"SET","name":"SETS","note":""},{"code":"ST","name":"SHEET","note":""},{"code":"SZ","name":"SHEET,IN BUNDLE","note":""},{"code":"STN","name":"SHORT TON","note":""},{"code":"SK","name":"SKELETON CASE","note":""},{"code":"SI","name":"SKID","note":""},{"code":"SB","name":"SLAB","note":""},{"code":"FTK","name":"SQUARE FEET","note":""},{"code":"MTK","name":"SQUARE METRES","note":""},{"code":"YDK","name":"SQUARE YARDS","note":""},{"code":"SS","name":"STEEL CASE","note":""},{"code":"SV","name":"STEEL ENVELOPE","note":""},{"code":"TI","name":"TIERCE","note":""},{"code":"TN","name":"TIN","note":""},{"code":"PU","name":"TRAY","note":""},{"code":"TRO","name":"TROY OUNCE","note":""},{"code":"TB","name":"TUB","note":""},{"code":"NE","name":"UNPACKED OR UNP","note":""},{"code":"VP","name":"VACUUM PACKED","note":""},{"code":"VA","name":"VAT","note":""},{"code":"GLL","name":"WINE GALLONS","note":""},{"code":"WD","name":"WOODEN DRUM","note":""},{"code":"YRD","name":"YARDS","note":""}];
+    const VERIFIED_TAX_DEADLINE_OPTIONS = [{"code":"A","name":"Trường hợp được áp dụng thời hạn nộp thuế do sử dụng bảo lãnh riêng","note":""},{"code":"B","name":"Trường hợp được áp dụng thời hạn nộp thuế do sử dụng bảo lãnh chung","note":""},{"code":"C","name":"Trường hợp được áp dụng thời hạn nộp thuế mà không có bảo lãnh","note":""},{"code":"D","name":"Trường hợp nộp thuế ngay","note":""}];
+    const VERIFIED_EXPORT_COUNTRY_OPTIONS = [{"code":"0X","name":"KHONG XAC DINH","note":"Không xác định"},{"code":"AD","name":"ANDORRA","note":"Andorra"},{"code":"AE","name":"U ARB E","note":"United Arab Emirates"},{"code":"AF","name":"AFGNSTN","note":"Afganistan"},{"code":"AG","name":"ANT BAR","note":"Antigua and Barbuda"},{"code":"AI","name":"ANGUILA","note":"Anguilla"},{"code":"AL","name":"ALBANIA","note":"Albania"},{"code":"AM","name":"ARMENIA","note":"Armenia"},{"code":"AO","name":"ANGOLA","note":"Angola"},{"code":"AP","name":"ANGOLA","note":"Angola"},{"code":"AR","name":"ARGENT","note":"Argentina"},{"code":"AS","name":"A.SAMOA","note":"American Samoa"},{"code":"AT","name":"AUSTRIA","note":"Austria"},{"code":"AU","name":"AUSTRAL","note":"Australia"},{"code":"AW","name":"N.ANTIL","note":"Aruba"},{"code":"AZ","name":"AZERBAI","note":"Azerbaijan"},{"code":"BA","name":"BOS.HER","note":"Bosnia and Herzegowina"},{"code":"BB","name":"BARBADS","note":"Barbados"},{"code":"BD","name":"BANGLA","note":"Bangladesh"},{"code":"BE","name":"BELGIUM","note":"Belgium"},{"code":"BF","name":"BURKINA","note":"Burkina Faso"},{"code":"BG","name":"BULGAR","note":"Bulgaria"},{"code":"BH","name":"BAHRAIN","note":"Bahrain"},{"code":"BI","name":"BURUNDI","note":"Burundi"},{"code":"BJ","name":"BENIN","note":"Benin"},{"code":"BM","name":"BERMUDA","note":"Bermuda"},{"code":"BN","name":"BRUNEI","note":"Brunei Darussalam"},{"code":"BO","name":"BOLIVIA","note":"Bolivia"},{"code":"BQ","name":"B.A.T.","note":"z"},{"code":"BR","name":"BRAZIL","note":"Brazil"},{"code":"BS","name":"BAHAMA","note":"Bahamas"},{"code":"BT","name":"BHUTAN","note":"Bhutan"},{"code":"BW","name":"BOTSWAN","note":"Botswana"},{"code":"BY","name":"BELARUS","note":"Belarus"},{"code":"BZ","name":"BELIZE","note":"Belize"},{"code":"CA","name":"CANADA","note":"Canada"},{"code":"CC","name":"OTH.AUS","note":"Cocos (Keeling) Islands"},{"code":"CD","name":"ROCONGO","note":"Congo (Democratic Rep.)"},{"code":"CF","name":"C.AFRCA","note":"Central African Republic"},{"code":"CG","name":"CONGO","note":"Congo"},{"code":"CH","name":"SWITZLD","note":"Switzerland"},{"code":"CI","name":"IVCOAST","note":"Cote DIvoire (Ivory Coast)"},{"code":"CK","name":"COOK I.","note":"Cook Islands"},{"code":"CL","name":"CHILE","note":"Chile"},{"code":"CM","name":"CAMROUN","note":"Cameroon"},{"code":"CN","name":"CHINA","note":"China"},{"code":"CO","name":"COLMBIA","note":"Colombia"},{"code":"CR","name":"CST RCA","note":"Costa Rica"},{"code":"CU","name":"CUBA","note":"Cuba"},{"code":"CV","name":"C VERDE","note":"Cape Verde Islands"},{"code":"CW","name":"CURACAO","note":"CURACAO"},{"code":"CX","name":"CHRISTM","note":"Christmas Islands"},{"code":"CY","name":"CYPRUS","note":"Cyprus"},{"code":"CZ","name":"CZECHO","note":"Czech Republic"},{"code":"DE","name":"GERMANY","note":"Germany"},{"code":"DJ","name":"DJIBOUT","note":"Djibouti"},{"code":"DK","name":"DENMARK","note":"Denmark"},{"code":"DM","name":"C DOMNC","note":"Dominica"},{"code":"DO","name":"DOMNICA","note":"Dominican Republic"},{"code":"DZ","name":"ALGERIA","note":"Algeria"},{"code":"EC","name":"ECUADOR","note":"Ecuador"},{"code":"EE","name":"ESTONIA","note":"Estonia"},{"code":"EG","name":"EGYPT","note":"Egypt"},{"code":"EH","name":"W.SAHAR","note":"Western Sahara"},{"code":"ER","name":"ERITREA","note":"Eritrea"},{"code":"ES","name":"SPAIN","note":"Spain"},{"code":"ET","name":"ETHIOP","note":"Ethiopia"},{"code":"EU","name":"EUUNION","note":"European Union"},{"code":"FI","name":"FINLAND","note":"Finland"},{"code":"FJ","name":"FIJI","note":"Fiji"},{"code":"FK","name":"FALKLND","note":"Falkland Islands (Malvinas)"},{"code":"FM","name":"MICRONE","note":"Micronesia (Federated State)"},{"code":"FO","name":"DENMARK","note":"Faroe Islands"},{"code":"FR","name":"FRANCE","note":"France"},{"code":"GA","name":"GABON","note":"Gabon"},{"code":"GB","name":"U KING","note":"United Kingdom"},{"code":"GD","name":"GRENADA","note":"Grenada"},{"code":"GE","name":"GEORGIA","note":"Georgia"},{"code":"GF","name":"F.GIANA","note":"French Guiana"},{"code":"GH","name":"GHANA","note":"Ghana"},{"code":"GI","name":"GIBRALT","note":"Gibraltar"},{"code":"GL","name":"GREENLD","note":"Greenland"},{"code":"GM","name":"GAMBIA","note":"Gambia"},{"code":"GN","name":"GUINEA","note":"Guinea"},{"code":"GP","name":"F.W.IND","note":"Guadeloupe"},{"code":"GQ","name":"EQ.GNEA","note":"Equatorial Guinea"},{"code":"GR","name":"GREECE","note":"Greece"},{"code":"GS","name":"FALKLND","note":"South Georgia & the South Sandwich Islan"},{"code":"GT","name":"GUATMAL","note":"Guatemala"},{"code":"GU","name":"GUAM","note":"Guam"},{"code":"GW","name":"GINEA B","note":"Guinea-Bissau"},{"code":"GY","name":"GUYANA","note":"Guyana"},{"code":"HK","name":"HG.KONG","note":"HongKong"},{"code":"HN","name":"HONDURS","note":"Honduras"},{"code":"HR","name":"CROATIA","note":"Croatia (Hrvatska)"},{"code":"HT","name":"HAITI","note":"Haiti"},{"code":"HU","name":"HUNGARY","note":"Hungary"},{"code":"ID","name":"INDNSIA","note":"Indonesia"},{"code":"IE","name":"IRELAND","note":"Ireland"},{"code":"IL","name":"ISRAEL","note":"Israel"},{"code":"IN","name":"INDIA","note":"India"},{"code":"IO","name":"IND OCE","note":"British Indian Ocean Territory"},{"code":"IQ","name":"IRAQ","note":"Iraq"},{"code":"IR","name":"IRAN","note":"Iran (Islamic Rep.)"},{"code":"IS","name":"ICELAND","note":"Iceland"},{"code":"IT","name":"ITALY","note":"Italy"},{"code":"JM","name":"JAMAICA","note":"Jamaica"},{"code":"JO","name":"JORDAN","note":"Jordan"},{"code":"JP","name":"JAPAN","note":"Japan"},{"code":"KE","name":"KENYA","note":"Kenya"},{"code":"KG","name":"KYRGYZ","note":"Kyrgyzstan"},{"code":"KH","name":"CAMBOD","note":"Cambodia"},{"code":"KI","name":"KIRIBAT","note":"Kiribati"},{"code":"KM","name":"COMOROS","note":"Comoros"},{"code":"KN","name":"ST CHRI","note":"Saint Kitts & Nevis"},{"code":"KP","name":"N.KOREA","note":"Korea (Democratic Peoples Rep.)"},{"code":"KR","name":"R.KOREA","note":"Korea (Republic)"},{"code":"KW","name":"KUWAIT","note":"Kuwait"},{"code":"KY","name":"CAYMAN","note":"Cayman Islands"},{"code":"KZ","name":"KAZAKHS","note":"Kazakhstan"},{"code":"LA","name":"LAOS","note":"Laos"},{"code":"LB","name":"LEBANON","note":"Lebanon"},{"code":"LC","name":"ST.LUCI","note":"Saint Lucia"},{"code":"LI","name":"LIECHTN","note":"Liechtenstein"},{"code":"LK","name":"SRILANK","note":"Sri Lanka"},{"code":"LR","name":"LIBERIA","note":"Liberia"},{"code":"LS","name":"LESOTHO","note":"Lesotho"},{"code":"LT","name":"LITHUAN","note":"Lithuania"},{"code":"LU","name":"LUXMBRG","note":"Luxembourg"},{"code":"LV","name":"LATVIA","note":"Latvia"},{"code":"LY","name":"LIBYA","note":"Libyan Arab Jamahiriya"},{"code":"MA","name":"MOROCCO","note":"Morocco"},{"code":"MC","name":"MONACO","note":"Monaco"},{"code":"MD","name":"MOLDOVA","note":"Moldova (Rep.)"},{"code":"ME","name":"MONTNEG","note":"Montenegro"},{"code":"MG","name":"MADAGAS","note":"Madagascar"},{"code":"MH","name":"MARSHAL","note":"Marshall Islands"},{"code":"MK","name":"MAKEDON","note":"Macedonia"},{"code":"ML","name":"MALI","note":"Mali"},{"code":"MM","name":"MYANMAR","note":"Myanmar (Burma)"},{"code":"MN","name":"MONGOL","note":"Mongolia"},{"code":"MO","name":"MACAO","note":"Macau"},{"code":"MP","name":"MARIANA","note":"Northern Mariana Islands"},{"code":"MQ","name":"F.W.IND","note":"Martinique"},{"code":"MR","name":"MARITAN","note":"Mauritania"},{"code":"MS","name":"MONT SE","note":"Montserrat"},{"code":"MT","name":"MALTA","note":"Malta"},{"code":"MU","name":"MAURTUS","note":"Mauritius"},{"code":"MV","name":"MALDIVE","note":"Maldives"},{"code":"MW","name":"MALAWI","note":"Malawi"},{"code":"MX","name":"MEXICO","note":"Mexico"},{"code":"MY","name":"MALYSIA","note":"Malaysia"},{"code":"MZ","name":"MOZAMBQ","note":"Mozambique"},{"code":"NA","name":"NAMIBIA","note":"Namibia"},{"code":"NC","name":"NEWCALD","note":"New Caledonia"},{"code":"NE","name":"NIGER","note":"Niger"},{"code":"NF","name":"OTH.AUS","note":"Norfolk Island"},{"code":"NG","name":"NIGERIA","note":"Nigeria"},{"code":"NI","name":"NICARAG","note":"Nicaragua"},{"code":"NL","name":"NETHLDS","note":"Netherlands"},{"code":"NO","name":"NORWAY","note":"Norway"},{"code":"NP","name":"NEPAL","note":"Nepal"},{"code":"NR","name":"R.NAURU","note":"Nauru"},{"code":"NU","name":"NIUE","note":"Niue"},{"code":"NZ","name":"NEWZELD","note":"New Zealand"},{"code":"OM","name":"OMAN","note":"Oman"},{"code":"PA","name":"PANAMA","note":"Panama"},{"code":"PE","name":"PERU","note":"Peru"},{"code":"PF","name":"F.POLYN","note":"French Polinesia"},{"code":"PG","name":"PAP NGA","note":"Papua New Guinea"},{"code":"PH","name":"PHILPIN","note":"Philippines"},{"code":"PK","name":"PAKISTN","note":"Pakistan"},{"code":"PL","name":"POLAND","note":"Poland"},{"code":"PM","name":"ST P MQ","note":"Saint Pierre & Miquelon"},{"code":"PN","name":"PITCARN","note":"Pitcairn"},{"code":"PR","name":"PRTRICO","note":"Puerto Rico"},{"code":"PS","name":"PALESTI","note":"Palestine"},{"code":"PT","name":"PORTUGL","note":"Portugal"},{"code":"PW","name":"PALAU","note":"Palau"},{"code":"PY","name":"PARAGUA","note":"Paraguay"},{"code":"QA","name":"QATAR","note":"Qatar"},{"code":"RE","name":"REUNION","note":"Reunion"},{"code":"RO","name":"ROMANIA","note":"Romania"},{"code":"RS","name":"SERBIA","note":"Serbia"},{"code":"RU","name":"RUSSIAN","note":"Russian Federation"},{"code":"RW","name":"RWANDA","note":"Rwanda"},{"code":"SA","name":"SU ARAB","note":"Saudi Arabia"},{"code":"SB","name":"SOLOMON","note":"Solomon Islands"},{"code":"SC","name":"SEYCHEL","note":"Seychelles"},{"code":"SD","name":"SUDAN","note":"Sudan"},{"code":"SE","name":"SWEDEN","note":"Sweden"},{"code":"SG","name":"SNGAPOR","note":"Singapore"},{"code":"SH","name":"ST.HELE","note":"Saint Helena"},{"code":"SI","name":"SLOVENI","note":"Slovenia"},{"code":"SJ","name":"SVALBAR","note":"Svalbard & Jan Mayen Islands"},{"code":"SK","name":"SLOVAKI","note":"Slovakia (Slovak Rep.)"},{"code":"SL","name":"SIERLEO","note":"Sierra Leone"},{"code":"SM","name":"SANMARI","note":"San Marino"},{"code":"SN","name":"SENEGAL","note":"Senegal"},{"code":"SO","name":"SOMALIA","note":"Somalia"},{"code":"SR","name":"SURINAM","note":"Suriname"},{"code":"SS","name":"S.SUDAN","note":"Sudan"},{"code":"ST","name":"ST PRIN","note":"Sao Tome & Principe"},{"code":"SV","name":"SALVADR","note":"El Salvador"},{"code":"SY","name":"SYRIA","note":"Syrian Arab (Rep.)"},{"code":"SZ","name":"SWAZLND","note":"Swaziland"},{"code":"TC","name":"TUK.CAI","note":"Turks & Caicos Islands"},{"code":"TD","name":"CHAD","note":"Chad"},{"code":"TG","name":"TOGO","note":"Togo"},{"code":"TH","name":"THAILND","note":"Thailand"},{"code":"TJ","name":"TADZHIK","note":"Tajikistan"},{"code":"TK","name":"TOKELAU","note":"Tokelau"},{"code":"TL","name":"TIMOR.L","note":"East Timor"},{"code":"TM","name":"TURKMEN","note":"Turkmenistan"},{"code":"TN","name":"TUNISIA","note":"Tunisia"},{"code":"TO","name":"TONGA","note":"Tonga"},{"code":"TR","name":"TURKEY","note":"Turkey"},{"code":"TT","name":"TRINIDD","note":"Trinidad & Tobago"},{"code":"TV","name":"TUVALU","note":"Tuvalu"},{"code":"TW","name":"TAIWAN","note":"Taiwan"},{"code":"TZ","name":"TANZNIA","note":"Tanzania (United Rep.)"},{"code":"UA","name":"UKRAINE","note":"Ukraine"},{"code":"UG","name":"UGANDA","note":"Uganda"},{"code":"UM","name":"A.OCEAN","note":"United States Minor Outlying Islands"},{"code":"US","name":"U.S.A.","note":"United States of America"},{"code":"UY","name":"URUGUAY","note":"UruGuay"},{"code":"UZ","name":"UZBEKIS","note":"Uzbekistan"},{"code":"VA","name":"VATICAN","note":"Vatican City"},{"code":"VC","name":"ST.VINT","note":"Saint Vincent & Grenadines"},{"code":"VE","name":"VENEZLA","note":"Venezuela"},{"code":"VG","name":"B VIR I","note":"British Virgin Islands"},{"code":"VI","name":"A VIR I","note":"Virgin Islands (U.S.)"},{"code":"VN","name":"VIETNAM","note":"Viet Nam"},{"code":"VU","name":"VANUATU","note":"Vanuatu"},{"code":"WF","name":"W.F.ILD","note":"Wallis & Futuna Islands"},{"code":"WS","name":"SAMOA","note":"Samoa"},{"code":"YE","name":"YEMEN","note":"Yemen"},{"code":"YT","name":"MAYOTTL","note":"Mayotte"},{"code":"ZA","name":"S.AFRCA","note":"South Africa"},{"code":"ZM","name":"ZAMBIA","note":"Zambia"},{"code":"ZW","name":"ZMBABWE","note":"Zimbabwe"},{"code":"ZZ","name":"UNKNOWN","note":"Chưa xác định"}];
+
     function lookupOptionsFromXls(base64Data, columnCount = 2) {
       try {
         if (!window.XLSX) return [];
@@ -2735,10 +2755,7 @@
     }
 
     function exportCountryOptions() {
-      if (!Array.isArray(EXPORT_COUNTRY_OPTIONS_CACHE)) {
-        EXPORT_COUNTRY_OPTIONS_CACHE = lookupOptionsFromXls(EXPORT_COUNTRY_XLS_BASE64, 3);
-      }
-      return EXPORT_COUNTRY_OPTIONS_CACHE;
+      return VERIFIED_EXPORT_COUNTRY_OPTIONS;
     }
 
     function invoiceClassificationOptions() {
@@ -2764,24 +2781,15 @@
 
 
     function currencyOptions() {
-      if (!Array.isArray(CURRENCY_OPTIONS_CACHE)) {
-        CURRENCY_OPTIONS_CACHE = lookupOptionsFromXls(CURRENCY_XLS_BASE64, 3);
-      }
-      return CURRENCY_OPTIONS_CACHE;
+      return VERIFIED_CURRENCY_OPTIONS;
     }
 
     function packageTypeOptions() {
-      if (!Array.isArray(PACKAGE_TYPE_OPTIONS_CACHE)) {
-        PACKAGE_TYPE_OPTIONS_CACHE = lookupOptionsFromXls(PACKAGE_TYPE_XLS_BASE64, 3);
-      }
-      return PACKAGE_TYPE_OPTIONS_CACHE;
+      return VERIFIED_PACKAGE_TYPE_OPTIONS;
     }
 
     function taxDeadlineOptions() {
-      if (!Array.isArray(TAX_DEADLINE_OPTIONS_CACHE)) {
-        TAX_DEADLINE_OPTIONS_CACHE = lookupOptionsFromXls(TAX_DEADLINE_XLSX_BASE64, 2);
-      }
-      return TAX_DEADLINE_OPTIONS_CACHE;
+      return VERIFIED_TAX_DEADLINE_OPTIONS;
     }
 
     const TAXPAYER_OPTIONS = [
@@ -2820,14 +2828,15 @@
           { key: "declaration_type_name", label: "Tên loại hình", webOnly: true, inputType: "declarationType", span: "half" },
           { key: "ecus_H", label: "Phân loại cá nhân/ tổ chức", ecusColumn: "H", required: true, ecusKind: "number", inputType: "partyClassification" },
           { key: "ecus_I", label: "Mã bộ phận xử lý tk", ecusColumn: "I" },
+          { key: "ecus_J", label: "Mã hiệu phương thức vận chuyển", ecusColumn: "J", required: true, sources: ["transport_mode"], transform: "transport_code", ecusKind: "number", inputType: "transportMethod" },
           { key: "ecus_G", label: "Mã đại lý HQ", ecusColumn: "G" },
           { key: "ecus_F", label: "Tên đối tác", ecusColumn: "F", required: true, sources: ["buyer"] },
 
           { key: "ecus_BB", label: "Tên đơn vị xuất/nhập khẩu", ecusColumn: "BB", required: true, sources: ["seller", "exporter"], span: "full" },
           { key: "ecus_BD", label: "Địa chỉ doanh nghiệp xuất/nhập khẩu", ecusColumn: "BD", required: true, sources: ["seller_address", "exporter_address"], type: "textarea", span: "full" },
 
-          { key: "ecus_BN", label: "Địa chỉ người xuất/nhập khẩu 1", ecusColumn: "BN", required: true, sources: ["buyer_address"], transform: "address_1", type: "textarea", span: "half line-start" },
-          { key: "ecus_BU", label: "Địa chỉ người xuất/nhập khẩu 2", ecusColumn: "BU", required: true, sources: ["buyer_address"], transform: "address_2", type: "textarea", span: "half" },
+          { key: "ecus_BN", label: "Địa chỉ người xuất/nhập khẩu 1", ecusColumn: "BN", required: true, sources: ["buyer_address"], transform: "address_1", type: "textarea", span: "half line-start address-group-start" },
+          { key: "ecus_BU", label: "Địa chỉ người xuất/nhập khẩu 2", ecusColumn: "BU", required: true, sources: ["buyer_address"], transform: "address_2", type: "textarea", span: "half address-group-peer" },
           { key: "ecus_BV", label: "Địa chỉ người xuất/nhập khẩu 3", ecusColumn: "BV", required: true, sources: ["buyer_address"], transform: "address_3", type: "textarea", span: "half line-start" },
           { key: "ecus_BW", label: "Địa chỉ người xuất/nhập khẩu 4", ecusColumn: "BW", sources: ["buyer_address"], transform: "address_4", type: "textarea", span: "half" },
 
@@ -2840,7 +2849,6 @@
         title: "Vận đơn & vận chuyển",
         description: "Sắp theo nhóm Vận đơn và thông tin vận chuyển của ECUS.",
         fields: [
-          { key: "ecus_J", label: "Mã hiệu phương thức vận chuyển", ecusColumn: "J", required: true, sources: ["transport_mode"], transform: "transport_code", ecusKind: "number", inputType: "transportMethod", span: "half line-start" },
           { key: "ecus_K", label: "Vận đơn", ecusColumn: "K", required: true, sources: ["hbl_number", "bl_number", "mbl_number"], span: "half" },
 
           { key: "ecus_L", label: "Số lượng kiện", ecusColumn: "L", required: true, sources: ["package_count"], ecusKind: "number", span: "half line-start" },
@@ -2888,7 +2896,7 @@
           { key: "ecus_AC", label: "Điều kiện giá hóa đơn", ecusColumn: "AC", required: true, sources: ["incoterm"], inputType: "incoterm", span: "half" },
 
           { key: "ecus_AA", label: "Tổng trị giá HĐ", ecusColumn: "AA", required: true, sources: ["total_amount"], ecusKind: "number", span: "half line-start" },
-          { key: "ecus_AD", label: "Đơn vị tiền hóa đơn", ecusColumn: "AD", required: true, sources: ["currency"], inputType: "currency", span: "half" },
+          { key: "ecus_AD", label: "Ng.Tệ hóa đơn", ecusColumn: "AD", required: true, sources: ["currency"], inputType: "currency", span: "half" },
 
           { key: "ecus_AE", label: "Tỷ giá VNĐ", ecusColumn: "AE", ecusKind: "number", span: "half line-start" },
           { key: "ecus_AI", label: "Trị giá khai báo", ecusColumn: "AI", ecusKind: "number", span: "half" },
@@ -2897,10 +2905,10 @@
           { key: "ecus_BH", label: "Hóa đơn thương mại", ecusColumn: "BH" },
 
           { key: "ecus_AF", label: "Phí BH", ecusColumn: "AF", ecusKind: "number", span: "half line-start" },
-          { key: "ecus_BM", label: "Đơn vị tiền phí bảo hiểm", ecusColumn: "BM", required: true, sources: ["currency"], inputType: "currency", span: "half" },
+          { key: "ecus_BM", label: "Mã tiền phí bảo hiểm", ecusColumn: "BM", required: true, sources: ["currency"], inputType: "currency", span: "half" },
 
           { key: "ecus_AG", label: "Phí VC", ecusColumn: "AG", ecusKind: "number", span: "half line-start" },
-          { key: "ecus_BL", label: "Đơn vị tiền phí vận chuyển", ecusColumn: "BL", inputType: "currency", span: "half" },
+          { key: "ecus_BL", label: "Mã tiền phí vận chuyển", ecusColumn: "BL", inputType: "currency", span: "half" },
 
           { key: "ecus_BJ", label: "Mã phân loại phí vận chuyển", ecusColumn: "BJ", span: "half line-start" },
           { key: "ecus_BK", label: "Mã phân loại phí bảo hiểm", ecusColumn: "BK", span: "half" },
@@ -5326,10 +5334,10 @@ ${JSON.stringify(compact)}`
             <button class="customs-office-arrow" type="button" data-currency-toggle="${esc(definition.key)}"
               aria-expanded="false" aria-label="Mở danh sách tiền tệ">▾</button>
           </div>
-          <div class="customs-office-menu lookup-three-cols hidden" data-currency-menu="${esc(definition.key)}">
+          <div class="customs-office-menu hidden" data-currency-menu="${esc(definition.key)}">
             <table aria-label="Danh sách tiền tệ">
-              <colgroup><col style="width:100px"><col style="width:230px"><col></colgroup>
-              <thead><tr><th>Mã tiền</th><th>Tên tiền tệ</th><th>Ghi chú</th></tr></thead>
+              <colgroup><col style="width:120px"><col></colgroup>
+              <thead><tr><th>Mã tiền</th><th>Nguyên tệ</th></tr></thead>
               <tbody data-currency-body="${esc(definition.key)}"></tbody>
             </table>
           </div>
@@ -5343,10 +5351,10 @@ ${JSON.stringify(compact)}`
             <button class="customs-office-arrow" type="button" data-package-type-toggle
               aria-expanded="false" aria-label="Mở danh sách loại kiện">▾</button>
           </div>
-          <div class="customs-office-menu lookup-three-cols hidden" data-package-type-menu>
+          <div class="customs-office-menu hidden" data-package-type-menu>
             <table aria-label="Danh sách loại kiện">
-              <colgroup><col style="width:105px"><col style="width:240px"><col></colgroup>
-              <thead><tr><th>Mã</th><th>Tên loại kiện</th><th>Ghi chú</th></tr></thead>
+              <colgroup><col style="width:105px"><col></colgroup>
+              <thead><tr><th>Mã loại kiện</th><th>Loại kiện</th></tr></thead>
               <tbody data-package-type-body></tbody>
             </table>
           </div>
@@ -5508,7 +5516,7 @@ ${JSON.stringify(compact)}`
         <div class="draft-section-body">
           <div class="table-scroll">
             <table class="draft-items-table" aria-label="Danh sách hàng hóa tờ khai nháp">
-              <thead><tr><th>Xóa</th><th>STT</th>${DECLARATION_ITEM_FIELDS.map(definition => `<th>${esc(definition.label)}${definition.required ? " *" : ""}</th>`).join("")}</tr></thead>
+              <thead><tr><th aria-label="Xóa dòng">🗑</th><th>STT</th>${DECLARATION_ITEM_FIELDS.map(definition => `<th>${esc(definition.label)}${definition.required ? " *" : ""}</th>`).join("")}</tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>
@@ -6368,7 +6376,7 @@ ${JSON.stringify(compact)}`
         const ensureRows = () => {
           if (!body || body.dataset.ready === "true") return;
           body.innerHTML = currencyOptions().map(item => `<tr class="customs-office-row" data-currency-code="${esc(item.code)}">
-            <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
+            <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td>
           </tr>`).join("");
           body.dataset.ready = "true";
         };
@@ -6404,7 +6412,7 @@ ${JSON.stringify(compact)}`
       const ensurePackageTypeRows = () => {
         if (!packageTypeBody || packageTypeBody.dataset.ready === "true") return;
         packageTypeBody.innerHTML = packageTypeOptions().map(item => `<tr class="customs-office-row" data-package-type-code="${esc(item.code)}">
-          <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td><td class="customs-office-note">${esc(item.note || "")}</td>
+          <td class="customs-office-code">${esc(item.code)}</td><td>${esc(item.name)}</td>
         </tr>`).join("");
         packageTypeBody.dataset.ready = "true";
       };
