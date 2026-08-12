@@ -4305,16 +4305,21 @@ DỮ LIỆU OPENAI ĐÃ TRÍCH XUẤT:
 ${JSON.stringify(compact)}`
         }
       ];
-      const tokenLimits = [6500, 9000];
-      for (let attempt = 0; attempt < tokenLimits.length; attempt += 1) {
-        const raw = await callDeepSeek(comparisonMessages, tokenLimits[attempt], 0);
+
+      // Chỉ gọi DeepSeek đúng 1 lần. Không tự retry để tránh phát sinh thêm token.
+      try {
+        const raw = await callDeepSeek(comparisonMessages, 6500, 0);
         const parsed = parseDocumentJsonSafely(raw);
         if (parsed && typeof parsed === "object") return parsed;
+      } catch (error) {
+        console.warn("DeepSeek comparison unavailable; using local fallback:", error);
       }
 
-      // DeepSeek đã trả JSON hỏng nhiều lần: không làm cả quy trình thất bại.
-      // mergeComparisonResult phía sau sẽ dùng cơ chế đối chiếu dự phòng sẵn có của website.
-      return { fields: [], summary: "" };
+      // Không gọi lại DeepSeek. Dùng đối chiếu dự phòng từ dữ liệu OpenAI đã trích xuất.
+      return {
+        fields: [],
+        summary: "DeepSeek không phản hồi hợp lệ; hệ thống đã dùng kết quả đối chiếu dự phòng từ dữ liệu OpenAI đã trích xuất."
+      };
     }
 
     $("#compareDocsBtn").addEventListener("click", async () => {
@@ -4355,7 +4360,7 @@ ${JSON.stringify(compact)}`
         documentAnalysisVersion += 1;
         documentWorkspaceStale = false;
         renderDocumentResult(data, comparableExtractions);
-        progress.innerHTML = `<strong>Hoàn tất:</strong> OpenAI Terra đã trích xuất ${extractions.length} chứng từ; DeepSeek đã đối chiếu ${data.fields.length} trường.`;
+        progress.innerHTML = `<strong>Hoàn tất:</strong> Đã trích xuất ${extractions.length} chứng từ và tạo bảng đối chiếu ${data.fields.length} trường.`;
       } catch (error) {
         area.innerHTML = `<div class="error"><strong>Không thể đối chiếu chứng từ.</strong><br>${esc(friendlyError(error))}</div>`;
         progress.innerHTML = `<strong>Đã dừng:</strong> ${esc(friendlyError(error))}`;
