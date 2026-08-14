@@ -1343,6 +1343,70 @@
     .conflict-choices summary { padding: 7px 9px; cursor: pointer; color: #785000; font-size: 10.5px; font-weight: 800; }
     .conflict-choice-list { display: grid; gap: 6px; padding: 8px; border-top: 1px solid #ead39e; }
 
+
+    /* Dropdown lists are true viewport overlays, so opening them never changes
+       the width of the form or the very wide goods table. */
+    .customs-office-picker {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .customs-office-menu {
+      position: fixed !important;
+      z-index: 1400 !important;
+      box-sizing: border-box;
+      width: min(640px, calc(100vw - 24px)) !important;
+      max-width: min(640px, calc(100vw - 24px)) !important;
+      min-width: 0 !important;
+      max-height: min(340px, calc(100vh - 28px)) !important;
+      overflow: auto !important;
+      contain: layout paint;
+      overscroll-behavior: contain;
+      box-shadow: 0 10px 26px rgba(12, 52, 55, 0.18);
+    }
+    .customs-office-menu table {
+      width: 100% !important;
+      max-width: 100% !important;
+      table-layout: fixed !important;
+    }
+    .customs-office-menu th,
+    .customs-office-menu td {
+      box-sizing: border-box;
+      overflow-wrap: anywhere;
+      word-break: normal;
+      vertical-align: top;
+    }
+    .customs-office-menu.lookup-three-cols table {
+      min-width: 0 !important;
+    }
+    .customs-office-menu.lookup-three-cols th:first-child,
+    .customs-office-menu.lookup-three-cols td:first-child {
+      width: 105px !important;
+      min-width: 0 !important;
+      white-space: nowrap;
+    }
+    .customs-office-menu.lookup-three-cols th:nth-child(2),
+    .customs-office-menu.lookup-three-cols td:nth-child(2) {
+      width: 42% !important;
+      min-width: 0 !important;
+    }
+    .customs-office-menu.lookup-three-cols th:nth-child(3),
+    .customs-office-menu.lookup-three-cols td:nth-child(3) {
+      width: auto !important;
+      min-width: 0 !important;
+    }
+    .draft-section.lookup-menu-open {
+      overflow: hidden !important;
+      position: relative;
+      z-index: auto !important;
+    }
+    .draft-items-wrap,
+    .draft-items-table,
+    .draft-section,
+    .draft-main,
+    #draftFormArea {
+      min-width: 0;
+    }
+
     .import-business-group {
       display: flex;
       flex-wrap: wrap;
@@ -1379,7 +1443,7 @@
     }
     .draft-item-lookup-picker .customs-office-menu.lookup-three-cols table {
       width: 100%;
-      min-width: 560px;
+      min-width: 0;
       table-layout: fixed;
     }
     .draft-item-lookup-picker .customs-office-menu.lookup-three-cols th:first-child,
@@ -2922,12 +2986,12 @@
         title: "Thông tin chung & đơn vị xuất/nhập khẩu",
         description: "Bố trí theo nhóm Thông tin chung và Đơn vị xuất nhập khẩu trên ECUS.",
         fields: [
+          { key: "import_business_group", label: "Nhóm loại hình", webOnly: true, inputType: "importBusinessGroup", span: "full", onlyFor: ["import"] },
           { key: "ecus_A", label: "STT", ecusColumn: "A", ecusKind: "number" },
           { key: "ecus_B", label: "Số tờ khai", ecusColumn: "B" },
           { key: "ecus_C", label: "Ngày đăng ký", ecusColumn: "C", ecusKind: "date" },
           { key: "ecus_D", label: "Mã HQ", ecusColumn: "D", required: true, span: "half line-start" },
           { key: "customs_office_name", label: "Cơ quan Hải quan", webOnly: true, inputType: "customsOffice", span: "half" },
-          { key: "import_business_group", label: "Nhóm loại hình", webOnly: true, inputType: "importBusinessGroup", span: "full", onlyFor: ["import"] },
           { key: "ecus_E", label: "Mã loại hình", ecusColumn: "E", required: true, span: "half line-start" },
           { key: "declaration_type_name", label: "Tên loại hình", webOnly: true, inputType: "declarationType", span: "half" },
           { key: "ecus_H", label: "Phân loại cá nhân/ tổ chức", ecusColumn: "H", required: true, ecusKind: "number", inputType: "partyClassification" },
@@ -6361,6 +6425,11 @@ ${JSON.stringify(compact)}`
         if (!menu) return;
         menu.classList.add("hidden");
         toggle?.setAttribute("aria-expanded", "false");
+        menu.style.left = "";
+        menu.style.top = "";
+        menu.style.width = "";
+        menu.style.maxWidth = "";
+        menu.style.maxHeight = "";
         const section = menu.closest(".draft-section");
         if (section && !$(".customs-office-menu:not(.hidden)", section)) section.classList.remove("lookup-menu-open");
       };
@@ -6374,21 +6443,35 @@ ${JSON.stringify(compact)}`
         menu.classList.remove("hidden");
         toggle.setAttribute("aria-expanded", "true");
 
-        if (menu.closest(".draft-item-lookup-picker")) {
-          const rect = toggle.getBoundingClientRect();
-          const menuWidth = Math.min(720, Math.max(320, window.innerWidth - 24));
-          const left = Math.max(12, Math.min(rect.left, window.innerWidth - menuWidth - 12));
-          const preferredTop = rect.bottom + 6;
-          const maxMenuHeight = Math.min(320, window.innerHeight - 24);
-          const top = preferredTop + maxMenuHeight <= window.innerHeight - 12
-            ? preferredTop
-            : Math.max(12, rect.top - maxMenuHeight - 6);
+        const rect = toggle.getBoundingClientRect();
+        const viewportWidth = Math.max(320, window.innerWidth);
+        const viewportHeight = Math.max(320, window.innerHeight);
+        const availableWidth = Math.max(280, viewportWidth - 24);
+        const isThreeColumn = menu.classList.contains("lookup-three-cols");
 
-          menu.style.left = `${left}px`;
-          menu.style.top = `${top}px`;
-          menu.style.width = `${menuWidth}px`;
-          menu.style.maxWidth = `${menuWidth}px`;
-        }
+        const desiredWidth = isThreeColumn
+          ? Math.max(520, rect.width * 3.2)
+          : Math.max(340, rect.width * 2.2);
+        const menuWidth = Math.min(640, availableWidth, desiredWidth);
+
+        const left = Math.max(
+          12,
+          Math.min(rect.left, viewportWidth - menuWidth - 12)
+        );
+
+        const maxMenuHeight = Math.min(340, viewportHeight - 28);
+        const spaceBelow = viewportHeight - rect.bottom - 12;
+        const spaceAbove = rect.top - 12;
+        const openBelow = spaceBelow >= Math.min(220, maxMenuHeight) || spaceBelow >= spaceAbove;
+        const top = openBelow
+          ? Math.min(rect.bottom + 6, viewportHeight - 12)
+          : Math.max(12, rect.top - maxMenuHeight - 6);
+
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.style.width = `${menuWidth}px`;
+        menu.style.maxWidth = `${menuWidth}px`;
+        menu.style.maxHeight = `${maxMenuHeight}px`;
 
         menu.closest(".draft-section")?.classList.add("lookup-menu-open");
       };
