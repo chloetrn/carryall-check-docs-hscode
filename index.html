@@ -3027,8 +3027,8 @@
       { key: "item_V", label: "Mã biểu thuế VAT", ecusColumn: "V", required: true, inputType: "itemVat" },
       { key: "item_W", label: "Loại hàng", ecusColumn: "W", required: true, ecusKind: "number" },
       { key: "item_X", label: "Mã miễn giảm", ecusColumn: "X" },
-      { key: "item_Y", label: "Đơn vị tính 2", ecusColumn: "Y", required: true, inputType: "itemUnit" },
-      { key: "item_Z", label: "Lượng 2", ecusColumn: "Z", required: true }
+      { key: "item_Y", label: "Lượng 2", ecusColumn: "Y", required: true, ecusKind: "number" },
+      { key: "item_Z", label: "Đơn vị tính 2", ecusColumn: "Z", required: true, inputType: "itemUnit" }
     ];
 
     function updateKeyUI(status = apiKey ? "saved" : "empty", message = "") {
@@ -7926,7 +7926,8 @@ ${JSON.stringify(compact)}`
       const candidateSlots = sst.slots
         .filter(slot => {
           const ref = refs.get(slot.index);
-          return ref && ref.writable > 0 && ref.other === 0 &&
+          const safelyReusable = !ref || (ref.writable === 1 && ref.other === 0);
+          return safelyReusable &&
                  !slot.crossed && !slot.richRuns && !slot.extSize &&
                  slot.chunks.length === 1;
         })
@@ -7938,14 +7939,22 @@ ${JSON.stringify(compact)}`
       const blankSlot = sst.slots.find(slot => !slot.text.trim());
       if (!blankSlot) throw new Error("Mẫu ECUS không có chuỗi trống trong SST.");
 
+      const removeExactIndex = (oldText, index) => {
+        const list = exact.get(oldText) || [];
+        const next = list.filter(item => item !== index);
+        if (next.length) exact.set(oldText, next);
+        else exact.delete(oldText);
+      };
+
       const getIndex = rawText => {
         const text = String(rawText ?? "").trim();
         if (!text) return blankSlot.index;
         if (allocated.has(text)) return allocated.get(text);
 
-        const exactCandidates = exact.get(text) || [];
+        const exactCandidates = (exact.get(text) || []).filter(index => !usedSlots.has(index));
         if (exactCandidates.length) {
           const index = exactCandidates[0];
+          usedSlots.add(index);
           allocated.set(text, index);
           return index;
         }
@@ -7962,7 +7971,12 @@ ${JSON.stringify(compact)}`
           );
         }
 
+        const oldText = String(slot.text || "").trim();
+        removeExactIndex(oldText, slot.index);
         ecusStrictOverwriteSstSlot(workbookBytes, slot, text);
+        slot.text = text;
+        if (!exact.has(text)) exact.set(text, []);
+        exact.get(text).push(slot.index);
         usedSlots.add(slot.index);
         allocated.set(text, slot.index);
         return slot.index;
@@ -8108,38 +8122,75 @@ ${JSON.stringify(compact)}`
     /* ===== END ECUS STRICT VALUE-ONLY EXPORT ===== */
 
 
+
+    const ECUS_GENERAL_EXPORT_MAP = [
+      ["ecus_A", "A", "number"], ["ecus_B", "B", "text"], ["ecus_C", "C", "date"],
+      ["ecus_D", "D", "text"], ["ecus_E", "E", "text"], ["ecus_F", "F", "text"],
+      ["ecus_G", "G", "text"], ["ecus_H", "H", "number"], ["ecus_I", "I", "text"],
+      ["ecus_J", "J", "number"], ["ecus_K", "K", "text"], ["ecus_L", "L", "number"],
+      ["ecus_M", "M", "number"], ["ecus_N", "N", "text"], ["ecus_O", "O", "text"],
+      ["ecus_P", "P", "text"], ["ecus_Q", "Q", "text"], ["ecus_R", "R", "date"],
+      ["ecus_S", "S", "text"], ["ecus_T", "T", "text"], ["ecus_U", "U", "text"],
+      ["ecus_V", "V", "text"], ["ecus_W", "W", "number"], ["ecus_X", "X", "text"],
+      ["ecus_Y", "Y", "text"], ["ecus_Z", "Z", "date"], ["ecus_AA", "AA", "number"],
+      ["ecus_AB", "AB", "text"], ["ecus_AC", "AC", "text"], ["ecus_AD", "AD", "text"],
+      ["ecus_AE", "AE", "number"], ["ecus_AF", "AF", "number"], ["ecus_AG", "AG", "number"],
+      ["ecus_AH", "AH", "number"], ["ecus_AI", "AI", "number"], ["ecus_AJ", "AJ", "number"],
+      ["ecus_AK", "AK", "number"], ["ecus_AL", "AL", "text"], ["ecus_AM", "AM", "text"],
+      ["ecus_AN", "AN", "number"], ["ecus_AO", "AO", "text"], ["ecus_AP", "AP", "text"],
+      ["ecus_AQ", "AQ", "text"], ["ecus_AR", "AR", "text"], ["ecus_AS", "AS", "number"],
+      ["ecus_AT", "AT", "text"], ["ecus_AU", "AU", "text"], ["ecus_AV", "AV", "text"],
+      ["ecus_AW", "AW", "date"], ["ecus_AX", "AX", "date"], ["ecus_AY", "AY", "text"],
+      ["ecus_AZ", "AZ", "text"], ["ecus_BA", "BA", "text"], ["ecus_BB", "BB", "text"],
+      ["ecus_BC", "BC", "text"], ["ecus_BD", "BD", "text"], ["ecus_BE", "BE", "text"],
+      ["ecus_BF", "BF", "text"], ["ecus_BG", "BG", "text"], ["ecus_BH", "BH", "text"],
+      ["ecus_BI", "BI", "text"], ["ecus_BJ", "BJ", "text"], ["ecus_BK", "BK", "text"],
+      ["ecus_BL", "BL", "text"], ["ecus_BM", "BM", "text"], ["ecus_BN", "BN", "text"],
+      ["ecus_BO", "BO", "text"], ["ecus_BP", "BP", "text"], ["ecus_BQ", "BQ", "text"],
+      ["ecus_BR", "BR", "date"], ["ecus_BS", "BS", "date"], ["ecus_BT", "BT", "text"],
+      ["ecus_BU", "BU", "text"], ["ecus_BV", "BV", "text"], ["ecus_BW", "BW", "text"],
+      ["ecus_BX", "BX", "text"]
+    ];
+
+    const ECUS_ITEM_EXPORT_MAP = [
+      ["item_A", "A", "text"], ["item_B", "B", "text"], ["item_C", "C", "text"],
+      ["item_D", "D", "text"], ["item_E", "E", "text"], ["item_F", "F", "number"],
+      ["item_G", "G", "number"], ["item_H", "H", "number"], ["item_I", "I", "number"],
+      ["item_J", "J", "number"], ["item_K", "K", "text"], ["item_L", "L", "number"],
+      ["item_M", "M", "number"], ["item_N", "N", "number"], ["item_O", "O", "number"],
+      ["item_P", "P", "number"], ["item_Q", "Q", "number"], ["item_R", "R", "number"],
+      ["item_S", "S", "number"], ["item_T", "T", "number"], ["item_U", "U", "text"],
+      ["item_V", "V", "text"], ["item_W", "W", "number"], ["item_X", "X", "text"],
+      ["item_Y", "Y", "number"], ["item_Z", "Z", "text"]
+    ];
+
     function exportDeclarationExcel() {
       if (!declarationWorkspace) return;
 
       try {
-        const generalCells = [];
-        DECLARATION_FIELD_SECTIONS.forEach(section => {
-          section.fields.forEach(definition => {
-            if (!definition.ecusColumn) return;
-            const field = declarationWorkspace.fields[definition.key];
-            generalCells.push({
-              col: XLSX.utils.decode_col(definition.ecusColumn),
-              value: field?.value || "",
-              kind: definition.ecusKind || "text"
-            });
-          });
+        const generalCells = ECUS_GENERAL_EXPORT_MAP.map(([key, column, kind]) => {
+          let value = declarationWorkspace.fields[key]?.value || "";
+          if (key === "ecus_P" && !ecusText(value)) value = "9999";
+          return {
+            col: XLSX.utils.decode_col(column),
+            value,
+            kind
+          };
         });
 
         const itemRows = declarationWorkspace.items.map(item =>
-          DECLARATION_ITEM_FIELDS
-            .filter(definition => definition.ecusColumn)
-            .map(definition => {
-              let value = item.fields[definition.key]?.value || "";
-              if (definition.ecusColumn === "C") {
-                const digits = ecusText(value).replace(/\D/g, "");
-                value = digits ? digits.padStart(8, "0").slice(-8) : "";
-              }
-              return {
-                col: XLSX.utils.decode_col(definition.ecusColumn),
-                value,
-                kind: definition.ecusKind || "text"
-              };
-            })
+          ECUS_ITEM_EXPORT_MAP.map(([key, column, kind]) => {
+            let value = item.fields[key]?.value || "";
+            if (key === "item_C") {
+              const digits = ecusText(value).replace(/\D/g, "");
+              value = digits ? digits.padStart(8, "0").slice(-8) : "";
+            }
+            return {
+              col: XLSX.utils.decode_col(column),
+              value,
+              kind
+            };
+          })
         );
 
         const result = ecusStrictExportFromTemplate(
