@@ -3023,7 +3023,7 @@
           { key: "ecus_BF", label: "Loại kiện", ecusColumn: "BF", required: true, sources: ["package_type"], inputType: "packageType", span: "half" },
 
           { key: "ecus_M", label: "Tổng trọng lượng hàng (Gross)", ecusColumn: "M", required: true, sources: ["gross_weight"], ecusKind: "number", span: "half line-start" },
-          { key: "ecus_BG", label: "Đơn vị tính trọng lượng", ecusColumn: "BG", required: true, sources: ["gross_weight", "net_weight"], transform: "weight_unit_from_text", inputType: "weightUnit", span: "half" },
+          { key: "ecus_BG", label: "Đơn vị tính trọng lượng", ecusColumn: "BG", required: true, inputType: "weightUnit", span: "half" },
 
           { key: "ecus_N", label: "Mã địa điểm lưu kho hàng chờ thông quan dự kiến", ecusColumn: "N", required: true, span: "half line-start" },
           { key: "ecus_O", label: "Tên địa điểm lưu kho hàng chờ thông quan dự kiến", ecusColumn: "O", required: true, inputType: "storageLocation", span: "half" },
@@ -4002,8 +4002,7 @@ HƯỚNG DẪN RIÊNG CHO C/O:
 HƯỚNG DẪN RIÊNG CHO DANH SÁCH HÀNG HÓA:
 - Đây là nguồn ưu tiên duy nhất để điền các dòng hàng trên tờ khai khi người dùng đã tải file vào ô Product List.
 - Phải trích xuất riêng từng dòng hàng theo đúng thứ tự bằng item_1_*, item_2_*, item_3_*...
-- Với mỗi dòng, ưu tiên item_N_description, item_N_item_code, item_N_hs_code, item_N_origin_country, item_N_origin_criterion, item_N_quantity, item_N_unit, item_N_unit_price, item_N_amount và item_N_net_weight nếu thực sự có.
-- Nếu bảng có Net Weight riêng từng mặt hàng, bắt buộc trích xuất đúng item_N_net_weight của chính dòng đó; không dùng tổng Net Weight cho mọi mặt hàng.
+- Với mỗi dòng, ưu tiên item_N_description, item_N_item_code, item_N_hs_code, item_N_origin_country, item_N_origin_criterion, item_N_quantity, item_N_unit, item_N_unit_price và item_N_amount nếu thực sự có.
 - Không gộp nhiều mã hàng/model thành một dòng và không chỉ trả tổng hợp goods_description nếu file có bảng nhiều dòng.
 - Giữ mã HS, mã hàng và số 0 đầu dưới dạng chuỗi.
 ` : "";
@@ -4044,7 +4043,7 @@ Các key được phép ưu tiên nếu có:
 - Số chứng từ: invoice_number, contract_number, purchase_order_number, packing_list_number, hbl_number, mbl_number, bl_number, co_number, co_form, arrival_notice_number, document_number.
 - Ngày: invoice_date, contract_date, packing_list_date, bl_date, on_board_date, co_issue_date, arrival_notice_date, departure_date, arrival_date, etd, eta.
 - Thương mại/thanh toán: incoterm, payment_terms, currency, total_amount.
-- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price, net_weight và các key item_N_* tương ứng, bao gồm item_N_net_weight nếu có.
+- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price và các key item_N_* tương ứng.
 - Đóng gói/khối lượng: package_count, package_type, gross_weight, net_weight, dimensions, volume.
 - Vận chuyển: transport_mode, vessel_voyage, port_of_loading, port_of_discharge, place_of_delivery, container_number, seal_number, marks_numbers.
 ${coInstructions}
@@ -4764,6 +4763,37 @@ ${JSON.stringify(compact)}`
       return match?.code || String(value || "").trim().toUpperCase();
     }
 
+
+    function inferWeightUnitFromDocuments() {
+      const candidates = [];
+
+      (lastDocumentExtractions || []).forEach(extraction => {
+        (extraction.fields || []).forEach(field => {
+          const key = String(field.key || "");
+          if (
+            key === "gross_weight" ||
+            key === "net_weight" ||
+            /^item_\d+_(gross_weight|net_weight)$/.test(key)
+          ) {
+            const value = String(field.value || "").trim();
+            if (value) candidates.push(value);
+          }
+        });
+      });
+
+      const combined = normalizeCatalogLookupText(candidates.join(" | "));
+      if (/\b(KGM|KG|KGS|KILOGRAM|KILOGRAMS|KILO|KILOS)\b/.test(combined)) {
+        return "KGM";
+      }
+
+      // Only return a unit when it is actually visible in the document text.
+      for (const option of weightUnitOptions()) {
+        const code = normalizeCatalogLookupText(option.code);
+        if (code && new RegExp(`\\b${code}\\b`).test(combined)) return option.code;
+      }
+      return "";
+    }
+
     function isHoChiMinhPortText(value) {
       const text = normalizeCatalogLookupText(value);
       return Boolean(text && (
@@ -4820,14 +4850,16 @@ ${JSON.stringify(compact)}`
         };
       }
 
-      if (fields.ecus_BG?.value) {
-        const normalized = normalizeWeightUnitCode(fields.ecus_BG.value);
-        if (normalized) {
+      if (fields.ecus_BG && !String(fields.ecus_BG.value || "").trim()) {
+        const inferredWeightUnit = inferWeightUnitFromDocuments();
+        if (inferredWeightUnit) {
           fields.ecus_BG = {
             ...fields.ecus_BG,
-            value: normalized,
+            value: inferredWeightUnit,
             status: "computed",
-            source: normalized === "KGM" ? "Chuẩn hóa KG/KGS/Kilogram thành KGM" : fields.ecus_BG.source
+            source: inferredWeightUnit === "KGM"
+              ? "Nhận diện KG/KGS/Kilogram trong chứng từ → KGM"
+              : "Nhận diện đơn vị trọng lượng từ chứng từ"
           };
         }
       }
@@ -5026,9 +5058,6 @@ ${JSON.stringify(compact)}`
       if (definition.transform === "container_count") {
         const parts = String(text).split(/\r?\n|\s*;\s*|\s*,\s*/).map(item => item.trim()).filter(Boolean);
         return parts.length ? String(parts.length) : "";
-      }
-      if (definition.transform === "weight_unit_from_text") {
-        return normalizeWeightUnitCode(text);
       }
       if (definition.transform === "payment_method_code") {
         const normalized = normalizeCatalogLookupText(text);
@@ -5281,11 +5310,37 @@ ${JSON.stringify(compact)}`
               source: sourceField.value ? `Sao chép từ ${declarationItemFieldLabel(definition.copyFrom)}` : ""
             });
           } else {
-            field = keys.length
-              ? (productListOnly
-                ? declarationItemFieldFromSpecificDocument({ ...definition, sources: keys }, type, keys, "productlist")
-                : declarationFieldFromSource({ ...definition, sources: keys }, type, keys))
-              : blankDeclarationField(definition, type);
+            if (!keys.length) {
+              field = blankDeclarationField(definition, type);
+            } else if (productListOnly) {
+              const productListField = declarationItemFieldFromSpecificDocument(
+                { ...definition, sources: keys },
+                type,
+                keys,
+                "productlist"
+              );
+
+              // Product List / Packing List stays the first priority.
+              // If it truly lacks this field, use the same item index from
+              // other uploaded documents instead of leaving the field empty.
+              if (String(productListField.value || "").trim()) {
+                field = productListField;
+              } else {
+                const fallbackField = declarationFieldFromSource(
+                  { ...definition, sources: keys },
+                  type,
+                  keys
+                );
+                field = String(fallbackField.value || "").trim()
+                  ? {
+                      ...fallbackField,
+                      source: `${fallbackField.source} · Bổ sung vì Product List không có trường này`
+                    }
+                  : productListField;
+              }
+            } else {
+              field = declarationFieldFromSource({ ...definition, sources: keys }, type, keys);
+            }
           }
           fields[definition.key] = preserveConfirmedDeclarationField(field, previous?.fields?.[definition.key], definition, type);
         });
