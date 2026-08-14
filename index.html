@@ -7267,6 +7267,7 @@ ${JSON.stringify(compact)}`
           return;
         }
         declarationWorkspace.items.splice(Number(button.dataset.removeDraftItem), 1);
+        renumberDeclarationItemRows();
         declarationWorkspace.updatedAt = declarationNow();
         renderDeclarationDraft();
       }));
@@ -7282,12 +7283,26 @@ ${JSON.stringify(compact)}`
       $("#sendDraftItemToHSBtn")?.addEventListener("click", sendFirstDraftItemToHS);
     }
 
+
+    function renumberDeclarationItemRows() {
+      if (!declarationWorkspace?.items) return;
+      declarationWorkspace.items.forEach((item, index) => {
+        const field = item?.fields?.item_J;
+        if (!field) return;
+        field.value = String(index + 1);
+        field.status = "computed";
+        field.source = "Hệ thống đánh số lại dòng hàng";
+        field.alternatives = [];
+      });
+    }
+
     function addBlankDeclarationItem() {
       const fields = {};
       DECLARATION_ITEM_FIELDS.forEach(definition => {
         fields[definition.key] = blankDeclarationField(definition, declarationWorkspace.type);
       });
       declarationWorkspace.items.push({ id: `draft-item-${Date.now()}`, sourceIndex: declarationWorkspace.items.length + 1, fields });
+      renumberDeclarationItemRows();
       declarationWorkspace.updatedAt = declarationNow();
       renderDeclarationDraft();
       $("#draft-section-items").open = true;
@@ -7445,31 +7460,27 @@ ${JSON.stringify(compact)}`
     }
 
 
-    /* ===== ECUS STRICT VALUE-ONLY EXPORT =====
-       Rule: start from the exact uploaded .xls template and NEVER rebuild
-       Workbook/Worksheet records. Only the value bytes inside existing cell
-       records and existing SST slots are changed.
-    =============================================================== */
-    const ECUS_STRICT_FREE = 0xFFFFFFFF;
-    const ECUS_STRICT_EOC = 0xFFFFFFFE;
+    /* ===== ECUS BIFF8 PRESERVATION EXPORT ===== */
+    const ECUS_BIFF_FREE = 0xFFFFFFFF;
+    const ECUS_BIFF_EOC = 0xFFFFFFFE;
 
-    function ecusStrictU16(bytes, offset) {
+    function ecusU16(bytes, offset) {
       return bytes[offset] | (bytes[offset + 1] << 8);
     }
 
-    function ecusStrictU32(bytes, offset) {
+    function ecusU32(bytes, offset) {
       return (bytes[offset] |
         (bytes[offset + 1] << 8) |
         (bytes[offset + 2] << 16) |
         (bytes[offset + 3] << 24)) >>> 0;
     }
 
-    function ecusStrictSetU16(bytes, offset, value) {
+    function ecusSetU16(bytes, offset, value) {
       bytes[offset] = value & 255;
       bytes[offset + 1] = (value >>> 8) & 255;
     }
 
-    function ecusStrictSetU32(bytes, offset, value) {
+    function ecusSetU32(bytes, offset, value) {
       const v = Number(value) >>> 0;
       bytes[offset] = v & 255;
       bytes[offset + 1] = (v >>> 8) & 255;
@@ -7477,16 +7488,16 @@ ${JSON.stringify(compact)}`
       bytes[offset + 3] = (v >>> 24) & 255;
     }
 
-    function ecusStrictBase64Bytes(base64) {
+    function ecusBase64Bytes(base64) {
       const binary = atob(base64);
       const out = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i) & 255;
       return out;
     }
 
-    function ecusStrictConcat(parts) {
-      const size = parts.reduce((sum, part) => sum + part.length, 0);
-      const out = new Uint8Array(size);
+    function ecusConcatBytes(parts) {
+      const length = parts.reduce((sum, part) => sum + part.length, 0);
+      const out = new Uint8Array(length);
       let offset = 0;
       parts.forEach(part => {
         out.set(part, offset);
@@ -7495,69 +7506,92 @@ ${JSON.stringify(compact)}`
       return out;
     }
 
-    function ecusStrictRecords(bytes, start = 0, end = bytes.length) {
-      const list = [];
+    function ecusBiffRecord(id, payload) {
+      const out = new Uint8Array(4 + payload.length);
+      ecusSetU16(out, 0, id);
+      ecusSetU16(out, 2, payload.length);
+      out.set(payload, 4);
+      return out;
+    }
+
+    function ecusParseBiffRecords(bytes, start = 0, end = bytes.length) {
+      const records = [];
       let pos = start;
       while (pos + 4 <= end) {
-        const id = ecusStrictU16(bytes, pos);
-        const length = ecusStrictU16(bytes, pos + 2);
+        const id = ecusU16(bytes, pos);
+        const length = ecusU16(bytes, pos + 2);
         if (pos + 4 + length > end) break;
-        list.push({
+        records.push({
           id,
           start: pos,
           length,
-          payloadStart: pos + 4,
-          payload: bytes.slice(pos + 4, pos + 4 + length)
+          payload: bytes.slice(pos + 4, pos + 4 + length),
+          raw: bytes.slice(pos, pos + 4 + length)
         });
         pos += 4 + length;
       }
-      return list;
+      return records;
     }
 
-    function ecusStrictReadCfb(templateBytes) {
+    function ecusDecodeBoundSheetName(payload) {
+      const count = payload[6] || 0;
+      const unicode = (payload[7] || 0) & 1;
+      if (unicode) {
+        let text = "";
+        for (let i = 0; i < count; i += 1) {
+          text += String.fromCharCode(ecusU16(payload, 8 + i * 2));
+        }
+        return text;
+      }
+      let text = "";
+      for (let i = 0; i < count; i += 1) text += String.fromCharCode(payload[8 + i]);
+      return text;
+    }
+
+    function ecusReadCfbWorkbook(templateBytes) {
       if (templateBytes.length < 512 ||
           templateBytes[0] !== 0xD0 || templateBytes[1] !== 0xCF ||
           templateBytes[2] !== 0x11 || templateBytes[3] !== 0xE0) {
-        throw new Error("File mẫu không phải Excel 97-2003 (.xls/OLE) hợp lệ.");
+        throw new Error("File mẫu không phải Excel 97-2003/OLE hợp lệ.");
       }
 
-      const sectorSize = 1 << ecusStrictU16(templateBytes, 30);
-      const numFat = ecusStrictU32(templateBytes, 44);
-      const firstDir = ecusStrictU32(templateBytes, 48);
-      const firstDifat = ecusStrictU32(templateBytes, 68);
-      const numDifat = ecusStrictU32(templateBytes, 72);
+      const sectorSize = 1 << ecusU16(templateBytes, 30);
+      const numFat = ecusU32(templateBytes, 44);
+      const firstDir = ecusU32(templateBytes, 48);
+      const firstDifat = ecusU32(templateBytes, 68);
+      const numDifat = ecusU32(templateBytes, 72);
       const perFat = sectorSize >>> 2;
 
       const sectorOffset = sid => 512 + sid * sectorSize;
-      const sector = sid => templateBytes.slice(sectorOffset(sid), sectorOffset(sid) + sectorSize);
+      const readSector = sid => templateBytes.slice(sectorOffset(sid), sectorOffset(sid) + sectorSize);
 
       const fatSectorIds = [];
       for (let i = 0; i < 109; i += 1) {
-        const sid = ecusStrictU32(templateBytes, 76 + i * 4);
-        if (sid !== ECUS_STRICT_FREE && sid !== ECUS_STRICT_EOC) fatSectorIds.push(sid);
+        const sid = ecusU32(templateBytes, 76 + i * 4);
+        if (sid !== ECUS_BIFF_FREE && sid !== ECUS_BIFF_EOC) fatSectorIds.push(sid);
       }
 
       let difatSid = firstDifat;
-      for (let d = 0; d < numDifat && difatSid !== ECUS_STRICT_EOC; d += 1) {
-        const sec = sector(difatSid);
+      for (let d = 0; d < numDifat && difatSid !== ECUS_BIFF_EOC; d += 1) {
+        const sec = readSector(difatSid);
         for (let i = 0; i < perFat - 1; i += 1) {
-          const sid = ecusStrictU32(sec, i * 4);
-          if (sid !== ECUS_STRICT_FREE && sid !== ECUS_STRICT_EOC) fatSectorIds.push(sid);
+          const sid = ecusU32(sec, i * 4);
+          if (sid !== ECUS_BIFF_FREE && sid !== ECUS_BIFF_EOC) fatSectorIds.push(sid);
         }
-        difatSid = ecusStrictU32(sec, (perFat - 1) * 4);
+        difatSid = ecusU32(sec, (perFat - 1) * 4);
       }
 
       const fat = [];
       fatSectorIds.slice(0, numFat).forEach(sid => {
-        const sec = sector(sid);
-        for (let i = 0; i < perFat; i += 1) fat.push(ecusStrictU32(sec, i * 4));
+        const sec = readSector(sid);
+        for (let i = 0; i < perFat; i += 1) fat.push(ecusU32(sec, i * 4));
       });
 
       const chain = start => {
         const result = [];
         const seen = new Set();
         let sid = start;
-        while (sid !== ECUS_STRICT_EOC && sid !== ECUS_STRICT_FREE &&
+        while (sid !== ECUS_BIFF_EOC && sid !== ECUS_BIFF_FREE &&
                sid < fat.length && !seen.has(sid)) {
           result.push(sid);
           seen.add(sid);
@@ -7567,559 +7601,590 @@ ${JSON.stringify(compact)}`
       };
 
       const dirChain = chain(firstDir);
-      const dirBytes = ecusStrictConcat(dirChain.map(sector));
+      const dirBytes = ecusConcatBytes(dirChain.map(readSector));
       let workbookEntry = null;
 
-      for (let off = 0; off + 128 <= dirBytes.length; off += 128) {
-        const nameLength = ecusStrictU16(dirBytes, off + 64);
+      for (let entryIndex = 0; entryIndex * 128 + 128 <= dirBytes.length; entryIndex += 1) {
+        const off = entryIndex * 128;
+        const nameLen = ecusU16(dirBytes, off + 64);
         let name = "";
-        for (let p = 0; p + 1 < Math.max(0, nameLength - 2); p += 2) {
-          name += String.fromCharCode(ecusStrictU16(dirBytes, off + p));
+        for (let p = 0; p + 1 < Math.max(0, nameLen - 2); p += 2) {
+          name += String.fromCharCode(ecusU16(dirBytes, off + p));
         }
-        if (dirBytes[off + 66] !== 2 || (name !== "Workbook" && name !== "Book")) continue;
-
-        const startSector = ecusStrictU32(dirBytes, off + 116);
-        const size = ecusStrictU32(dirBytes, off + 120);
-        const dirSectorIndex = Math.floor(off / sectorSize);
-        const dirWithinSector = off % sectorSize;
-        workbookEntry = {
-          startSector,
-          size,
-          physicalDirectoryOffset:
-            sectorOffset(dirChain[dirSectorIndex]) + dirWithinSector
-        };
-        break;
+        const type = dirBytes[off + 66];
+        if (type === 2 && (name === "Workbook" || name === "Book")) {
+          const startSector = ecusU32(dirBytes, off + 116);
+          const sizeLow = ecusU32(dirBytes, off + 120);
+          const sizeHigh = ecusU32(dirBytes, off + 124);
+          if (sizeHigh !== 0) throw new Error("Workbook stream quá lớn để xử lý trên trình duyệt.");
+          const sectorSlot = Math.floor(off / sectorSize);
+          const within = off % sectorSize;
+          workbookEntry = {
+            name,
+            startSector,
+            size: sizeLow,
+            entryPhysicalOffset: sectorOffset(dirChain[sectorSlot]) + within
+          };
+          break;
+        }
       }
 
-      if (!workbookEntry) throw new Error("Không tìm thấy Workbook stream trong mẫu ECUS.");
-
+      if (!workbookEntry) throw new Error("Không tìm thấy Workbook stream trong file mẫu.");
       const workbookChain = chain(workbookEntry.startSector);
-      const workbookBytes = ecusStrictConcat(workbookChain.map(sector)).slice(0, workbookEntry.size);
+      const workbookBytes = ecusConcatBytes(workbookChain.map(readSector)).slice(0, workbookEntry.size);
 
       return {
         templateBytes,
         sectorSize,
-        sectorOffset,
+        fat,
+        fatSectorIds: fatSectorIds.slice(0, numFat),
         workbookEntry,
         workbookChain,
         workbookBytes
       };
     }
 
-    function ecusStrictWriteWorkbookSameLength(cfb, workbookBytes) {
-      if (workbookBytes.length !== cfb.workbookEntry.size) {
-        throw new Error("Bộ xuất nghiêm ngặt từ chối thay đổi kích thước Workbook BIFF8.");
+    function ecusWriteCfbWorkbook(cfb, newWorkbookBytes) {
+      const sectorSize = cfb.sectorSize;
+      let out = new Uint8Array(cfb.templateBytes);
+      let chain = cfb.workbookChain.slice();
+      const requiredSectors = Math.ceil(newWorkbookBytes.length / sectorSize);
+
+      if (requiredSectors > chain.length) {
+        const need = requiredSectors - chain.length;
+        const currentSectorCount = Math.floor((out.length - 512) / sectorSize);
+        if (currentSectorCount + need > cfb.fat.length) {
+          throw new Error("Dữ liệu vượt dung lượng BIFF8 có thể mở rộng an toàn của mẫu ECUS.");
+        }
+
+        const expanded = new Uint8Array(out.length + need * sectorSize);
+        expanded.set(out);
+        out = expanded;
+
+        const newSectors = [];
+        for (let i = 0; i < need; i += 1) newSectors.push(currentSectorCount + i);
+
+        cfb.fat[chain[chain.length - 1]] = newSectors[0];
+        newSectors.forEach((sid, index) => {
+          cfb.fat[sid] = index === newSectors.length - 1 ? ECUS_BIFF_EOC : newSectors[index + 1];
+        });
+        chain = chain.concat(newSectors);
+
+        const perFat = sectorSize >>> 2;
+        cfb.fatSectorIds.forEach((fatSid, fatIndex) => {
+          const base = 512 + fatSid * sectorSize;
+          for (let i = 0; i < perFat; i += 1) {
+            const globalIndex = fatIndex * perFat + i;
+            if (globalIndex < cfb.fat.length) ecusSetU32(out, base + i * 4, cfb.fat[globalIndex]);
+          }
+        });
       }
 
-      const out = new Uint8Array(cfb.templateBytes);
+      const capacity = chain.length * sectorSize;
+      const padded = new Uint8Array(capacity);
+      padded.set(newWorkbookBytes);
+
       let cursor = 0;
-      cfb.workbookChain.forEach(sid => {
-        if (cursor >= workbookBytes.length) return;
-        const amount = Math.min(cfb.sectorSize, workbookBytes.length - cursor);
-        const physical = cfb.sectorOffset(sid);
-        out.set(workbookBytes.slice(cursor, cursor + amount), physical);
-        cursor += amount;
+      chain.forEach(sid => {
+        const base = 512 + sid * sectorSize;
+        out.set(padded.slice(cursor, cursor + sectorSize), base);
+        cursor += sectorSize;
       });
 
-      if (cursor !== workbookBytes.length) {
-        throw new Error("Không ghi đủ Workbook stream vào file mẫu.");
+      ecusSetU32(out, cfb.workbookEntry.entryPhysicalOffset + 120, newWorkbookBytes.length);
+      ecusSetU32(out, cfb.workbookEntry.entryPhysicalOffset + 124, 0);
+      return out;
+    }
+
+    function ecusSstStringBytes(text) {
+      const value = String(text ?? "");
+      let compressed = true;
+      for (let i = 0; i < value.length; i += 1) {
+        if (value.charCodeAt(i) > 255) {
+          compressed = false;
+          break;
+        }
+      }
+      const charBytes = compressed ? value.length : value.length * 2;
+      const out = new Uint8Array(3 + charBytes);
+      ecusSetU16(out, 0, value.length);
+      out[2] = compressed ? 0 : 1;
+      if (compressed) {
+        for (let i = 0; i < value.length; i += 1) out[3 + i] = value.charCodeAt(i) & 255;
+      } else {
+        for (let i = 0; i < value.length; i += 1) ecusSetU16(out, 3 + i * 2, value.charCodeAt(i));
       }
       return out;
     }
 
-    function ecusStrictSheetName(payload) {
-      const count = payload[6] || 0;
-      const unicode = (payload[7] || 0) & 1;
-      let text = "";
-      for (let i = 0; i < count; i += 1) {
-        text += unicode
-          ? String.fromCharCode(ecusStrictU16(payload, 8 + i * 2))
-          : String.fromCharCode(payload[8 + i]);
-      }
-      return text;
-    }
+    function ecusBuildAddedSstContinueRecords(strings) {
+      if (!strings.length) return [];
+      const maxPayload = 8200;
+      const records = [];
+      let current = [];
+      let currentLength = 0;
 
-    function ecusStrictSheetRanges(workbookBytes) {
-      const bounds = ecusStrictRecords(workbookBytes)
-        .filter(record => record.id === 0x0085)
-        .map(record => ({
-          name: ecusStrictSheetName(record.payload),
-          start: ecusStrictU32(record.payload, 0)
-        }))
-        .sort((a, b) => a.start - b.start);
+      const flush = () => {
+        if (!currentLength) return;
+        records.push(ecusBiffRecord(0x003C, ecusConcatBytes(current)));
+        current = [];
+        currentLength = 0;
+      };
 
-      const ranges = new Map();
-      bounds.forEach((bound, index) => {
-        ranges.set(bound.name, {
-          start: bound.start,
-          end: index + 1 < bounds.length ? bounds[index + 1].start : workbookBytes.length
-        });
+      strings.forEach(text => {
+        const encoded = ecusSstStringBytes(text);
+        if (encoded.length > maxPayload) {
+          throw new Error("Một nội dung văn bản quá dài để ghi an toàn vào mẫu BIFF8.");
+        }
+        if (currentLength && currentLength + encoded.length > maxPayload) flush();
+        current.push(encoded);
+        currentLength += encoded.length;
       });
-      return ranges;
+      flush();
+      return records;
     }
 
-    function ecusStrictCellLocators(workbookBytes, sheetRange) {
-      const map = new Map();
-      const records = ecusStrictRecords(workbookBytes, sheetRange.start, sheetRange.end);
+    function ecusStandardCellInfo(record) {
+      const ids = new Set([0x00FD, 0x0203, 0x0204, 0x0205, 0x027E, 0x0201, 0x0006, 0x00D6]);
+      if (!ids.has(record.id) || record.payload.length < 6) return null;
+      return {
+        row: ecusU16(record.payload, 0),
+        col: ecusU16(record.payload, 2),
+        xf: ecusU16(record.payload, 4)
+      };
+    }
 
-      records.forEach(record => {
-        const p = record.payloadStart;
-
-        if (record.id === 0x00FD && record.length >= 10) { // LABELSST
-          const row = ecusStrictU16(workbookBytes, p);
-          const col = ecusStrictU16(workbookBytes, p + 2);
-          map.set(`${row}:${col}`, {
-            type: "LABELSST",
-            row, col,
-            valueOffset: p + 6
-          });
+    function ecusCellStylesFromSheet(sheetBytes) {
+      const styles = new Map();
+      ecusParseBiffRecords(sheetBytes).forEach(record => {
+        const info = ecusStandardCellInfo(record);
+        if (info) {
+          styles.set(`${info.row}:${info.col}`, info.xf);
           return;
         }
-
-        if (record.id === 0x0203 && record.length >= 14) { // NUMBER
-          const row = ecusStrictU16(workbookBytes, p);
-          const col = ecusStrictU16(workbookBytes, p + 2);
-          map.set(`${row}:${col}`, {
-            type: "NUMBER",
-            row, col,
-            valueOffset: p + 6
-          });
-          return;
-        }
-
-        if (record.id === 0x027E && record.length >= 10) { // RK
-          const row = ecusStrictU16(workbookBytes, p);
-          const col = ecusStrictU16(workbookBytes, p + 2);
-          map.set(`${row}:${col}`, {
-            type: "RK",
-            row, col,
-            valueOffset: p + 6
-          });
-          return;
-        }
-
-        if (record.id === 0x0201 && record.length >= 6) { // BLANK
-          const row = ecusStrictU16(workbookBytes, p);
-          const col = ecusStrictU16(workbookBytes, p + 2);
-          map.set(`${row}:${col}`, { type: "BLANK", row, col });
-          return;
-        }
-
-        if (record.id === 0x00BD && record.length >= 12) { // MULRK
-          const row = ecusStrictU16(workbookBytes, p);
-          const firstCol = ecusStrictU16(workbookBytes, p + 2);
-          const lastCol = ecusStrictU16(workbookBytes, p + record.length - 2);
+        if (record.id === 0x00BD && record.payload.length >= 12) {
+          const row = ecusU16(record.payload, 0);
+          const firstCol = ecusU16(record.payload, 2);
+          const lastCol = ecusU16(record.payload, record.payload.length - 2);
           for (let col = firstCol; col <= lastCol; col += 1) {
-            const slot = p + 4 + (col - firstCol) * 6;
-            map.set(`${row}:${col}`, {
-              type: "MULRK",
-              row, col,
-              valueOffset: slot + 2
-            });
+            const xfOffset = 4 + (col - firstCol) * 6;
+            if (xfOffset + 2 <= record.payload.length - 2) {
+              styles.set(`${row}:${col}`, ecusU16(record.payload, xfOffset));
+            }
           }
-          return;
-        }
-
-        if (record.id === 0x00BE && record.length >= 8) { // MULBLANK
-          const row = ecusStrictU16(workbookBytes, p);
-          const firstCol = ecusStrictU16(workbookBytes, p + 2);
-          const lastCol = ecusStrictU16(workbookBytes, p + record.length - 2);
+        } else if (record.id === 0x00BE && record.payload.length >= 8) {
+          const row = ecusU16(record.payload, 0);
+          const firstCol = ecusU16(record.payload, 2);
+          const lastCol = ecusU16(record.payload, record.payload.length - 2);
           for (let col = firstCol; col <= lastCol; col += 1) {
-            map.set(`${row}:${col}`, { type: "MULBLANK", row, col });
+            const xfOffset = 4 + (col - firstCol) * 2;
+            if (xfOffset + 2 <= record.payload.length - 2) {
+              styles.set(`${row}:${col}`, ecusU16(record.payload, xfOffset));
+            }
           }
         }
       });
-
-      return map;
+      return styles;
     }
 
-    function ecusStrictReadSst(workbookBytes) {
-      const records = ecusStrictRecords(workbookBytes);
-      const sstIndex = records.findIndex(record => record.id === 0x00FC);
-      if (sstIndex < 0) throw new Error("Mẫu ECUS không có SST.");
-
-      const sstRecord = records[sstIndex];
-      const uniqueCount = ecusStrictU32(workbookBytes, sstRecord.payloadStart + 4);
-      const segments = [{
-        start: sstRecord.payloadStart + 8,
-        end: sstRecord.payloadStart + sstRecord.length
-      }];
-
-      let i = sstIndex + 1;
-      while (i < records.length && records[i].id === 0x003C) {
-        segments.push({
-          start: records[i].payloadStart,
-          end: records[i].payloadStart + records[i].length
-        });
-        i += 1;
+    function ecusCellRecordRow(record) {
+      const info = ecusStandardCellInfo(record);
+      if (info) return info.row;
+      if ((record.id === 0x00BD || record.id === 0x00BE) && record.payload.length >= 4) {
+        return ecusU16(record.payload, 0);
       }
-
-      const cursor = { segment: 0, offset: segments[0].start };
-
-      const ensureSegment = () => {
-        while (cursor.segment < segments.length &&
-               cursor.offset >= segments[cursor.segment].end) {
-          cursor.segment += 1;
-          if (cursor.segment < segments.length) cursor.offset = segments[cursor.segment].start;
-        }
-        if (cursor.segment >= segments.length) throw new Error("SST bị cắt bất thường.");
-      };
-
-      const readByte = () => {
-        ensureSegment();
-        return workbookBytes[cursor.offset++];
-      };
-
-      const readU16 = () => {
-        const a = readByte();
-        const b = readByte();
-        return a | (b << 8);
-      };
-
-      const readU32 = () => {
-        const a = readByte();
-        const b = readByte();
-        const c = readByte();
-        const d = readByte();
-        return (a | (b << 8) | (c << 16) | (d << 24)) >>> 0;
-      };
-
-      const skipBytes = count => {
-        for (let j = 0; j < count; j += 1) readByte();
-      };
-
-      const slots = [];
-      for (let stringIndex = 0; stringIndex < uniqueCount; stringIndex += 1) {
-        const charCount = readU16();
-        const flags = readByte();
-        let highByte = flags & 1;
-        const hasRich = Boolean(flags & 8);
-        const hasExt = Boolean(flags & 4);
-        const richRuns = hasRich ? readU16() : 0;
-        const extSize = hasExt ? readU32() : 0;
-        const chunks = [];
-        let remaining = charCount;
-        let crossed = false;
-
-        while (remaining > 0) {
-          ensureSegment();
-          if (cursor.offset >= segments[cursor.segment].end) {
-            ensureSegment();
-          }
-
-          const segmentEnd = segments[cursor.segment].end;
-          const bytesPerChar = highByte ? 2 : 1;
-          let availableChars = Math.floor((segmentEnd - cursor.offset) / bytesPerChar);
-
-          if (availableChars <= 0) {
-            cursor.segment += 1;
-            if (cursor.segment >= segments.length) throw new Error("SST continuation không hợp lệ.");
-            cursor.offset = segments[cursor.segment].start;
-            highByte = readByte() & 1;
-            crossed = true;
-            continue;
-          }
-
-          const take = Math.min(remaining, availableChars);
-          chunks.push({
-            start: cursor.offset,
-            chars: take,
-            highByte: Boolean(highByte)
-          });
-          cursor.offset += take * bytesPerChar;
-          remaining -= take;
-
-          if (remaining > 0 && cursor.offset >= segmentEnd) {
-            cursor.segment += 1;
-            if (cursor.segment >= segments.length) throw new Error("SST continuation không hợp lệ.");
-            cursor.offset = segments[cursor.segment].start;
-            highByte = readByte() & 1;
-            crossed = true;
-          }
-        }
-
-        if (richRuns) skipBytes(richRuns * 4);
-        if (extSize) skipBytes(extSize);
-
-        let text = "";
-        chunks.forEach(chunk => {
-          for (let c = 0; c < chunk.chars; c += 1) {
-            const off = chunk.start + c * (chunk.highByte ? 2 : 1);
-            text += chunk.highByte
-              ? String.fromCharCode(ecusStrictU16(workbookBytes, off))
-              : String.fromCharCode(workbookBytes[off]);
-          }
-        });
-
-        slots.push({
-          index: stringIndex,
-          charCount,
-          flags,
-          richRuns,
-          extSize,
-          chunks,
-          crossed,
-          text
-        });
-      }
-
-      return { slots };
+      return null;
     }
 
-    function ecusStrictCollectSstReferences(workbookBytes, sheetRanges) {
-      const refs = new Map();
-
-      for (const [sheetName, range] of sheetRanges.entries()) {
-        ecusStrictRecords(workbookBytes, range.start, range.end).forEach(record => {
-          if (record.id !== 0x00FD || record.length < 10) return;
-          const row = ecusStrictU16(workbookBytes, record.payloadStart);
-          const col = ecusStrictU16(workbookBytes, record.payloadStart + 2);
-          const sstIndex = ecusStrictU32(workbookBytes, record.payloadStart + 6);
-          const writable =
-            (sheetName === "KhaiToKhai" && row === 1) ||
-            (sheetName === "KhaiHang" && row >= 1 && row <= 42);
-
-          if (!refs.has(sstIndex)) refs.set(sstIndex, { writable: 0, other: 0 });
-          refs.get(sstIndex)[writable ? "writable" : "other"] += 1;
-        });
-      }
-      return refs;
+    function ecusIsCellRecord(record) {
+      return ecusCellRecordRow(record) !== null;
     }
 
-    function ecusStrictCanEncodeText(slot, text) {
-      if (slot.crossed || slot.richRuns || slot.extSize) return false;
-      if (String(text).length > slot.charCount) return false;
-
-      // The sample slots used for data are single-chunk; retaining the original
-      // encoding guarantees identical SST structure and byte length.
-      if (slot.chunks.length !== 1) return false;
-      if (!slot.chunks[0].highByte) {
-        for (const ch of String(text)) {
-          if (ch.charCodeAt(0) > 255) return false;
-        }
-      }
-      return true;
+    function ecusBlankRecord(row, col, xf) {
+      const payload = new Uint8Array(6);
+      ecusSetU16(payload, 0, row);
+      ecusSetU16(payload, 2, col);
+      ecusSetU16(payload, 4, xf);
+      return ecusBiffRecord(0x0201, payload);
     }
 
-    function ecusStrictOverwriteSstSlot(workbookBytes, slot, text) {
-      const padded = String(text).padEnd(slot.charCount, " ");
-      let charIndex = 0;
-
-      slot.chunks.forEach(chunk => {
-        for (let i = 0; i < chunk.chars; i += 1) {
-          const ch = padded.charCodeAt(charIndex++);
-          const offset = chunk.start + i * (chunk.highByte ? 2 : 1);
-          if (chunk.highByte) ecusStrictSetU16(workbookBytes, offset, ch);
-          else workbookBytes[offset] = ch & 255;
-        }
-      });
+    function ecusLabelSstRecord(row, col, xf, sstIndex) {
+      const payload = new Uint8Array(10);
+      ecusSetU16(payload, 0, row);
+      ecusSetU16(payload, 2, col);
+      ecusSetU16(payload, 4, xf);
+      ecusSetU32(payload, 6, sstIndex);
+      return ecusBiffRecord(0x00FD, payload);
     }
 
-    function ecusStrictTextAllocator(workbookBytes, sst, refs) {
-      const exact = new Map();
-      sst.slots.forEach(slot => {
-        const key = slot.text.trim();
-        if (!exact.has(key)) exact.set(key, []);
-        exact.get(key).push(slot.index);
-      });
-
-      const candidateSlots = sst.slots
-        .filter(slot => {
-          const ref = refs.get(slot.index);
-          const safelyReusable = !ref || (ref.writable === 1 && ref.other === 0);
-          return safelyReusable &&
-                 !slot.crossed && !slot.richRuns && !slot.extSize &&
-                 slot.chunks.length === 1;
-        })
-        .sort((a, b) => a.charCount - b.charCount);
-
-      const allocated = new Map();
-      const usedSlots = new Set();
-
-      const blankSlot = sst.slots.find(slot => !slot.text.trim());
-      if (!blankSlot) throw new Error("Mẫu ECUS không có chuỗi trống trong SST.");
-
-      const removeExactIndex = (oldText, index) => {
-        const list = exact.get(oldText) || [];
-        const next = list.filter(item => item !== index);
-        if (next.length) exact.set(oldText, next);
-        else exact.delete(oldText);
-      };
-
-      const getIndex = rawText => {
-        const text = String(rawText ?? "").trim();
-        if (!text) return blankSlot.index;
-        if (allocated.has(text)) return allocated.get(text);
-
-        const exactCandidates = (exact.get(text) || []).filter(index => !usedSlots.has(index));
-        if (exactCandidates.length) {
-          const index = exactCandidates[0];
-          usedSlots.add(index);
-          allocated.set(text, index);
-          return index;
-        }
-
-        const slot = candidateSlots.find(candidate =>
-          !usedSlots.has(candidate.index) &&
-          ecusStrictCanEncodeText(candidate, text)
-        );
-
-        if (!slot) {
-          throw new Error(
-            `Giá trị "${text.slice(0, 60)}" dài/khác mã hóa so với các ô chữ có sẵn trong mẫu. ` +
-            `Để giữ 100% cấu trúc BIFF8, web không được tạo thêm record hoặc chuỗi mới.`
-          );
-        }
-
-        const oldText = String(slot.text || "").trim();
-        removeExactIndex(oldText, slot.index);
-        ecusStrictOverwriteSstSlot(workbookBytes, slot, text);
-        slot.text = text;
-        if (!exact.has(text)) exact.set(text, []);
-        exact.get(text).push(slot.index);
-        usedSlots.add(slot.index);
-        allocated.set(text, slot.index);
-        return slot.index;
-      };
-
-      return { getIndex };
+    function ecusNumberRecord(row, col, xf, numberValue) {
+      const payload = new Uint8Array(14);
+      ecusSetU16(payload, 0, row);
+      ecusSetU16(payload, 2, col);
+      ecusSetU16(payload, 4, xf);
+      new DataView(payload.buffer).setFloat64(6, Number(numberValue), true);
+      return ecusBiffRecord(0x0203, payload);
     }
 
-    function ecusStrictEncodeRk(rawNumber) {
-      const number = Number(rawNumber);
-      if (!Number.isFinite(number)) throw new Error(`Giá trị số không hợp lệ: ${rawNumber}`);
-
-      const max = 536870911;
-      const integer = Math.round(number);
-      if (Math.abs(number - integer) < 1e-9 && integer >= -536870912 && integer <= max) {
-        return ((integer << 2) | 2) >>> 0;
-      }
-
-      const scaled = Math.round(number * 100);
-      if (Math.abs(number * 100 - scaled) < 1e-7 && scaled >= -536870912 && scaled <= max) {
-        return ((scaled << 2) | 3) >>> 0;
-      }
-
-      throw new Error(
-        `Giá trị ${number} không thể ghi vào record RK hiện có mà không đổi loại record. ` +
-        `Mẫu ECUS này chỉ cho phép số nguyên hoặc tối đa 2 chữ số thập phân tại ô đó.`
-      );
-    }
-
-    function ecusStrictDateSerial(value) {
+    function ecusExcelDateSerial(value) {
       const normalized = normalizeDeclarationDateText(value);
       if (!normalized) return null;
       const match = normalized.match(/^(\d{2})-(\d{2})-(\d{4})$/);
       if (!match) return null;
-      return (Date.UTC(Number(match[3]), Number(match[2]) - 1, Number(match[1])) -
-              Date.UTC(1899, 11, 30)) / 86400000;
+      const day = Number(match[1]);
+      const month = Number(match[2]);
+      const year = Number(match[3]);
+      return (Date.UTC(year, month - 1, day) - Date.UTC(1899, 11, 30)) / 86400000;
     }
 
-    function ecusStrictValueForField(value, kind) {
-      const text = ecusText(value);
+    function ecusBuildCellRecord(row, col, xf, value) {
+      if (value?.kind === "number") return ecusNumberRecord(row, col, xf, value.number);
+      if (value?.kind === "date") return ecusNumberRecord(row, col, xf, value.number);
+      if (value?.kind === "text") return ecusLabelSstRecord(row, col, xf, value.sstIndex);
+      return ecusBlankRecord(row, col, xf);
+    }
+
+    function ecusRebuildRowBlock(blockRecords, targetRows, rowValues, styleMap) {
+      const rowRecords = blockRecords.filter(record => record.id === 0x0208);
+      if (!rowRecords.length) return ecusConcatBytes(blockRecords.map(record => record.raw));
+
+      const rows = rowRecords.map(record => ecusU16(record.payload, 0));
+      const preservedByRow = new Map(rows.map(row => [row, []]));
+      const extras = [];
+
+      blockRecords.forEach(record => {
+        if (record.id === 0x0208 || record.id === 0x00D7) return;
+        if (!ecusIsCellRecord(record)) {
+          extras.push(record.raw);
+          return;
+        }
+        const row = ecusCellRecordRow(record);
+        if (!targetRows.has(row) && preservedByRow.has(row)) preservedByRow.get(row).push(record.raw);
+      });
+
+      const rowRaw = rowRecords.map(record => record.raw);
+      const cellParts = [];
+      const firstCellOffsets = [];
+      let cellOffset = rowRaw.reduce((sum, raw) => sum + raw.length, 0);
+
+      rows.forEach(row => {
+        firstCellOffsets.push(cellOffset);
+        let cells = [];
+
+        if (targetRows.has(row)) {
+          const values = rowValues.get(row) || new Map();
+          [...values.entries()].sort((a, b) => a[0] - b[0]).forEach(([col, value]) => {
+            let xf = styleMap.get(`${row}:${col}`);
+            if (xf === undefined) xf = styleMap.get(`1:${col}`);
+            if (xf === undefined) xf = styleMap.get(`0:${col}`);
+            if (xf === undefined) xf = 0;
+            cells.push(ecusBuildCellRecord(row, col, xf, value));
+          });
+
+          if (!cells.length) {
+            let xf = styleMap.get(`${row}:0`);
+            if (xf === undefined) xf = styleMap.get(`1:0`);
+            if (xf === undefined) xf = 0;
+            cells.push(ecusBlankRecord(row, 0, xf));
+          }
+        } else {
+          cells = preservedByRow.get(row) || [];
+          if (!cells.length) {
+            let xf = styleMap.get(`${row}:0`);
+            if (xf === undefined) xf = styleMap.get(`0:0`);
+            if (xf === undefined) xf = 0;
+            cells.push(ecusBlankRecord(row, 0, xf));
+          }
+        }
+
+        cells.forEach(raw => {
+          cellParts.push(raw);
+          cellOffset += raw.length;
+        });
+      });
+
+      extras.forEach(raw => {
+        cellParts.push(raw);
+        cellOffset += raw.length;
+      });
+
+      const dbcPayload = new Uint8Array(4 + rows.length * 2);
+      const rowsLength = rowRaw.reduce((sum, raw) => sum + raw.length, 0);
+      const cellsLength = cellParts.reduce((sum, raw) => sum + raw.length, 0);
+      const dbcStart = rowsLength + cellsLength;
+      ecusSetU32(dbcPayload, 0, dbcStart);
+
+      if (rows.length) {
+        const firstRowRecordLength = rowRaw[0].length;
+        ecusSetU16(dbcPayload, 4, Math.max(0, firstCellOffsets[0] - firstRowRecordLength));
+        for (let i = 1; i < rows.length; i += 1) {
+          const delta = firstCellOffsets[i] - firstCellOffsets[i - 1];
+          ecusSetU16(dbcPayload, 4 + i * 2, Math.max(0, Math.min(65535, delta)));
+        }
+      }
+
+      return ecusConcatBytes([
+        ...rowRaw,
+        ...cellParts,
+        ecusBiffRecord(0x00D7, dbcPayload)
+      ]);
+    }
+
+    function ecusModifySheetRows(sheetBytes, targetRows, rowValues) {
+      const records = ecusParseBiffRecords(sheetBytes);
+      const styleMap = ecusCellStylesFromSheet(sheetBytes);
+      const dbcIndices = [];
+      records.forEach((record, index) => {
+        if (record.id === 0x00D7) dbcIndices.push(index);
+      });
+      if (!dbcIndices.length) throw new Error("Sheet ECUS không có cấu trúc DBCELL chuẩn.");
+
+      const replacements = [];
+      dbcIndices.forEach(dbcIndex => {
+        const dbc = records[dbcIndex];
+        const firstRowRelative = ecusU32(dbc.payload, 0);
+        const firstRowStart = dbc.start - firstRowRelative;
+        const startIndex = records.findIndex(record => record.start === firstRowStart);
+        if (startIndex < 0 || records[startIndex].id !== 0x0208) {
+          throw new Error("Không xác định được khối ROW/DBCELL của mẫu ECUS.");
+        }
+        const blockRecords = records.slice(startIndex, dbcIndex + 1);
+        replacements.push({
+          startIndex,
+          endIndex: dbcIndex,
+          bytes: ecusRebuildRowBlock(blockRecords, targetRows, rowValues, styleMap)
+        });
+      });
+
+      const replacementByStart = new Map(replacements.map(item => [item.startIndex, item]));
+      const parts = [];
+      let index = 0;
+      while (index < records.length) {
+        const replacement = replacementByStart.get(index);
+        if (replacement) {
+          parts.push(replacement.bytes);
+          index = replacement.endIndex + 1;
+        } else {
+          parts.push(records[index].raw);
+          index += 1;
+        }
+      }
+      return ecusConcatBytes(parts);
+    }
+
+    function ecusPatchSheetIndexPointers(sheetBytes, newSheetStart, oldSheetStart) {
+      const records = ecusParseBiffRecords(sheetBytes);
+      const dbcStarts = records.filter(record => record.id === 0x00D7).map(record => newSheetStart + record.start);
+      const parts = records.map(record => {
+        if (record.id !== 0x020B || record.payload.length < 16) return record.raw;
+        const payload = new Uint8Array(record.payload);
+        const oldAnchor = ecusU32(payload, 12);
+        if (oldAnchor) ecusSetU32(payload, 12, newSheetStart + (oldAnchor - oldSheetStart));
+        const slots = Math.floor((payload.length - 16) / 4);
+        for (let i = 0; i < slots; i += 1) {
+          ecusSetU32(payload, 16 + i * 4, dbcStarts[i] || 0);
+        }
+        return ecusBiffRecord(record.id, payload);
+      });
+      return ecusConcatBytes(parts);
+    }
+
+    function ecusSheetDimensionMaxRow(sheetBytes) {
+      const record = ecusParseBiffRecords(sheetBytes).find(item => item.id === 0x0200);
+      if (!record || record.payload.length < 8) return 0;
+      return ecusU32(record.payload, 4);
+    }
+
+    function ecusPrepareDataValue(kind, rawValue, sstContext) {
+      const text = ecusText(rawValue);
+      if (!text) return null;
+
       if (kind === "date") {
-        const serial = ecusStrictDateSerial(text);
-        return serial === null ? null : { kind: "number", number: serial };
+        const serial = ecusExcelDateSerial(text);
+        return serial === null ? null : { kind: "date", number: serial };
       }
       if (kind === "number") {
         const number = ecusNumber(text);
         return number === null ? null : { kind: "number", number };
       }
-      return text ? { kind: "text", text } : null;
+
+      let sstIndex = sstContext.indexByText.get(text);
+      if (sstIndex === undefined) {
+        sstIndex = sstContext.oldUnique + sstContext.addedStrings.length;
+        sstContext.indexByText.set(text, sstIndex);
+        sstContext.addedStrings.push(text);
+      }
+      sstContext.newTextReferences += 1;
+      return { kind: "text", sstIndex };
     }
 
-    function ecusStrictPatchCell(workbookBytes, locator, prepared, textAllocator) {
-      if (!locator) return { skipped: true, reason: "missing-record" };
-
-      if (locator.type === "LABELSST") {
-        const sstIndex = textAllocator.getIndex(prepared?.kind === "text" ? prepared.text : "");
-        ecusStrictSetU32(workbookBytes, locator.valueOffset, sstIndex);
-        return { patched: true };
-      }
-
-      if (locator.type === "NUMBER") {
-        const number = prepared?.kind === "number" ? prepared.number : 0;
-        new DataView(workbookBytes.buffer, workbookBytes.byteOffset, workbookBytes.byteLength)
-          .setFloat64(locator.valueOffset, Number(number), true);
-        return { patched: true };
-      }
-
-      if (locator.type === "RK" || locator.type === "MULRK") {
-        const number = prepared?.kind === "number" ? prepared.number : 0;
-        ecusStrictSetU32(workbookBytes, locator.valueOffset, ecusStrictEncodeRk(number));
-        return { patched: true };
-      }
-
-      // A BLANK/MULBLANK record has no value bytes. To keep the record type and
-      // length unchanged, it must remain blank.
-      if (locator.type === "BLANK" || locator.type === "MULBLANK") {
-        return prepared
-          ? { skipped: true, reason: "template-blank" }
-          : { patched: false };
-      }
-
-      return { skipped: true, reason: "unsupported-record" };
+    function ecusCountRemovedLabelSst(sheetBytes, targetRows) {
+      let count = 0;
+      ecusParseBiffRecords(sheetBytes).forEach(record => {
+        if (record.id !== 0x00FD || record.payload.length < 6) return;
+        const row = ecusU16(record.payload, 0);
+        if (targetRows.has(row)) count += 1;
+      });
+      return count;
     }
 
-    function ecusStrictExportFromTemplate(templateBase64, generalCells, itemRows) {
-      const cfb = ecusStrictReadCfb(ecusStrictBase64Bytes(templateBase64));
-      const workbookBytes = new Uint8Array(cfb.workbookBytes);
-      const sheetRanges = ecusStrictSheetRanges(workbookBytes);
-      const generalRange = sheetRanges.get("KhaiToKhai");
-      const itemRange = sheetRanges.get("KhaiHang");
-      if (!generalRange || !itemRange) {
-        throw new Error("Mẫu ECUS thiếu sheet KhaiToKhai hoặc KhaiHang.");
+    function ecusBuildPreservedWorkbook(templateWorkbookBytes, generalData, itemData) {
+      const records = ecusParseBiffRecords(templateWorkbookBytes);
+      const boundRecords = records.filter(record => record.id === 0x0085);
+      if (!boundRecords.length) throw new Error("Mẫu ECUS không có BOUNDSHEET.");
+
+      const bounds = boundRecords.map(record => ({
+        record,
+        oldOffset: ecusU32(record.payload, 0),
+        name: ecusDecodeBoundSheetName(record.payload)
+      })).sort((a, b) => a.oldOffset - b.oldOffset);
+
+      const firstSheetOffset = bounds[0].oldOffset;
+      const globalRecords = ecusParseBiffRecords(templateWorkbookBytes, 0, firstSheetOffset);
+
+      const sheets = bounds.map((bound, index) => ({
+        name: bound.name,
+        oldOffset: bound.oldOffset,
+        bytes: templateWorkbookBytes.slice(
+          bound.oldOffset,
+          index + 1 < bounds.length ? bounds[index + 1].oldOffset : templateWorkbookBytes.length
+        )
+      }));
+
+      const sstRecordIndex = globalRecords.findIndex(record => record.id === 0x00FC);
+      if (sstRecordIndex < 0) throw new Error("Mẫu ECUS không có SST BIFF8.");
+      const sstRecord = globalRecords[sstRecordIndex];
+      const oldTotal = ecusU32(sstRecord.payload, 0);
+      const oldUnique = ecusU32(sstRecord.payload, 4);
+      const sstContext = {
+        oldUnique,
+        addedStrings: [],
+        indexByText: new Map(),
+        newTextReferences: 0
+      };
+
+      const generalSheet = sheets.find(sheet => sheet.name === "KhaiToKhai");
+      const itemSheet = sheets.find(sheet => sheet.name === "KhaiHang");
+      if (!generalSheet || !itemSheet) throw new Error("Mẫu ECUS thiếu KhaiToKhai hoặc KhaiHang.");
+
+      const generalTargetRows = new Set([1]);
+      const itemMaxRowExclusive = ecusSheetDimensionMaxRow(itemSheet.bytes);
+      const itemCapacity = Math.max(0, itemMaxRowExclusive - 1);
+      if (itemData.length > itemCapacity) {
+        throw new Error(`Mẫu ECUS chỉ có sẵn ${itemCapacity} dòng hàng. Hiện có ${itemData.length} dòng; không thể thêm dòng mà vẫn giữ nguyên cấu trúc mẫu.`);
       }
 
-      const generalLocators = ecusStrictCellLocators(workbookBytes, generalRange);
-      const itemLocators = ecusStrictCellLocators(workbookBytes, itemRange);
-      const sst = ecusStrictReadSst(workbookBytes);
-      const refs = ecusStrictCollectSstReferences(workbookBytes, sheetRanges);
-      const textAllocator = ecusStrictTextAllocator(workbookBytes, sst, refs);
+      const itemTargetRows = new Set([0]);
+      for (let row = 1; row <= itemCapacity; row += 1) itemTargetRows.add(row);
 
-      const skippedTemplateBlank = [];
-
-      generalCells.forEach(cell => {
-        const locator = generalLocators.get(`1:${cell.col}`);
-        const result = ecusStrictPatchCell(
-          workbookBytes,
-          locator,
-          ecusStrictValueForField(cell.value, cell.kind),
-          textAllocator
-        );
-        if (result?.reason === "template-blank" && ecusText(cell.value)) {
-          skippedTemplateBlank.push(`KhaiToKhai:${cell.col + 1}`);
-        }
+      const generalRows = new Map([[1, new Map()]]);
+      generalData.forEach(cell => {
+        const prepared = ecusPrepareDataValue(cell.kind, cell.value, sstContext);
+        if (prepared) generalRows.get(1).set(cell.col, prepared);
       });
 
-      // The sample contains 42 physical item rows. We keep ALL of them and only
-      // overwrite values. Unused rows are made logically empty by blanking text
-      // fields and writing zero into existing numeric records.
-      const itemCapacity = 42;
-      for (let rowIndex = 0; rowIndex < itemCapacity; rowIndex += 1) {
-        const supplied = itemRows[rowIndex] || [];
-        const suppliedByCol = new Map(supplied.map(cell => [cell.col, cell]));
+      const itemRows = new Map([[0, new Map()]]);
+      const headerValues = [
+        "Tên hàng", "Mã hàng", "Mã HS", "Nước XX", "Đơn vị tính", "Lượng",
+        "Đơn giá HĐ", "Trị giá HĐ", "Trị giá tính thuế", "STTHang",
+        "Mã miễn giảm không chịu thuế XNK", "Số tiền giảm thuế XNK",
+        "Tiền thuế suất", "Tiền thuế TV", "Tiền thuế PB", "Tiền Thuế TTĐB",
+        "Tiền thuế MT", "Tiền thuế VAT", "Đơn giá hợp đồng TM",
+        "Trị giá hợp đồng TM", "Mã biểu thuế nhập khẩu", "Mã biểu thuế VAT",
+        "Loại hàng", "Mã miễn giảm", "Lượng 2", "Đơn vị tính 2"
+      ];
+      headerValues.forEach((label, col) => {
+        const prepared = ecusPrepareDataValue("text", label, sstContext);
+        if (prepared) itemRows.get(0).set(col, prepared);
+      });
 
-        for (let col = 0; col < 26; col += 1) {
-          const locator = itemLocators.get(`${rowIndex + 1}:${col}`);
-          if (!locator) continue;
+      for (let row = 1; row <= itemCapacity; row += 1) itemRows.set(row, new Map());
+      itemData.forEach((rowData, itemIndex) => {
+        const rowMap = itemRows.get(itemIndex + 1);
+        rowData.forEach(cell => {
+          const prepared = ecusPrepareDataValue(cell.kind, cell.value, sstContext);
+          if (prepared) rowMap.set(cell.col, prepared);
+        });
+      });
 
-          const cell = suppliedByCol.get(col);
-          const prepared = cell
-            ? ecusStrictValueForField(cell.value, cell.kind)
-            : null;
+      const removedTextReferences =
+        ecusCountRemovedLabelSst(generalSheet.bytes, generalTargetRows) +
+        ecusCountRemovedLabelSst(itemSheet.bytes, itemTargetRows);
 
-          const result = ecusStrictPatchCell(workbookBytes, locator, prepared, textAllocator);
-          if (result?.reason === "template-blank" && cell && ecusText(cell.value)) {
-            skippedTemplateBlank.push(`KhaiHang:R${rowIndex + 2}C${col + 1}`);
-          }
+      generalSheet.bytes = ecusModifySheetRows(generalSheet.bytes, generalTargetRows, generalRows);
+      itemSheet.bytes = ecusModifySheetRows(itemSheet.bytes, itemTargetRows, itemRows);
+
+      const sstPayload = new Uint8Array(sstRecord.payload);
+      // Keep the original SST reference count as a safe lower bound because
+      // original strings remain physically present in the SST even when sample
+      // data cells are cleared. Add only the newly written text references.
+      ecusSetU32(sstPayload, 0, oldTotal + sstContext.newTextReferences);
+      ecusSetU32(sstPayload, 4, oldUnique + sstContext.addedStrings.length);
+      const addedSstRecords = ecusBuildAddedSstContinueRecords(sstContext.addedStrings);
+
+      const globalParts = [];
+      let insertedAddedSst = false;
+      for (let i = 0; i < globalRecords.length; i += 1) {
+        const record = globalRecords[i];
+        if (i === sstRecordIndex) {
+          globalParts.push(ecusBiffRecord(record.id, sstPayload));
+          continue;
         }
+        if (!insertedAddedSst && i > sstRecordIndex && record.id !== 0x003C) {
+          globalParts.push(...addedSstRecords);
+          insertedAddedSst = true;
+        }
+        globalParts.push(record.raw);
       }
+      if (!insertedAddedSst) globalParts.push(...addedSstRecords);
 
-      const fileBytes = ecusStrictWriteWorkbookSameLength(cfb, workbookBytes);
-      return { fileBytes, skippedTemplateBlank };
+      // globalParts already contains the updated SST plus the added CONTINUE
+      // records. Its final byte length is therefore known now.
+      const globalBytes = ecusConcatBytes(globalParts);
+      let nextSheetOffset = globalBytes.length;
+      const sheetStarts = new Map();
+
+      sheets.forEach(sheet => {
+        sheetStarts.set(sheet.name, nextSheetOffset);
+        nextSheetOffset += sheet.bytes.length;
+      });
+
+      // INDEX contains absolute BIFF stream pointers. Patch them exactly once,
+      // after all final sheet starts are known.
+      sheets.forEach(sheet => {
+        sheet.bytes = ecusPatchSheetIndexPointers(
+          sheet.bytes,
+          sheetStarts.get(sheet.name),
+          sheet.oldOffset
+        );
+      });
+
+      // BOUNDSHEET offsets are absolute positions in the Workbook stream.
+      const finalGlobalRecords = ecusParseBiffRecords(globalBytes);
+      const finalGlobal = ecusConcatBytes(finalGlobalRecords.map(record => {
+        if (record.id !== 0x0085) return record.raw;
+        const payload = new Uint8Array(record.payload);
+        const name = ecusDecodeBoundSheetName(payload);
+        if (sheetStarts.has(name)) ecusSetU32(payload, 0, sheetStarts.get(name));
+        return ecusBiffRecord(record.id, payload);
+      }));
+
+      return {
+        workbookBytes: ecusConcatBytes([finalGlobal, ...sheets.map(sheet => sheet.bytes)]),
+        itemCapacity
+      };
     }
-    /* ===== END ECUS STRICT VALUE-ONLY EXPORT ===== */
+
+    function ecusBuildPreservedXls(templateBase64, generalData, itemData) {
+      const templateBytes = ecusBase64Bytes(templateBase64);
+      const cfb = ecusReadCfbWorkbook(templateBytes);
+      const rebuilt = ecusBuildPreservedWorkbook(cfb.workbookBytes, generalData, itemData);
+      return {
+        bytes: ecusWriteCfbWorkbook(cfb, rebuilt.workbookBytes),
+        itemCapacity: rebuilt.itemCapacity
+      };
+    }
+    /* ===== END ECUS BIFF8 PRESERVATION EXPORT ===== */
 
 
 
@@ -8168,39 +8233,49 @@ ${JSON.stringify(compact)}`
       if (!declarationWorkspace) return;
 
       try {
-        const generalCells = ECUS_GENERAL_EXPORT_MAP.map(([key, column, kind]) => {
-          let value = declarationWorkspace.fields[key]?.value || "";
-          if (key === "ecus_P" && !ecusText(value)) value = "9999";
-          return {
-            col: XLSX.utils.decode_col(column),
-            value,
-            kind
-          };
-        });
+        renumberDeclarationItemRows();
 
-        const itemRows = declarationWorkspace.items.map(item =>
-          ECUS_ITEM_EXPORT_MAP.map(([key, column, kind]) => {
-            let value = item.fields[key]?.value || "";
-            if (key === "item_C") {
-              const digits = ecusText(value).replace(/\D/g, "");
-              value = digits ? digits.padStart(8, "0").slice(-8) : "";
-            }
+        const generalData = ECUS_GENERAL_EXPORT_MAP
+          .map(([key, column, kind]) => {
+            let value = declarationWorkspace.fields[key]?.value || "";
+            if (key === "ecus_P" && !ecusText(value)) value = "9999";
             return {
               col: XLSX.utils.decode_col(column),
               value,
               kind
             };
           })
+          .filter(cell => ecusText(cell.value));
+
+        const itemData = declarationWorkspace.items.map((item, itemIndex) =>
+          ECUS_ITEM_EXPORT_MAP
+            .map(([key, column, kind]) => {
+              let value = item.fields[key]?.value || "";
+
+              if (key === "item_J") value = String(itemIndex + 1);
+
+              if (key === "item_C") {
+                const digits = ecusText(value).replace(/\D/g, "");
+                value = digits ? digits.padStart(8, "0").slice(-8) : "";
+              }
+
+              return {
+                col: XLSX.utils.decode_col(column),
+                value,
+                kind
+              };
+            })
+            .filter(cell => ecusText(cell.value))
         );
 
-        const result = ecusStrictExportFromTemplate(
+        const result = ecusBuildPreservedXls(
           ECUS_EXPORT_TEMPLATE_BASE64,
-          generalCells,
-          itemRows
+          generalData,
+          itemData
         );
 
         const fileName = `ToKhai_ECUS_NHAP_${new Date().toISOString().slice(0, 10)}.xls`;
-        const blob = new Blob([result.fileBytes], { type: "application/vnd.ms-excel" });
+        const blob = new Blob([result.bytes], { type: "application/vnd.ms-excel" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
@@ -8214,21 +8289,12 @@ ${JSON.stringify(compact)}`
           link.remove();
         }, 1000);
 
-        const skipped = result.skippedTemplateBlank || [];
-        if (skipped.length) {
-          showDraftMessage(
-            `Đã xuất đúng file mẫu Excel 97-2003 và chỉ thay giá trị. ` +
-            `${skipped.length} ô trong mẫu vốn là BLANK nên được giữ nguyên để không đổi cấu trúc BIFF8.`,
-            "warning"
-          );
-        } else {
-          showDraftMessage(
-            "Đã xuất từ nguyên file mẫu Excel 97-2003; không thêm/xóa/đổi loại record BIFF8, chỉ thay giá trị trong các record có sẵn.",
-            "success"
-          );
-        }
+        showDraftMessage(
+          `Đã xuất ${itemData.length} dòng hàng. Mã hàng/Mã HS lấy đúng từ web; các dòng sau dòng hàng cuối được để trống; STTHang đã đánh lại từ 1.`,
+          "success"
+        );
       } catch (error) {
-        console.error("ECUS strict value-only export failed:", error);
+        console.error("ECUS preserved export failed:", error);
         showDraftMessage(`Không thể xuất Excel nhập ECUS: ${error?.message || error}`, "error");
       }
     }
