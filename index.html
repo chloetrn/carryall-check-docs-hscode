@@ -1342,6 +1342,62 @@
     .conflict-choices { margin-top: 6px; border: 1px solid #e1c687; border-radius: 7px; background: #fffaf0; overflow: hidden; }
     .conflict-choices summary { padding: 7px 9px; cursor: pointer; color: #785000; font-size: 10.5px; font-weight: 800; }
     .conflict-choice-list { display: grid; gap: 6px; padding: 8px; border-top: 1px solid #ead39e; }
+
+    .import-business-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      padding: 10px 12px;
+      border: 1px solid var(--gray-3);
+      border-radius: 8px;
+      background: var(--gray-0);
+    }
+    .import-business-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 650;
+      color: #314042;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .import-business-option input {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--teal);
+    }
+    .draft-item-lookup-picker .customs-office-menu {
+      position: fixed;
+      z-index: 1200;
+      width: min(720px, calc(100vw - 24px));
+      max-width: min(720px, calc(100vw - 24px));
+      min-width: 0;
+      max-height: min(320px, calc(100vh - 40px));
+      overflow: auto;
+      contain: layout paint;
+    }
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols table {
+      width: 100%;
+      min-width: 560px;
+      table-layout: fixed;
+    }
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols th:first-child,
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols td:first-child {
+      width: 105px;
+      min-width: 105px;
+    }
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols th:nth-child(2),
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols td:nth-child(2) {
+      width: 280px;
+      min-width: 0;
+    }
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols th:nth-child(3),
+    .draft-item-lookup-picker .customs-office-menu.lookup-three-cols td:nth-child(3) {
+      width: auto;
+      min-width: 0;
+    }
+
     .conflict-choice {
       width: 100%;
       border: 1px solid #e2cf9e;
@@ -2871,6 +2927,7 @@
           { key: "ecus_C", label: "Ngày đăng ký", ecusColumn: "C", ecusKind: "date" },
           { key: "ecus_D", label: "Mã HQ", ecusColumn: "D", required: true, span: "half line-start" },
           { key: "customs_office_name", label: "Cơ quan Hải quan", webOnly: true, inputType: "customsOffice", span: "half" },
+          { key: "import_business_group", label: "Nhóm loại hình", webOnly: true, inputType: "importBusinessGroup", span: "full", onlyFor: ["import"] },
           { key: "ecus_E", label: "Mã loại hình", ecusColumn: "E", required: true, span: "half line-start" },
           { key: "declaration_type_name", label: "Tên loại hình", webOnly: true, inputType: "declarationType", span: "half" },
           { key: "ecus_H", label: "Phân loại cá nhân/ tổ chức", ecusColumn: "H", required: true, ecusKind: "number", inputType: "partyClassification" },
@@ -2902,7 +2959,7 @@
           { key: "ecus_BF", label: "Loại kiện", ecusColumn: "BF", required: true, sources: ["package_type"], inputType: "packageType", span: "half" },
 
           { key: "ecus_M", label: "Tổng trọng lượng hàng (Gross)", ecusColumn: "M", required: true, sources: ["gross_weight"], ecusKind: "number", span: "half line-start" },
-          { key: "ecus_BG", label: "Đơn vị tính trọng lượng", ecusColumn: "BG", required: true, inputType: "weightUnit", span: "half" },
+          { key: "ecus_BG", label: "Đơn vị tính trọng lượng", ecusColumn: "BG", required: true, sources: ["gross_weight", "net_weight"], transform: "weight_unit_from_text", inputType: "weightUnit", span: "half" },
 
           { key: "ecus_N", label: "Mã địa điểm lưu kho hàng chờ thông quan dự kiến", ecusColumn: "N", required: true, span: "half line-start" },
           { key: "ecus_O", label: "Tên địa điểm lưu kho hàng chờ thông quan dự kiến", ecusColumn: "O", required: true, inputType: "storageLocation", span: "half" },
@@ -2939,7 +2996,7 @@
           { key: "ecus_BI", label: "Mã phân loại hóa đơn", ecusColumn: "BI", required: true, inputType: "invoiceClassification", span: "half line-start" },
           { key: "ecus_BP", label: "Mã phân loại hình thức hóa đơn", ecusColumn: "BP", required: true, inputType: "invoiceFormClassification", span: "half" },
 
-          { key: "ecus_AB", label: "Phương thức thanh toán", ecusColumn: "AB", required: true, sources: ["payment_terms"], inputType: "paymentMethod", span: "half line-start" },
+          { key: "ecus_AB", label: "Phương thức thanh toán", ecusColumn: "AB", required: true, sources: ["payment_terms"], transform: "payment_method_code", inputType: "paymentMethod", span: "half line-start" },
           { key: "ecus_AC", label: "Điều kiện giá hóa đơn", ecusColumn: "AC", required: true, sources: ["incoterm"], inputType: "incoterm", span: "half" },
 
           { key: "ecus_AA", label: "Tổng trị giá HĐ", ecusColumn: "AA", required: true, sources: ["total_amount"], ecusKind: "number", span: "half line-start" },
@@ -3881,7 +3938,8 @@ HƯỚNG DẪN RIÊNG CHO C/O:
 HƯỚNG DẪN RIÊNG CHO DANH SÁCH HÀNG HÓA:
 - Đây là nguồn ưu tiên duy nhất để điền các dòng hàng trên tờ khai khi người dùng đã tải file vào ô Product List.
 - Phải trích xuất riêng từng dòng hàng theo đúng thứ tự bằng item_1_*, item_2_*, item_3_*...
-- Với mỗi dòng, ưu tiên item_N_description, item_N_item_code, item_N_hs_code, item_N_origin_country, item_N_origin_criterion, item_N_quantity, item_N_unit, item_N_unit_price và item_N_amount nếu thực sự có.
+- Với mỗi dòng, ưu tiên item_N_description, item_N_item_code, item_N_hs_code, item_N_origin_country, item_N_origin_criterion, item_N_quantity, item_N_unit, item_N_unit_price, item_N_amount và item_N_net_weight nếu thực sự có.
+- Nếu bảng có Net Weight riêng từng mặt hàng, bắt buộc trích xuất đúng item_N_net_weight của chính dòng đó; không dùng tổng Net Weight cho mọi mặt hàng.
 - Không gộp nhiều mã hàng/model thành một dòng và không chỉ trả tổng hợp goods_description nếu file có bảng nhiều dòng.
 - Giữ mã HS, mã hàng và số 0 đầu dưới dạng chuỗi.
 ` : "";
@@ -3922,7 +3980,7 @@ Các key được phép ưu tiên nếu có:
 - Số chứng từ: invoice_number, contract_number, purchase_order_number, packing_list_number, hbl_number, mbl_number, bl_number, co_number, co_form, arrival_notice_number, document_number.
 - Ngày: invoice_date, contract_date, packing_list_date, bl_date, on_board_date, co_issue_date, arrival_notice_date, departure_date, arrival_date, etd, eta.
 - Thương mại/thanh toán: incoterm, payment_terms, currency, total_amount.
-- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price và các key item_N_* tương ứng.
+- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price, net_weight và các key item_N_* tương ứng, bao gồm item_N_net_weight nếu có.
 - Đóng gói/khối lượng: package_count, package_type, gross_weight, net_weight, dimensions, volume.
 - Vận chuyển: transport_mode, vessel_voyage, port_of_loading, port_of_discharge, place_of_delivery, container_number, seal_number, marks_numbers.
 ${coInstructions}
@@ -4618,6 +4676,237 @@ ${JSON.stringify(compact)}`
       return match?.code ? String(match.code).trim().toUpperCase() : "";
     }
 
+
+    const IMPORT_BUSINESS_GROUP_OPTIONS = [
+      { code: "A11", label: "Kinh doanh, đầu tư" },
+      { code: "E31", label: "Sản xuất xuất khẩu" },
+      { code: "E21", label: "Gia công" },
+      { code: "E11", label: "Chế xuất" }
+    ];
+
+    const CUSTOMS_HS_UNIT_2_OVERRIDES = {
+      "22029950": "KGM"
+    };
+
+    function normalizeWeightUnitCode(value) {
+      const text = normalizeCatalogLookupText(value);
+      if (!text) return "";
+      if (/\b(KGM|KG|KGS|KILOGRAM|KILOGRAMS|KILO|KILOS)\b/.test(text)) return "KGM";
+      const match = weightUnitOptions().find(item =>
+        normalizeCatalogLookupText(item.code) === text ||
+        normalizeCatalogLookupText(item.name) === text ||
+        normalizeCatalogLookupText(item.note) === text
+      );
+      return match?.code || String(value || "").trim().toUpperCase();
+    }
+
+    function isHoChiMinhPortText(value) {
+      const text = normalizeCatalogLookupText(value);
+      return Boolean(text && (
+        text.includes("CAT LAI") ||
+        text.includes("CATLAI") ||
+        text.includes("HO CHI MINH") ||
+        text.includes("HOCHIMINH") ||
+        text.includes("HCM") ||
+        text.includes("SAI GON") ||
+        text.includes("SAIGON")
+      ));
+    }
+
+    function declarationCombinedRawText(keys = []) {
+      const texts = [];
+      (lastDocumentComparison?.fields || []).forEach(row => {
+        if (keys.length && !keys.includes(row.key)) return;
+        Object.values(row.values || {}).forEach(value => {
+          const text = String(value || "").trim();
+          if (text) texts.push(text);
+        });
+      });
+      return texts.join(" | ");
+    }
+
+    function inferImportTransportMethod(fields) {
+      const current = String(fields?.ecus_J?.value || "").trim();
+      if (current === "2" || current === "3") return current;
+      if (declarationCombinedRawText(["container_number", "seal_number"])) return "2";
+      if (declarationCombinedRawText([
+        "vessel_voyage", "port_of_loading", "port_of_discharge",
+        "hbl_number", "mbl_number", "bl_number"
+      ])) return "3";
+      return current;
+    }
+
+    function hasBankTransferEvidence() {
+      const text = (lastDocumentComparison?.fields || []).map(row =>
+        [row.key, ...Object.values(row.values || {})].join(" ")
+      ).join(" ");
+      const normalized = normalizeCatalogLookupText(text);
+      return /\b(TT|T T|BANK|BANKING|SWIFT|IBAN|WIRE|TRANSFER|REMITTANCE|CHUYEN KHOAN)\b/.test(normalized);
+    }
+
+    function applyDeclarationBusinessRules(fields, type) {
+      if (!fields) return;
+
+      if (fields.ecus_AH && !String(fields.ecus_AH.value || "").trim()) {
+        fields.ecus_AH = {
+          ...fields.ecus_AH,
+          value: "1",
+          status: "computed",
+          source: "Mặc định: Người xuất khẩu (nhập khẩu)"
+        };
+      }
+
+      if (fields.ecus_BG?.value) {
+        const normalized = normalizeWeightUnitCode(fields.ecus_BG.value);
+        if (normalized) {
+          fields.ecus_BG = {
+            ...fields.ecus_BG,
+            value: normalized,
+            status: "computed",
+            source: normalized === "KGM" ? "Chuẩn hóa KG/KGS/Kilogram thành KGM" : fields.ecus_BG.source
+          };
+        }
+      }
+
+      const paymentRaw = declarationCombinedRawText(["payment_terms"]);
+      const paymentNormalized = normalizeCatalogLookupText(paymentRaw || fields.ecus_AB?.value || "");
+      if (fields.ecus_AB && (
+        /\b(TT|T T|TRANSFER|WIRE|REMITTANCE|CHUYEN KHOAN)\b/.test(paymentNormalized) ||
+        hasBankTransferEvidence()
+      )) {
+        fields.ecus_AB = {
+          ...fields.ecus_AB,
+          value: "KC",
+          status: "computed",
+          source: "Chuẩn hóa thanh toán chuyển khoản/T-T thành KC"
+        };
+      }
+
+      if (type !== "import") return;
+
+      const transport = inferImportTransportMethod(fields);
+      if (fields.ecus_J && ["2", "3"].includes(transport) && fields.ecus_J.status !== "confirmed") {
+        fields.ecus_J = {
+          ...fields.ecus_J,
+          value: transport,
+          status: fields.ecus_J.value ? fields.ecus_J.status : "computed",
+          source: fields.ecus_J.value
+            ? fields.ecus_J.source
+            : (transport === "2"
+              ? "Suy luận đường biển nguyên container từ thông tin container"
+              : "Suy luận đường biển không container từ B/L/tàu/cảng")
+        };
+      }
+
+      const dischargeEvidence = [
+        fields.ecus_V?.value,
+        declarationCombinedRawText(["port_of_discharge", "place_of_delivery"])
+      ].filter(Boolean).join(" | ");
+
+      if (isHoChiMinhPortText(dischargeEvidence)) {
+        if (fields.ecus_U && fields.ecus_U.status !== "confirmed") {
+          fields.ecus_U = {
+            ...fields.ecus_U,
+            value: "VNCLI",
+            status: "computed",
+            source: "Cảng đến Hồ Chí Minh/Cát Lái → VNCLI"
+          };
+        }
+        if (fields.ecus_N && fields.ecus_N.status !== "confirmed") {
+          if (String(fields.ecus_J?.value || "") === "2") {
+            fields.ecus_N = {
+              ...fields.ecus_N,
+              value: "02CIS01",
+              status: "computed",
+              source: "Hàng nguyên container tại Cát Lái/HCM → 02CIS01"
+            };
+          } else if (String(fields.ecus_J?.value || "") === "3") {
+            fields.ecus_N = {
+              ...fields.ecus_N,
+              value: "02CIRCI",
+              status: "computed",
+              source: "Hàng lẻ tại Cát Lái/HCM → 02CIRCI"
+            };
+          }
+        }
+      }
+
+      if (fields.import_business_group) {
+        const typeCode = String(fields.ecus_E?.value || "").trim().toUpperCase();
+        const group = IMPORT_BUSINESS_GROUP_OPTIONS.find(item => item.code === typeCode);
+        if (group) {
+          fields.import_business_group = {
+            ...fields.import_business_group,
+            value: group.code,
+            status: "computed",
+            source: "Đồng bộ theo Mã loại hình"
+          };
+        }
+      }
+    }
+
+    function customsUnit2ForHs(hsCode) {
+      const code = String(hsCode || "").replace(/\D/g, "").slice(0, 8);
+      return CUSTOMS_HS_UNIT_2_OVERRIDES[code] || "";
+    }
+
+    function declarationItemNetWeight(sourceIndex) {
+      const specificKey = `item_${sourceIndex}_net_weight`;
+      const product = productListDeclarationExtraction();
+      const productField = product?.fields?.find(field => field.key === specificKey);
+      if (productField?.value) return ecusNumber(productField.value);
+
+      const row = declarationRowForKeys([specificKey]);
+      const specificChoice = declarationChoicesForRow(row)[0];
+      if (specificChoice?.value) return ecusNumber(specificChoice.value);
+
+      const itemIndexes = [...new Set((lastDocumentComparison?.fields || [])
+        .map(row => String(row.key || "").match(/^item_(\d+)_/)?.[1])
+        .filter(Boolean))];
+      if (sourceIndex === 1 && itemIndexes.length <= 1) {
+        const generic = declarationChoicesForRow(declarationRowForKeys(["net_weight"]))[0];
+        if (generic?.value) return ecusNumber(generic.value);
+      }
+      return null;
+    }
+
+    function applyDeclarationItemBusinessRules(fields, sourceIndex) {
+      if (!fields) return;
+
+      if (fields.item_W && !String(fields.item_W.value || "").trim()) {
+        fields.item_W = {
+          ...fields.item_W,
+          value: "1",
+          status: "computed",
+          source: "Giá trị mặc định 1"
+        };
+      }
+
+      const hsCode = String(fields.item_C?.value || "").replace(/\D/g, "").slice(0, 8);
+      const unit2 = customsUnit2ForHs(hsCode);
+      if (unit2 && fields.item_Z && fields.item_Z.status !== "confirmed") {
+        fields.item_Z = {
+          ...fields.item_Z,
+          value: unit2,
+          status: "computed",
+          source: `Đơn vị tính 2 theo quy tắc HS ${hsCode}`
+        };
+      }
+
+      if (String(fields.item_Z?.value || "").trim().toUpperCase() === "KGM" &&
+          fields.item_Y && fields.item_Y.status !== "confirmed") {
+        const netWeight = declarationItemNetWeight(sourceIndex);
+        if (netWeight !== null) {
+          fields.item_Y = {
+            ...fields.item_Y,
+            value: formatDeclarationItemNumber(netWeight),
+            status: "computed",
+            source: "Lượng 2 = Net weight của mặt hàng khi ĐVT2 = KGM"
+          };
+        }
+      }
+    }
+
     function transformDeclarationEcusValue(definition, value) {
       const text = String(value ?? "").trim();
       if (!text) return "";
@@ -4674,6 +4963,15 @@ ${JSON.stringify(compact)}`
         const parts = String(text).split(/\r?\n|\s*;\s*|\s*,\s*/).map(item => item.trim()).filter(Boolean);
         return parts.length ? String(parts.length) : "";
       }
+      if (definition.transform === "weight_unit_from_text") {
+        return normalizeWeightUnitCode(text);
+      }
+      if (definition.transform === "payment_method_code") {
+        const normalized = normalizeCatalogLookupText(text);
+        if (/\b(TT|T T|TRANSFER|WIRE|REMITTANCE|CHUYEN KHOAN)\b/.test(normalized)) return "KC";
+        const match = lookupCatalogMatch(paymentMethodOptions(), text);
+        return match?.code || text.toUpperCase();
+      }
       if (/^address_[1-4]$/.test(definition.transform)) {
         const index = Number(definition.transform.slice(-1)) - 1;
         return ecusAddressParts(text)[index] || "";
@@ -4681,8 +4979,29 @@ ${JSON.stringify(compact)}`
       return text;
     }
 
+
+    function declarationSourceKeys(definition, type) {
+      const key = definition?.key;
+      if (key === "ecus_F") return type === "import" ? ["exporter", "seller"] : ["buyer"];
+      if (key === "ecus_BB") return type === "import" ? ["buyer"] : ["exporter", "seller"];
+      if (["ecus_BD", "ecus_BN", "ecus_BU", "ecus_BV", "ecus_BW"].includes(key)) {
+        return type === "import" ? ["buyer_address"] : ["exporter_address", "seller_address"];
+      }
+      return definition?.sources || [];
+    }
+
+    function declarationFieldDisplayLabel(definition) {
+      const type = declarationWorkspace?.type || "import";
+      const key = definition?.key;
+      if (key === "ecus_BB") return type === "import" ? "Tên đơn vị nhập khẩu" : "Tên đơn vị xuất khẩu";
+      if (key === "ecus_BD") return type === "import" ? "Địa chỉ người nhập khẩu" : "Địa chỉ người xuất khẩu";
+      const addressIndex = ({ ecus_BN: 1, ecus_BU: 2, ecus_BV: 3, ecus_BW: 4 })[key];
+      if (addressIndex) return `${type === "import" ? "Địa chỉ người nhập khẩu" : "Địa chỉ người xuất khẩu"} ${addressIndex}`;
+      return definition?.label || key;
+    }
+
     function declarationFieldFromSource(definition, type, explicitKeys = null) {
-      const keys = explicitKeys || definition.sources || [];
+      const keys = explicitKeys || declarationSourceKeys(definition, type);
       const required = declarationRequired(definition, type);
       if (definition.computed) {
         const value = definition.key === "registration_date"
@@ -4907,6 +5226,7 @@ ${JSON.stringify(compact)}`
           fields[definition.key] = preserveConfirmedDeclarationField(field, previous?.fields?.[definition.key], definition, type);
         });
         syncDeclarationItemCommercialValues(fields);
+        applyDeclarationItemBusinessRules(fields, sourceIndex);
         return {
           id: previous?.id || `draft-item-${Date.now()}-${itemIndex + 1}`,
           sourceIndex,
@@ -5013,6 +5333,8 @@ ${JSON.stringify(compact)}`
         };
       });
 
+      applyDeclarationBusinessRules(fields, type);
+
       declarationWorkspace = {
         type,
         createdAt: previous?.createdAt || declarationNow(),
@@ -5029,6 +5351,7 @@ ${JSON.stringify(compact)}`
 
       syncCustomsOfficeNameField();
       syncDeclarationTypeNameField();
+      syncImportBusinessGroupField();
       syncExportCountryNameField();
       syncTaxDeadlineNameField();
       syncStorageLocationNameField();
@@ -5081,6 +5404,19 @@ ${JSON.stringify(compact)}`
       nameField.alternatives = [];
       nameField.required = false;
       nameField.selectionRequired = false;
+    }
+
+
+    function syncImportBusinessGroupField() {
+      if (!declarationWorkspace?.fields) return;
+      const groupField = declarationWorkspace.fields.import_business_group;
+      if (!groupField) return;
+      const code = String(declarationWorkspace.fields.ecus_E?.value || "").trim().toUpperCase();
+      const match = IMPORT_BUSINESS_GROUP_OPTIONS.find(item => item.code === code);
+      groupField.value = match?.code || "";
+      groupField.status = match ? "computed" : "empty";
+      groupField.source = match ? "Đồng bộ theo Mã loại hình" : "";
+      groupField.alternatives = [];
     }
 
     function normalizeDeclarationTypeCode(value) {
@@ -5285,6 +5621,19 @@ ${JSON.stringify(compact)}`
     }
 
     function declarationFieldControl(definition, field) {
+
+      if (definition.inputType === "importBusinessGroup") {
+        const current = String(field.value || declarationWorkspace?.fields?.ecus_E?.value || "").trim().toUpperCase();
+        return `<div class="import-business-group" role="radiogroup" aria-label="Nhóm loại hình">
+          ${IMPORT_BUSINESS_GROUP_OPTIONS.map(item => `
+            <label class="import-business-option">
+              <input type="radio" name="importBusinessGroup" data-import-business-group="${esc(item.code)}"
+                ${current === item.code ? "checked" : ""}>
+              <span>${esc(item.label)}</span>
+            </label>
+          `).join("")}
+        </div>`;
+      }
       if (definition.inputType === "customsOffice") {
         return `<div class="customs-office-picker">
           <div class="customs-office-input-row">
@@ -5633,7 +5982,7 @@ ${JSON.stringify(compact)}`
       return `<div class="draft-field ${esc(definition.span || "")}" data-draft-field-wrap="${esc(definition.key)}"
         data-status="${esc(field.status)}" data-missing="${requiredMissing ? "true" : "false"}">
         <div class="draft-field-head">
-          <label>${esc(definition.label)}${field.required ? ' <span class="required">*</span>' : ""}</label>
+          <label>${esc(declarationFieldDisplayLabel(definition))}${field.required ? ' <span class="required">*</span>' : ""}</label>
           ${declarationStatusBadge(field)}
         </div>
         ${declarationFieldControl(definition, field)}
@@ -5644,7 +5993,10 @@ ${JSON.stringify(compact)}`
 
     function renderDeclarationRegularSections() {
       return DECLARATION_FIELD_SECTIONS.map((section, sectionIndex) => {
-        const visibleDefinitions = section.fields.filter(definition => !definition.webHidden);
+        const visibleDefinitions = section.fields.filter(definition =>
+          !definition.webHidden &&
+          (!Array.isArray(definition.onlyFor) || definition.onlyFor.includes(declarationWorkspace.type))
+        );
         const missing = visibleDefinitions.filter(definition => {
           const field = declarationWorkspace.fields[definition.key];
           return field?.required && !String(field.value || "").trim();
@@ -5928,7 +6280,10 @@ ${JSON.stringify(compact)}`
           } else if (key === "ecus_H" || key === "ecus_J") {
             value = normalizeNumericLookupCode(value);
             event.currentTarget.value = value;
-          } else if (["ecus_BE", "ecus_BG", "ecus_BI", "ecus_BP", "ecus_BT",
+          } else if (key === "ecus_BG") {
+            value = normalizeWeightUnitCode(value);
+            event.currentTarget.value = value;
+          } else if (["ecus_BE", "ecus_BI", "ecus_BP", "ecus_BT",
                        "ecus_AD", "ecus_BL", "ecus_BM", "ecus_BX", "ecus_BF", "ecus_AQ"].includes(key)) {
             value = String(value || "").trim().toUpperCase();
             event.currentTarget.value = value;
@@ -5951,6 +6306,11 @@ ${JSON.stringify(compact)}`
             updateDeclarationFieldWrapper(nameWrapper, nameField);
           } else if (key === "ecus_E") {
             syncDeclarationTypeNameField();
+            syncImportBusinessGroupField();
+            const groupField = declarationWorkspace.fields.import_business_group;
+            $$("[data-import-business-group]", $("#draftFormArea")).forEach(radio => {
+              radio.checked = radio.dataset.importBusinessGroup === groupField?.value;
+            });
             const nameField = declarationWorkspace.fields.declaration_type_name;
             const nameWrapper = $('[data-draft-field-wrap="declaration_type_name"]', $("#draftFormArea"));
             const display = $('[data-declaration-type-display]', nameWrapper);
@@ -6013,6 +6373,23 @@ ${JSON.stringify(compact)}`
         });
         menu.classList.remove("hidden");
         toggle.setAttribute("aria-expanded", "true");
+
+        if (menu.closest(".draft-item-lookup-picker")) {
+          const rect = toggle.getBoundingClientRect();
+          const menuWidth = Math.min(720, Math.max(320, window.innerWidth - 24));
+          const left = Math.max(12, Math.min(rect.left, window.innerWidth - menuWidth - 12));
+          const preferredTop = rect.bottom + 6;
+          const maxMenuHeight = Math.min(320, window.innerHeight - 24);
+          const top = preferredTop + maxMenuHeight <= window.innerHeight - 12
+            ? preferredTop
+            : Math.max(12, rect.top - maxMenuHeight - 6);
+
+          menu.style.left = `${left}px`;
+          menu.style.top = `${top}px`;
+          menu.style.width = `${menuWidth}px`;
+          menu.style.maxWidth = `${menuWidth}px`;
+        }
+
         menu.closest(".draft-section")?.classList.add("lookup-menu-open");
       };
       const toggleLookupMenu = (menu, toggle) => {
@@ -6141,6 +6518,39 @@ ${JSON.stringify(compact)}`
         });
         declarationLookupOutsideBound = true;
       }
+
+
+      $$("[data-import-business-group]", $("#draftFormArea")).forEach(radio => {
+        radio.addEventListener("change", () => {
+          if (!radio.checked) return;
+          const code = String(radio.dataset.importBusinessGroup || "").trim().toUpperCase();
+          const groupField = declarationWorkspace.fields.import_business_group;
+          const codeField = declarationWorkspace.fields.ecus_E;
+          if (!codeField || !groupField) return;
+
+          updateDeclarationFieldState(groupField, code);
+          groupField.status = "confirmed";
+          groupField.source = "Người dùng chọn nhóm loại hình";
+
+          updateDeclarationFieldState(codeField, code);
+          codeField.status = "computed";
+          codeField.source = "Theo nhóm loại hình đã chọn";
+          syncDeclarationTypeNameField();
+
+          const codeWrapper = $('[data-draft-field-wrap="ecus_E"]', $("#draftFormArea"));
+          const codeInput = $('[data-draft-field="ecus_E"]', codeWrapper);
+          if (codeInput) codeInput.value = code;
+          updateDeclarationFieldWrapper(codeWrapper, codeField);
+
+          const nameField = declarationWorkspace.fields.declaration_type_name;
+          const nameWrapper = $('[data-draft-field-wrap="declaration_type_name"]', $("#draftFormArea"));
+          const nameDisplay = $('[data-declaration-type-display]', nameWrapper);
+          if (nameDisplay) nameDisplay.value = nameField?.value || "";
+          if (nameField) updateDeclarationFieldWrapper(nameWrapper, nameField);
+
+          renderDeclarationSidebar();
+        });
+      });
 
       const customsOfficeMenu = $('[data-customs-office-menu]', $("#draftFormArea"));
       const customsOfficeToggle = $('[data-customs-office-toggle]', $("#draftFormArea"));
@@ -7138,6 +7548,13 @@ ${JSON.stringify(compact)}`
             syncDeclarationItemCommercialValues(declarationWorkspace.items[itemIndex].fields, key);
             ["item_F", "item_G", "item_H", "item_S", "item_T"].forEach(itemKey => refreshDeclarationItemCell(itemIndex, itemKey));
           }
+          if (["item_C", "item_Z"].includes(key)) {
+            applyDeclarationItemBusinessRules(
+              declarationWorkspace.items[itemIndex].fields,
+              declarationWorkspace.items[itemIndex].sourceIndex || itemIndex + 1
+            );
+            ["item_W", "item_Y", "item_Z"].forEach(itemKey => refreshDeclarationItemCell(itemIndex, itemKey));
+          }
           renderDeclarationSidebar();
         };
         control.addEventListener("input", handler);
@@ -7301,6 +7718,7 @@ ${JSON.stringify(compact)}`
       DECLARATION_ITEM_FIELDS.forEach(definition => {
         fields[definition.key] = blankDeclarationField(definition, declarationWorkspace.type);
       });
+      applyDeclarationItemBusinessRules(fields, declarationWorkspace.items.length + 1);
       declarationWorkspace.items.push({ id: `draft-item-${Date.now()}`, sourceIndex: declarationWorkspace.items.length + 1, fields });
       renumberDeclarationItemRows();
       declarationWorkspace.updatedAt = declarationNow();
