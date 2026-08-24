@@ -1109,7 +1109,7 @@
     .draft-field.address-group-start,
     .draft-field.address-group-peer { position: relative; margin-top: 22px; }
     .draft-field.address-group-start::before {
-      content: "Địa chỉ người xuất/nhập khẩu";
+      content: "Địa chỉ người xuất khẩu";
       position: absolute; left: 0; top: -21px;
       color: var(--teal-dark); font-size: 11px; font-weight: 850; letter-spacing: .01em;
     }
@@ -1332,6 +1332,15 @@
       font-size: 12px;
     }
     textarea.draft-control { min-height: 76px; resize: vertical; }
+    textarea.draft-control[data-draft-field="ecus_BD"],
+    textarea.draft-control[data-draft-field="ecus_BN"],
+    textarea.draft-control[data-draft-field="ecus_BU"],
+    textarea.draft-control[data-draft-field="ecus_BV"],
+    textarea.draft-control[data-draft-field="ecus_BW"] {
+      min-height: 54px;
+      height: 54px;
+      resize: vertical;
+    }
     .draft-control:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(10,98,104,.1); }
     .draft-field[data-status="extracted"] .draft-control { border-left-color: #65a8c1; background: #fbfdfe; }
     .draft-field[data-status="confirmed"] .draft-control { border-color: #64ad81; border-left-color: var(--green); background: #f5fbf7; }
@@ -2998,17 +3007,17 @@
           { key: "ecus_I", label: "Mã bộ phận xử lý tk", ecusColumn: "I" },
           { key: "ecus_J", label: "Mã hiệu phương thức vận chuyển", ecusColumn: "J", required: true, sources: ["transport_mode"], transform: "transport_code", ecusKind: "number", inputType: "transportMethod" },
           { key: "ecus_G", label: "Mã đại lý HQ", ecusColumn: "G" },
-          { key: "ecus_F", label: "Tên đối tác", ecusColumn: "F", required: true, sources: ["buyer"] },
+          { key: "ecus_F", label: "Tên đối tác", ecusColumn: "F", required: true, sources: ["seller", "exporter"] },
 
           { key: "ecus_BB", label: "Tên đơn vị xuất/nhập khẩu", ecusColumn: "BB", required: true, sources: ["seller", "exporter"], span: "full" },
-          { key: "ecus_BD", label: "Địa chỉ doanh nghiệp xuất/nhập khẩu", ecusColumn: "BD", required: true, sources: ["seller_address", "exporter_address"], type: "textarea", span: "full" },
+          { key: "ecus_BD", label: "Địa chỉ doanh nghiệp xuất/nhập khẩu", ecusColumn: "BD", required: true, sources: ["seller_address", "exporter_address"], type: "textarea", span: "half" },
 
-          { key: "ecus_BN", label: "Địa chỉ người xuất/nhập khẩu 1", ecusColumn: "BN", required: true, sources: ["buyer_address"], transform: "address_1", type: "textarea", span: "half line-start address-group-start" },
-          { key: "ecus_BU", label: "Địa chỉ người xuất/nhập khẩu 2", ecusColumn: "BU", required: true, sources: ["buyer_address"], transform: "address_2", type: "textarea", span: "half address-group-peer" },
-          { key: "ecus_BV", label: "Địa chỉ người xuất/nhập khẩu 3", ecusColumn: "BV", required: true, sources: ["buyer_address"], transform: "address_3", type: "textarea", span: "half line-start" },
-          { key: "ecus_BW", label: "Địa chỉ người xuất/nhập khẩu 4", ecusColumn: "BW", sources: ["buyer_address"], transform: "address_4", type: "textarea", span: "half" },
+          { key: "ecus_BN", label: "Địa chỉ người xuất khẩu 1", ecusColumn: "BN", required: true, sources: ["exporter_address", "seller_address"], transform: "address_1", type: "textarea", span: "half line-start address-group-start" },
+          { key: "ecus_BU", label: "Địa chỉ người xuất khẩu 2", ecusColumn: "BU", required: true, sources: ["exporter_address", "seller_address"], transform: "address_2", type: "textarea", span: "half address-group-peer" },
+          { key: "ecus_BV", label: "Địa chỉ người xuất khẩu 3", ecusColumn: "BV", sources: ["exporter_address", "seller_address"], transform: "address_3", type: "textarea", span: "half line-start" },
+          { key: "ecus_BW", label: "Địa chỉ người xuất khẩu 4", ecusColumn: "BW", sources: ["exporter_address", "seller_address"], transform: "address_4", type: "textarea", span: "half" },
 
-          { key: "ecus_BE", label: "Mã nước xuất khẩu", ecusColumn: "BE", required: true, sources: ["port_of_discharge"], transform: "country_from_location", span: "half line-start" },
+          { key: "ecus_BE", label: "Mã nước xuất khẩu", ecusColumn: "BE", required: true, sources: ["seller_address", "exporter_address"], transform: "country_from_party_address", span: "half line-start" },
           { key: "export_country_name", label: "Tên nước xuất khẩu", webOnly: true, inputType: "exportCountry", span: "half" }
         ]
       },
@@ -3144,8 +3153,8 @@
       { key: "item_R", label: "Tiền thuế VAT", ecusColumn: "R", ecusKind: "number" },
       { key: "item_S", label: "Đơn giá hợp đồng TM", ecusColumn: "S", required: true, copyFrom: "item_G", ecusKind: "number" },
       { key: "item_T", label: "Trị giá hợp đồng TM", ecusColumn: "T", required: true, copyFrom: "item_H", ecusKind: "number" },
-      { key: "item_U", label: "Mã biểu thuế nhập khẩu", ecusColumn: "U", required: true, inputType: "itemImportTariff" },
-      { key: "item_V", label: "Mã biểu thuế VAT", ecusColumn: "V", required: true, inputType: "itemVat" },
+      { key: "item_U", label: "Mã biểu thuế nhập khẩu", ecusColumn: "U", required: true, suffixes: ["import_tariff_code"], inputType: "itemImportTariff" },
+      { key: "item_V", label: "Mã biểu thuế VAT", ecusColumn: "V", required: true, suffixes: ["vat_tariff_code"], inputType: "itemVat" },
       { key: "item_W", label: "Loại hàng", ecusColumn: "W", required: true, ecusKind: "number" },
       { key: "item_X", label: "Mã miễn giảm", ecusColumn: "X" },
       { key: "item_Y", label: "Lượng 2", ecusColumn: "Y", required: true, ecusKind: "number" },
@@ -4002,7 +4011,10 @@ HƯỚNG DẪN RIÊNG CHO C/O:
 HƯỚNG DẪN RIÊNG CHO DANH SÁCH HÀNG HÓA:
 - Đây là nguồn ưu tiên duy nhất để điền các dòng hàng trên tờ khai khi người dùng đã tải file vào ô Product List.
 - Phải trích xuất riêng từng dòng hàng theo đúng thứ tự bằng item_1_*, item_2_*, item_3_*...
-- Với mỗi dòng, ưu tiên item_N_description, item_N_item_code, item_N_hs_code, item_N_origin_country, item_N_origin_criterion, item_N_quantity, item_N_unit, item_N_unit_price và item_N_amount nếu thực sự có.
+- Với mỗi dòng, ưu tiên item_N_description, item_N_item_code, item_N_hs_code, item_N_origin_country, item_N_origin_criterion, item_N_quantity, item_N_unit, item_N_unit_price, item_N_amount và item_N_net_weight nếu thực sự có.
+- Nếu file có cột Mã biểu thuế nhập khẩu/Mã BT NK thì trích chính xác vào item_N_import_tariff_code.
+- Nếu file có cột Mã biểu thuế VAT/Mã VAT thì trích chính xác vào item_N_vat_tariff_code.
+- Net Weight phải gắn đúng từng dòng hàng bằng item_N_net_weight; không lấy tổng Net Weight của cả lô cho mọi mặt hàng.
 - Không gộp nhiều mã hàng/model thành một dòng và không chỉ trả tổng hợp goods_description nếu file có bảng nhiều dòng.
 - Giữ mã HS, mã hàng và số 0 đầu dưới dạng chuỗi.
 ` : "";
@@ -4037,14 +4049,16 @@ Yêu cầu:
    - Nếu toàn bộ trường không đọc được thì không tạo trường đó; chỉ thêm cảnh báo.
 9. Nếu chứng từ dùng nhãn chung "No.", "Reference No." hoặc "Date", hãy chọn key theo đúng loại chứng từ: invoice_number/invoice_date, packing_list_number/packing_list_date, contract_number/contract_date, hbl_number hoặc mbl_number hoặc bl_number/bl_date, co_number/co_issue_date, arrival_notice_number/arrival_notice_date.
 10. Chỉ ưu tiên các nhóm sau, theo thứ tự: các bên mua/bán; số tham chiếu chứng từ; ngày chứng từ; Incoterms và thanh toán; hàng hóa và HS; số lượng, số kiện, khối lượng, kích thước; thông tin vận chuyển quan trọng.
+11. Với thanh toán: nếu chứng từ thể hiện T/T, TT, bank transfer, wire transfer, remittance, chuyển khoản/chuyển tiền hoặc thông tin ngân hàng phục vụ việc thanh toán, trích payment_terms theo đúng dấu hiệu nhìn thấy. Không dùng "FREIGHT PREPAID" hoặc "FREIGHT COLLECT" làm phương thức thanh toán tiền hàng.
 
 Các key được phép ưu tiên nếu có:
 - Bên liên quan: seller, seller_address, exporter, exporter_address, buyer, buyer_address, notify_party, notify_party_address.
 - Số chứng từ: invoice_number, contract_number, purchase_order_number, packing_list_number, hbl_number, mbl_number, bl_number, co_number, co_form, arrival_notice_number, document_number.
 - Ngày: invoice_date, contract_date, packing_list_date, bl_date, on_board_date, co_issue_date, arrival_notice_date, departure_date, arrival_date, etd, eta.
 - Thương mại/thanh toán: incoterm, payment_terms, currency, total_amount.
-- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price và các key item_N_* tương ứng.
-- Đóng gói/khối lượng: package_count, package_type, gross_weight, net_weight, dimensions, volume.
+- Hàng hóa: goods_description, item_code, hs_code, origin_country, origin_criterion, quantity, unit, unit_price, net_weight và các key item_N_* tương ứng; với Product List có thể có item_N_net_weight, item_N_import_tariff_code, item_N_vat_tariff_code.
+- Đóng gói/khối lượng: package_count, package_type, gross_weight, net_weight, weight_unit, gross_weight_unit, net_weight_unit, dimensions, volume.
+- Khi Gross Weight/Net Weight có ghi đơn vị (KG, KGS, KGM, LB, LBR hoặc đơn vị khác), giữ số ở gross_weight/net_weight và trích riêng ký hiệu đơn vị vào weight_unit hoặc gross_weight_unit/net_weight_unit; không đưa số trọng lượng vào trường đơn vị.
 - Vận chuyển: transport_mode, vessel_voyage, port_of_loading, port_of_discharge, place_of_delivery, container_number, seal_number, marks_numbers.
 ${coInstructions}
 ${productListInstructions}
@@ -4181,6 +4195,138 @@ Chỉ trả JSON hợp lệ:
       throw new Error(`OpenAI chưa trả được JSON hoàn chỉnh cho ${fileName} sau khi hệ thống tự thử lại.`);
     }
 
+
+    async function productListExcelSecondSheetText(file) {
+      const extension = file.name.split(".").pop().toLowerCase();
+      if (!["xlsx", "xls"].includes(extension) || !window.XLSX) return null;
+
+      const workbook = window.XLSX.read(await file.arrayBuffer(), {
+        type: "array",
+        cellDates: true,
+        cellFormula: true,
+        cellStyles: true
+      });
+
+      if (workbook.SheetNames.length !== 2) return null;
+
+      const sheetName = workbook.SheetNames[1];
+      const sheet = workbook.Sheets[sheetName];
+      const text = window.XLSX.utils.sheet_to_csv(sheet, {
+        blankrows: true,
+        FS: "\t"
+      });
+
+      return {
+        sheetName,
+        text: text.slice(0, 300000)
+      };
+    }
+
+    function normalizeProductListHeader(value) {
+      return normalizeCatalogLookupText(value)
+        .replace(/\bNO\b/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    async function productListExcelSupplementFields(file) {
+      const extension = file.name.split(".").pop().toLowerCase();
+      if (!["xlsx", "xls"].includes(extension) || !window.XLSX) return [];
+
+      const workbook = window.XLSX.read(await file.arrayBuffer(), {
+        type: "array",
+        cellDates: true,
+        cellFormula: true
+      });
+      if (!workbook.SheetNames.length) return [];
+
+      const sheetName = workbook.SheetNames.length === 2
+        ? workbook.SheetNames[1]
+        : workbook.SheetNames[0];
+
+      const rows = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+        header: 1,
+        blankrows: false,
+        defval: "",
+        raw: false
+      });
+      if (!rows.length) return [];
+
+      const aliases = {
+        description: ["TEN HANG", "TEN HANG HOA", "DESCRIPTION", "GOODS DESCRIPTION", "PRODUCT DESCRIPTION"],
+        itemCode: ["MA HANG", "ITEM CODE", "ITEM NO", "SKU", "MODEL", "PART NUMBER"],
+        hs: ["MA HS", "HS CODE", "H S CODE", "HS"],
+        netWeight: ["NET WEIGHT", "NET WT", "N W", "NW", "TRONG LUONG TINH", "KHOI LUONG TINH"],
+        importTariff: ["MA BIEU THUE NHAP KHAU", "MA BT NK", "BT NK", "IMPORT TARIFF CODE", "IMPORT TAX CODE"],
+        vatTariff: ["MA BIEU THUE VAT", "MA VAT", "VAT CODE", "VAT TARIFF CODE", "VAT TAX CODE"]
+      };
+
+      const headerMatches = normalized =>
+        Object.fromEntries(
+          Object.entries(aliases).map(([key, names]) => [
+            key,
+            normalized.findIndex(header => names.some(name =>
+              header === name || header.includes(name) || name.includes(header)
+            ))
+          ])
+        );
+
+      let headerIndex = -1;
+      let columns = null;
+      const scanLimit = Math.min(rows.length, 40);
+      for (let rowIndex = 0; rowIndex < scanLimit; rowIndex += 1) {
+        const normalized = (rows[rowIndex] || []).map(normalizeProductListHeader);
+        const found = headerMatches(normalized);
+        const anchorCount = [found.description, found.itemCode, found.hs].filter(index => index >= 0).length;
+        const requestedCount = [found.netWeight, found.importTariff, found.vatTariff].filter(index => index >= 0).length;
+        if (anchorCount >= 1 && requestedCount >= 1) {
+          headerIndex = rowIndex;
+          columns = found;
+          break;
+        }
+      }
+      if (headerIndex < 0 || !columns) return [];
+
+      const supplements = [];
+      let itemIndex = 0;
+
+      for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
+        const row = rows[rowIndex] || [];
+        const anchorValues = [columns.description, columns.itemCode, columns.hs]
+          .filter(index => index >= 0)
+          .map(index => String(row[index] ?? "").trim());
+        const requestedValues = [columns.netWeight, columns.importTariff, columns.vatTariff]
+          .filter(index => index >= 0)
+          .map(index => String(row[index] ?? "").trim());
+
+        if (![...anchorValues, ...requestedValues].some(Boolean)) continue;
+
+        const rowText = normalizeCatalogLookupText(row.join(" "));
+        if (/^(TOTAL|TONG|TONG CONG)\b/.test(rowText)) continue;
+
+        itemIndex += 1;
+        const add = (suffix, label, columnIndex) => {
+          if (columnIndex < 0) return;
+          const value = String(row[columnIndex] ?? "").trim();
+          if (!value) return;
+          supplements.push({
+            key: `item_${itemIndex}_${suffix}`,
+            original_key: `item_${itemIndex}_${suffix}`,
+            label,
+            value,
+            normalized_value: value,
+            source: `Excel · Sheet 2: ${sheetName} · Dòng ${rowIndex + 1}`
+          });
+        };
+
+        add("net_weight", "Net Weight", columns.netWeight);
+        add("import_tariff_code", "Mã biểu thuế nhập khẩu", columns.importTariff);
+        add("vat_tariff_code", "Mã biểu thuế VAT", columns.vatTariff);
+      }
+
+      return supplements;
+    }
+
     async function extractDocumentWithOpenAI(doc, file) {
       const extension = file.name.split(".").pop().toLowerCase();
       const prompt = documentExtractionPrompt(doc, file);
@@ -4196,6 +4342,21 @@ Chỉ trả JSON hợp lệ:
             "Chỉ đọc nội dung nhìn thấy trong các ảnh sau."
         });
         content.push(...renderedPdf.content);
+      } else if (doc.id === "productlist" && ["xlsx", "xls"].includes(extension)) {
+        const secondSheet = await productListExcelSecondSheetText(file);
+        if (secondSheet) {
+          content.push({
+            type: "input_text",
+            text:
+              `File Danh sách hàng hóa này có đúng 2 sheet. Theo quy tắc người dùng, CHỈ được đọc sheet thứ 2 ` +
+              `"${secondSheet.sheetName}". Không sử dụng sheet thứ 1.\n\n` +
+              `===== SHEET 2: ${secondSheet.sheetName} =====\n${secondSheet.text}`
+          });
+        } else {
+          const mimeType = openAIMimeType(file);
+          const fileData = `data:${mimeType};base64,${await fileToBase64(file)}`;
+          content.push({ type: "input_file", filename: file.name, file_data: fileData });
+        }
       } else {
         const mimeType = openAIMimeType(file);
         const fileData = `data:${mimeType};base64,${await fileToBase64(file)}`;
@@ -4232,7 +4393,7 @@ Chỉ trả JSON hợp lệ:
         origin_criterion: "Tiêu chí xuất xứ",
         certifying_authority: "Cơ quan cấp C/O"
       };
-      const cleanedFields = fields.map((field, index) => {
+      let cleanedFields = fields.map((field, index) => {
         const value = textOf(field?.value).trim();
         const rawKey = String(field?.key || `field_${index + 1}`)
           .trim()
@@ -4250,6 +4411,17 @@ Chỉ trả JSON hợp lệ:
           source: textOf(field?.source).trim()
         };
       }).filter(Boolean);
+
+      if (doc.id === "productlist" && ["xlsx", "xls"].includes(extension)) {
+        const supplements = await productListExcelSupplementFields(file);
+        const existingKeys = new Set(cleanedFields.map(field => field.key));
+        supplements.forEach(field => {
+          if (!existingKeys.has(field.key)) {
+            cleanedFields.push(field);
+            existingKeys.add(field.key);
+          }
+        });
+      }
 
       if (!cleanedFields.length) throw new Error(`OpenAI không tìm thấy trường thông tin nào trong ${file.name}.`);
       return {
@@ -4765,31 +4937,45 @@ ${JSON.stringify(compact)}`
 
 
     function inferWeightUnitFromDocuments() {
-      const candidates = [];
+      const explicitUnitCandidates = [];
+      const weightTextCandidates = [];
 
       (lastDocumentExtractions || []).forEach(extraction => {
         (extraction.fields || []).forEach(field => {
           const key = String(field.key || "");
+          const value = String(field.value || "").trim();
+          const label = String(field.label || "").trim();
+
+          if (
+            key === "weight_unit" ||
+            key === "gross_weight_unit" ||
+            key === "net_weight_unit" ||
+            /^item_\d+_(weight_unit|gross_weight_unit|net_weight_unit)$/.test(key)
+          ) {
+            if (value) explicitUnitCandidates.push(value);
+            if (label) explicitUnitCandidates.push(label);
+          }
+
           if (
             key === "gross_weight" ||
             key === "net_weight" ||
             /^item_\d+_(gross_weight|net_weight)$/.test(key)
           ) {
-            const value = String(field.value || "").trim();
-            if (value) candidates.push(value);
+            if (value) weightTextCandidates.push(value);
+            if (label) weightTextCandidates.push(label);
           }
         });
       });
 
-      const combined = normalizeCatalogLookupText(candidates.join(" | "));
-      if (/\b(KGM|KG|KGS|KILOGRAM|KILOGRAMS|KILO|KILOS)\b/.test(combined)) {
-        return "KGM";
-      }
+      const candidates = [...explicitUnitCandidates, ...weightTextCandidates];
 
-      // Only return a unit when it is actually visible in the document text.
-      for (const option of weightUnitOptions()) {
-        const code = normalizeCatalogLookupText(option.code);
-        if (code && new RegExp(`\\b${code}\\b`).test(combined)) return option.code;
+      for (const candidate of candidates) {
+        const normalized = normalizeCatalogLookupText(candidate);
+        if (/\b(KGM|KG|KGS|KILOGRAM|KILOGRAMS|KILO|KILOS)\b/.test(normalized)) {
+          return "KGM";
+        }
+        const match = lookupCatalogMatch(weightUnitOptions(), candidate);
+        if (match?.code) return String(match.code).trim().toUpperCase();
       }
       return "";
     }
@@ -4831,11 +5017,18 @@ ${JSON.stringify(compact)}`
     }
 
     function hasBankTransferEvidence() {
-      const text = (lastDocumentComparison?.fields || []).map(row =>
+      const comparisonText = (lastDocumentComparison?.fields || []).map(row =>
         [row.key, ...Object.values(row.values || {})].join(" ")
       ).join(" ");
-      const normalized = normalizeCatalogLookupText(text);
-      return /\b(TT|T T|BANK|BANKING|SWIFT|IBAN|WIRE|TRANSFER|REMITTANCE|CHUYEN KHOAN)\b/.test(normalized);
+
+      const extractionText = (lastDocumentExtractions || []).map(extraction =>
+        (extraction.fields || []).map(field =>
+          [field.key, field.label, field.value].filter(Boolean).join(" ")
+        ).join(" ")
+      ).join(" ");
+
+      const normalized = normalizeCatalogLookupText(`${comparisonText} ${extractionText}`);
+      return /\b(TT|T T|BANK|BANKING|BANK TRANSFER|SWIFT|IBAN|WIRE|WIRE TRANSFER|TRANSFER|REMITTANCE|REMIT|CHUYEN KHOAN|CHUYEN TIEN)\b/.test(normalized);
     }
 
     function applyDeclarationBusinessRules(fields, type) {
@@ -4847,6 +5040,15 @@ ${JSON.stringify(compact)}`
           value: "1",
           status: "computed",
           source: "Mặc định: Người xuất khẩu (nhập khẩu)"
+        };
+      }
+
+      if (fields.ecus_AQ && fields.ecus_AQ.status !== "confirmed") {
+        fields.ecus_AQ = {
+          ...fields.ecus_AQ,
+          value: "D",
+          status: "computed",
+          source: "Mặc định: Trường hợp nộp thuế ngay"
         };
       }
 
@@ -5003,6 +5205,12 @@ ${JSON.stringify(compact)}`
       }
     }
 
+
+    function exportCountryCodeFromPartyAddress(value) {
+      const match = lookupCatalogMatch(exportCountryOptions(), value);
+      return match?.code ? String(match.code).trim().toUpperCase() : "";
+    }
+
     function transformDeclarationEcusValue(definition, value) {
       const text = String(value ?? "").trim();
       if (!text) return "";
@@ -5055,15 +5263,18 @@ ${JSON.stringify(compact)}`
         const code = ecusLocation(text).code || "";
         return /^[A-Z]{2}/i.test(code) ? code.slice(0, 2).toUpperCase() : "";
       }
+      if (definition.transform === "country_from_party_address") {
+        return exportCountryCodeFromPartyAddress(text);
+      }
       if (definition.transform === "container_count") {
         const parts = String(text).split(/\r?\n|\s*;\s*|\s*,\s*/).map(item => item.trim()).filter(Boolean);
         return parts.length ? String(parts.length) : "";
       }
       if (definition.transform === "payment_method_code") {
         const normalized = normalizeCatalogLookupText(text);
-        if (/\b(TT|T T|TRANSFER|WIRE|REMITTANCE|CHUYEN KHOAN)\b/.test(normalized)) return "KC";
+        if (/\b(TT|T T|BANK TRANSFER|TRANSFER|WIRE|REMITTANCE|REMIT|CHUYEN KHOAN|CHUYEN TIEN)\b/.test(normalized)) return "KC";
         const match = lookupCatalogMatch(paymentMethodOptions(), text);
-        return match?.code || text.toUpperCase();
+        return match?.code || "";
       }
       if (/^address_[1-4]$/.test(definition.transform)) {
         const index = Number(definition.transform.slice(-1)) - 1;
@@ -5075,10 +5286,13 @@ ${JSON.stringify(compact)}`
 
     function declarationSourceKeys(definition, type) {
       const key = definition?.key;
-      if (key === "ecus_F") return type === "import" ? ["exporter", "seller"] : ["buyer"];
+      if (key === "ecus_F") return type === "import" ? ["seller", "exporter"] : ["buyer"];
       if (key === "ecus_BB") return type === "import" ? ["buyer"] : ["exporter", "seller"];
-      if (["ecus_BD", "ecus_BN", "ecus_BU", "ecus_BV", "ecus_BW"].includes(key)) {
+      if (key === "ecus_BD") {
         return type === "import" ? ["buyer_address"] : ["exporter_address", "seller_address"];
+      }
+      if (["ecus_BN", "ecus_BU", "ecus_BV", "ecus_BW"].includes(key)) {
+        return ["exporter_address", "seller_address"];
       }
       return definition?.sources || [];
     }
@@ -5089,7 +5303,7 @@ ${JSON.stringify(compact)}`
       if (key === "ecus_BB") return type === "import" ? "Tên đơn vị nhập khẩu" : "Tên đơn vị xuất khẩu";
       if (key === "ecus_BD") return type === "import" ? "Địa chỉ người nhập khẩu" : "Địa chỉ người xuất khẩu";
       const addressIndex = ({ ecus_BN: 1, ecus_BU: 2, ecus_BV: 3, ecus_BW: 4 })[key];
-      if (addressIndex) return `${type === "import" ? "Địa chỉ người nhập khẩu" : "Địa chỉ người xuất khẩu"} ${addressIndex}`;
+      if (addressIndex) return `Địa chỉ người xuất khẩu ${addressIndex}`;
       return definition?.label || key;
     }
 
