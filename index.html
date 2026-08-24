@@ -8909,19 +8909,6 @@ ${JSON.stringify(compact)}`
       if (!declarationWorkspace) return;
 
       try {
-        const lengthIssues = validateEcusGeneralTextLengths();
-        if (lengthIssues.length) {
-          const preview = lengthIssues.slice(0, 4)
-            .map(item => `${item.label}: ${item.length}/${item.limit} ký tự`)
-            .join("; ");
-          showDraftMessage(
-            `Chưa xuất Excel vì có trường dài hơn giới hạn an toàn của ECUS: ${preview}. ` +
-            `Hãy rút ngắn/kiểm tra đúng nội dung trường trước khi xuất.`,
-            "error"
-          );
-          return;
-        }
-
         renumberDeclarationItemRows();
 
         const generalData = ECUS_GENERAL_EXPORT_MAP
